@@ -35,12 +35,14 @@ class _UpdateProfileState extends State<UpdateProfile1> {
   String? identity;
 
   Future<void> loadData() async {
-    String? storedEmail = await widget.storage.read(key: 'identity');
-    print("Identity $storedEmail");
+    String? storedIdentity = await widget.storage.read(key: 'role');
+    print("🔍 Loaded identity in UpdateProfile: $storedIdentity");
+
     setState(() {
-      identity = storedEmail;
+      identity = storedIdentity;
     });
   }
+
 
   @override
   void initState() {
@@ -75,7 +77,7 @@ class _UpdateProfileState extends State<UpdateProfile1> {
       };
       final options = Options(headers: {'Accept': 'application/json'});
       final response = await widget.dio.post(
-          '/member/update-member',
+          '/update/profile',
           data: jsonEncode(payload),
           options: options
       );
@@ -140,18 +142,17 @@ class _UpdateProfileState extends State<UpdateProfile1> {
       LoaderService.showLoader(context);
       Map<String, dynamic> payload = {
         "pin": pin,
-        "pin_confirmation": pin
       };
       final options = Options(headers: {'Accept': 'application/json'});
       final response = await widget.dio.post(
-          '/member/setup-pin',
+          '/create/pin',
           data: jsonEncode(payload),
           options: options
       );
       print(response);
       if (response.statusCode == 200) {
         LoaderService.hideLoader(context);
-        if(identity == "creator") {
+        if(identity?.toLowerCase() == "creator") {
           Navigator.pushNamed(context, CreatorDashboard.id);
         }else {
           Navigator.pushNamed(context, JustCurious.id);
@@ -210,6 +211,7 @@ class _UpdateProfileState extends State<UpdateProfile1> {
 
   @override
   Widget build(BuildContext context) {
+    print("Update $identity");
     return Scaffold(
       backgroundColor: const Color(0xFF0C051F),
       body: Column(

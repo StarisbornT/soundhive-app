@@ -12,13 +12,11 @@ class MarketplaceReceiptScreen extends ConsumerStatefulWidget {
   final String paymentMethod;
   final List<DateTime> availability;
   final User user;
-  final String? memberServiceId;
   const MarketplaceReceiptScreen(
       {super.key,
       required this.service,
       required this.availability,
         required this.user,
-        this.memberServiceId,
       required this.paymentMethod});
 
   @override
@@ -76,7 +74,7 @@ class _AssetScreenState extends ConsumerState<MarketplaceReceiptScreen> {
                       height: 20,
                     ),
                     Utils.confirmRow(
-                        'Price', Utils.formatCurrency(service.serviceAmount)),
+                        'Price', Utils.formatCurrency(service.rate)),
                     const SizedBox(
                       height: 20,
                     ),
@@ -106,16 +104,15 @@ class _AssetScreenState extends ConsumerState<MarketplaceReceiptScreen> {
                   borderWidth: 0,
                   borderRadius: 25.0,
                   onPressed: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) => MarkAsCompletedScreen(
-                            services: widget.service,
-                          user: widget.user,
-                          memberServiceId: widget.memberServiceId,
-                        ),
-                      ),
-                    );
+                    // Navigator.push(
+                    //   context,
+                    //   MaterialPageRoute(
+                    //     builder: (context) => MarkAsCompletedScreen(
+                    //         services: widget.service,
+                    //       user: widget.user,
+                    //     ),
+                    //   ),
+                    // );
                   }
               )
             ])));

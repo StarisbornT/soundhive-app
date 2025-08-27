@@ -13,7 +13,6 @@ import '../../../model/market_orders_service_model.dart';
 import '../../../model/user_model.dart';
 import '../../../utils/alert_helper.dart';
 import '../../../utils/app_colors.dart';
-import '../../creator/profile/setup_screen.dart';
 import '../../dashboard/marketplace/markplace_recept.dart';
 final withdrawStateProvider = StateProvider<bool>((ref) => false);
 class MarketplaceDetails extends ConsumerStatefulWidget {
@@ -89,7 +88,7 @@ class _MarketplaceDetailsScreenState extends ConsumerState<MarketplaceDetails>  
         ),
         const SizedBox(height: 8),
         Text(
-          Utils.formatCurrency(widget.service.serviceAmount),
+          Utils.formatCurrency(widget.service.rate),
           style: const TextStyle(
             color: Colors.white, fontSize: 24, fontWeight: FontWeight.w500, fontFamily: 'Roboto'
           ),
@@ -100,10 +99,10 @@ class _MarketplaceDetailsScreenState extends ConsumerState<MarketplaceDetails>  
             CircleAvatar(
               radius: 15,
               backgroundColor: AppColors.BUTTONCOLOR,
-              backgroundImage: (widget.service.user?.profileImage != null && widget.service.user!.profileImage!.isNotEmpty)
-                  ? NetworkImage(widget.service.user!.profileImage!)
+              backgroundImage: (widget.service.user?.image != null && widget.service.user!.image!.isNotEmpty)
+                  ? NetworkImage(widget.service.user!.image!)
                   : null,
-              child: (widget.service.user?.profileImage == null || widget.service.user!.profileImage!.isEmpty)
+              child: (widget.service.user?.image == null || widget.service.user!.image!.isEmpty)
                   ? Text(
                 widget.service.user?.firstName.isNotEmpty == true
                     ? widget.service.user!.firstName[0].toUpperCase()
@@ -140,7 +139,7 @@ class _MarketplaceDetailsScreenState extends ConsumerState<MarketplaceDetails>  
           children: [
             const Icon(Icons.location_on_outlined, color: Color(0xFFB0B0B6), size: 18),
             Text(
-              widget.service.creator?.location?.capitalize() ?? '',
+             widget.service.user?.creator?.location ?? '',
               style: const TextStyle(color: Colors.grey, fontSize: 12),
             ),
           ],
@@ -154,42 +153,31 @@ class _MarketplaceDetailsScreenState extends ConsumerState<MarketplaceDetails>  
         ),
         const SizedBox(height: 8),
         Text(
-        widget.service.creator?.bioDescription ?? '',
+       widget.service.user?.creator?.bio ?? '',
           style: const TextStyle(color: Colors.grey, fontSize: 14),
         ),
         const SizedBox(height: 16),
         Center(
           child: RoundedButton(
-            title: widget.user.creator == null
-                ? 'Complete KYC to book creative'
-                : widget.user.creator?.status != "active"
-                ? 'KYC under review'
-                : widget.user.member?.account == null ?
+            title:  widget.user.user?.wallet == null ?
                 "Activate your wallet"
                 :  'Book',
             onPressed: () {
-              if (widget.user.creator == null) {
+              if(widget.user.user?.wallet == null) {
                 Navigator.push(
                   context,
                   MaterialPageRoute(
-                    builder: (context) => SetupScreen(user: widget.user),
-                  ),
-                );
-              } else if(widget.user.member?.account == null) {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) =>  WalletScreen(user: widget.user.member!,),
+                    builder: (context) =>  WalletScreen(user: widget.user.user!,),
                   ),
                 );
               }
-              else if (widget.user.creator?.status == "active") {
+              else {
                 setState(() {
                   _currentStep++;
                 });
               }
             },
-            color:widget.user.creator?.status == "active" ? const Color(0xFF4D3490) : const Color(0xFF5F5873),
+            color:const Color(0xFF4D3490),
             borderWidth: 0,
             borderRadius: 25.0,
           ),
@@ -211,7 +199,7 @@ class _MarketplaceDetailsScreenState extends ConsumerState<MarketplaceDetails>  
         ),
         const SizedBox(height: 20),
         PaymentMethodSelector(
-          user: widget.user.member!,
+          user: widget.user.user!,
           onSelected: (method) {
             print('Selected: $method');
             selectedPaymentOption= method;
@@ -224,7 +212,7 @@ class _MarketplaceDetailsScreenState extends ConsumerState<MarketplaceDetails>  
             print('Selected dates: ${dates.map((d) => DateFormat('dd/MM/yyyy').format(d)).join(', ')}');
           },
         ),
-        SizedBox(height: 430,),
+        const SizedBox(height: 430,),
         RoundedButton(title: 'Continue',
           color: const Color(0xFF4D3490),
           borderWidth: 0,
@@ -250,8 +238,8 @@ class _MarketplaceDetailsScreenState extends ConsumerState<MarketplaceDetails>  
     try {
       final payload = {
         "service_id": widget.service.id,
-        "start_date": availablityDates.map((date) => DateFormat('yyyy-MM-dd').format(date)).toList(),
-        "payment_type": selectedPaymentOption,
+        "date": availablityDates.map((date) => DateFormat('yyyy-MM-dd').format(date)).toList(),
+        "amount": widget.service.rate,
       };
 
       final response = await ref.read(apiresponseProvider.notifier).buyServices(
@@ -259,7 +247,7 @@ class _MarketplaceDetailsScreenState extends ConsumerState<MarketplaceDetails>  
         payload: payload,
       );
 
-      if(response.message == "success") {
+      if(response.status) {
         await ref.read(userProvider.notifier).loadUserProfile();
 
         Navigator.push(
@@ -269,8 +257,7 @@ class _MarketplaceDetailsScreenState extends ConsumerState<MarketplaceDetails>  
               service: widget.service,
               paymentMethod: selectedPaymentOption ?? '',
               availability: availablityDates,
-              user: widget.user.member!,
-              memberServiceId: response.data['service_id'].toString()
+              user: widget.user.user!,
             ),
           ),
         );

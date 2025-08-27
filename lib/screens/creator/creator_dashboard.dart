@@ -6,6 +6,8 @@ import 'package:soundhive2/screens/creator/profile/profile_screen.dart';
 import 'package:soundhive2/screens/creator/services/services.dart';
 import 'package:soundhive2/screens/non_creator/non_creator.dart';
 import 'package:soundhive2/utils/app_colors.dart';
+import '../../lib/dashboard_provider/apiresponseprovider.dart';
+import '../auth/login.dart';
 import '../non_creator/vest/soundhive_vest.dart';
 import '../non_creator/wallet/transaction_history.dart';
 import 'creator_home.dart';
@@ -33,7 +35,7 @@ class CreatorDashboard extends ConsumerWidget {
         title: Consumer(
           builder: (context, ref, _) {
             final userData = ref.watch(userProvider).asData?.value;
-            final user = userData?.member;
+            final user = userData?.user;
             return Row(
               children: [
                 Text(
@@ -55,7 +57,7 @@ class CreatorDashboard extends ConsumerWidget {
           Consumer(
             builder: (context, ref, _) {
               final userData = ref.watch(userProvider).asData?.value;
-              final user = userData?.member;
+              final user = userData?.user;
               return GestureDetector(
                 onTap: () {
                   _scaffoldKey.currentState?.openDrawer();
@@ -87,7 +89,7 @@ class CreatorDashboard extends ConsumerWidget {
           },
           child: userState.when(
             data: (userData) {
-              final user = userData.member;
+              final user = userData.user;
               return CustomScrollView(
                 slivers: [
                   SliverList(
@@ -215,8 +217,9 @@ class CreatorDashboard extends ConsumerWidget {
                         child: _buildDrawerItem(
                             icon: 'images/power.png',
                             text: 'Sign Out',
-                            onTap: () {
-                              Navigator.pop(context);
+                            onTap: () async {
+                              await ref.read(apiresponseProvider.notifier).logout(context: context);
+                              Navigator.pushNamedAndRemoveUntil(context, Login.id, (route) => false);
                             },
                             textColor: Colors.white
                         ),

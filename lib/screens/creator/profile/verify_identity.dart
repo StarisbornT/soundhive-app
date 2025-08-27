@@ -36,17 +36,21 @@ class _VerifyIdentityScreenState extends ConsumerState<VerifyIdentity> {
   final ValueNotifier<File?> _imageNotifier = ValueNotifier<File?>(null);
   final ValueNotifier<File?> _utilityNotifier = ValueNotifier<File?>(null);
 
+  String? selectedGender;
+  String? selectedIdType;
+  String? selectedUtility;
+
   @override
   void initState() {
     super.initState();
     bvnController = TextEditingController(
-      text: widget.user.kyc?.response.bvn ?? '',
+      text: widget.user.bvn ?? '',
     );
     ninController = TextEditingController(
-      text: widget.user.kyc?.response.nin ?? '',
+      text: widget.user.nin ?? '',
     );
     genderController = TextEditingController(
-      text: widget.user.kyc?.response.gender.toLowerCase() ?? '',
+      text: widget.user.gender ?? '',
     );
   }
   final List<Map<String, String>> gender =[
@@ -223,16 +227,16 @@ class _VerifyIdentityScreenState extends ConsumerState<VerifyIdentity> {
     final response = await ref.read(apiresponseProvider.notifier).verifyIdentity(
       context: context,
      payload: {
-       "gender": genderController.text.toLowerCase(),
+       "gender": selectedGender,
        "bvn": bvnController.text,
        "nin": ninController.text,
-       "id_type": idTypeController.text,
-       "copy_id_type": _uploadedImageUrl,
-       "copy_utility_bill_type" : utilityBillController.text,
-       "copy_utility_bill": _uploadedUtilityUrl,
+       "id_type": selectedIdType,
+       "copy_of_id": _uploadedImageUrl,
+       "utility_bill" : selectedUtility,
+       "copy_of_utility_bill": _uploadedUtilityUrl,
      }
     );
-    if(response.message != "Creator success") {
+    if(!response.status) {
       throw DioException(
         requestOptions: RequestOptions(path: ''),
         response: Response(
@@ -289,6 +293,9 @@ class _VerifyIdentityScreenState extends ConsumerState<VerifyIdentity> {
                       controller: genderController,
                       items: gender,
                       hintText: 'Select gender',
+                      onChanged: (value) {
+                        selectedGender= value;
+                      },
                     ),
                     const SizedBox(height: 10),
                     LabeledTextField(
@@ -312,6 +319,9 @@ class _VerifyIdentityScreenState extends ConsumerState<VerifyIdentity> {
                       controller: idTypeController,
                       items: idTypeOptions,
                       hintText: 'Select an ID Type',
+                      onChanged: (value) {
+                        selectedIdType = value;
+                      },
                     ),
                     const SizedBox(height: 10),
                     ImagePickerComponent(
@@ -331,6 +341,9 @@ class _VerifyIdentityScreenState extends ConsumerState<VerifyIdentity> {
                       controller: utilityBillController,
                       items: utilityBill,
                       hintText: 'Select an Utility Bill',
+                      onChanged: (value) {
+                        selectedUtility  = value;
+                      },
                     ),
                     ImagePickerComponent(
                       labelText: 'Copy of Utility',

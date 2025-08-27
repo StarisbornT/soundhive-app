@@ -150,13 +150,13 @@ class _NonCreatorProfileState extends ConsumerState<NonCreatorProfile> {
             CircleAvatar(
               radius: 50,
               backgroundColor: AppColors.BUTTONCOLOR,
-              backgroundImage: (user.value?.member?.profileImage != null)
-                  ? NetworkImage(user.value!.member!.profileImage!)
+              backgroundImage: (user.value?.user?.image != null)
+                  ? NetworkImage(user.value!.user!.image!)
                   : null,
-              child: (user.value?.member?.profileImage == null)
+              child: (user.value?.user?.image == null)
                   ? Text(
-                widget.user.member!.firstName.isNotEmpty
-                    ? widget.user.member!.firstName[0].toUpperCase()
+                widget.user.user!.firstName.isNotEmpty
+                    ? widget.user.user!.firstName[0].toUpperCase()
                     : '',
                 style: const TextStyle(fontSize: 24, color: Colors.white),
               )
@@ -164,7 +164,7 @@ class _NonCreatorProfileState extends ConsumerState<NonCreatorProfile> {
             ),
             const SizedBox(height: 12),
             Text(
-              "${widget.user.member!.firstName} ${widget.user.member!.lastName}",
+              "${widget.user.user!.firstName} ${widget.user.user!.lastName}",
               style: const TextStyle(
                 color: Colors.white,
                 fontSize: 18,

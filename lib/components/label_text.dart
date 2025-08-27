@@ -128,15 +128,11 @@ class LabeledSelectField extends StatefulWidget {
 class _LabeledSelectFieldState extends State<LabeledSelectField> {
   String _searchQuery = '';
 
-  late final Map<String, String> _labelToValue;
   late final Map<String, String> _valueToLabel;
 
   @override
   void initState() {
     super.initState();
-    _labelToValue = {
-      for (var item in widget.items) item['label']!: item['value']!,
-    };
     _valueToLabel = {
       for (var item in widget.items) item['value']!: item['label']!,
     };
@@ -184,12 +180,12 @@ class _LabeledSelectFieldState extends State<LabeledSelectField> {
               controller: widget.controller,
               decoration: InputDecoration(
                 hintText: widget.hintText ?? 'Select an option',
-                suffixIcon: Icon(Icons.arrow_drop_down, color: Colors.white),
+                suffixIcon: const Icon(Icons.arrow_drop_down, color: Colors.white),
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(8),
                   borderSide: BorderSide(
                     color: widget.errorText != null
-                        ? Color.fromRGBO(219, 33, 33, 0.76)
+                        ? const Color.fromRGBO(219, 33, 33, 0.76)
                         : AppColors.FORMGREYCOLOR,
                   ),
                 ),
@@ -197,7 +193,7 @@ class _LabeledSelectFieldState extends State<LabeledSelectField> {
                   borderRadius: BorderRadius.circular(8),
                   borderSide: BorderSide(
                     color: widget.errorText != null
-                        ? Color.fromRGBO(219, 33, 33, 0.76)
+                        ? const Color.fromRGBO(219, 33, 33, 0.76)
                         : AppColors.WHITECOLOR,
                     width: 2.0,
                   ),
@@ -245,7 +241,7 @@ class _LabeledSelectFieldState extends State<LabeledSelectField> {
                     },
                     decoration: InputDecoration(
                       hintText: 'Search...',
-                      prefixIcon: Icon(Icons.search),
+                      prefixIcon: const Icon(Icons.search),
                       filled: true,
                       fillColor: Colors.white12,
                       border: OutlineInputBorder(
@@ -261,18 +257,21 @@ class _LabeledSelectFieldState extends State<LabeledSelectField> {
                     child: ListView.builder(
                       itemCount: filteredItems.length,
                       itemBuilder: (context, index) {
-                        String? _selectedTypeValue;
                         final item = filteredItems[index];
                         return ListTile(
                           title: Text(
                             item['label'] ?? '',
-                            style: TextStyle(color: Colors.white),
+                            style: const TextStyle(color: Colors.white),
                           ),
                             onTap: () {
                               final value = item['value']!;
+                              final label = item['label']!;
                               setState(() {
-                                widget.controller.text = value; // Store only value
+                                widget.controller.text = label; // Show label in the UI
                               });
+                              if (widget.onChanged != null) {
+                                widget.onChanged!(value);
+                              }
                               Navigator.pop(context);
                             }
                         );

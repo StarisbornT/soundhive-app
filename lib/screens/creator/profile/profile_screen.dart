@@ -11,8 +11,8 @@ import 'package:soundhive2/utils/app_colors.dart';
 import 'package:soundhive2/utils/utils.dart';
 
 import '../../../components/label_text.dart';
-import '../../../lib/dashboard_provider/apiresponseprovider.dart';
-import '../../../lib/dashboard_provider/user_provider.dart';
+import 'package:soundhive2/lib/dashboard_provider/apiresponseprovider.dart';
+import 'package:soundhive2/lib/dashboard_provider/user_provider.dart';
 import '../../../model/apiresponse_model.dart';
 import '../../../model/user_model.dart';
 import '../../../services/loader_service.dart';
@@ -88,7 +88,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
 
   Future<void> updateProfile(String imageUrl) async {
     final payload = {
-      "profile_image": imageUrl,
+      "image": imageUrl,
     };
 
     try {
@@ -171,7 +171,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
     }
     Future<void> editDescription(String description) async {
       final payload = {
-        "bio_description": description,
+        "bio": description,
       };
 
       try {
@@ -316,7 +316,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
       );
     }
     final user = ref.watch(userProvider);
-    final creator = user.value?.creator;
+    final creator = user.value?.user?.creator;
 
     final instagram = creator?.instagram;
     final linkedin = creator?.linkedin;
@@ -362,13 +362,13 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
             CircleAvatar(
               radius: 50,
               backgroundColor: AppColors.BUTTONCOLOR,
-              backgroundImage: (user.value?.member?.profileImage != null)
-                  ? NetworkImage(user.value!.member!.profileImage!)
+              backgroundImage: (user.value?.user?.image != null)
+                  ? NetworkImage(user.value!.user!.image!)
                   : null,
-              child: (user.value?.member?.profileImage == null)
+              child: (user.value?.user?.image == null)
                   ? Text(
-                widget.user.member!.firstName.isNotEmpty
-                    ? widget.user.member!.firstName[0].toUpperCase()
+                widget.user.user!.firstName.isNotEmpty
+                    ? widget.user.user!.firstName[0].toUpperCase()
                     : '',
                 style: const TextStyle(fontSize: 24, color: Colors.white),
               )
@@ -377,7 +377,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
 
             const SizedBox(height: 12),
             Text(
-              "${widget.user.member!.firstName} ${widget.user.member!.lastName}",
+              "${widget.user.user!.firstName} ${widget.user.user!.lastName}",
               style: const TextStyle(
                 color: textColor,
                 fontSize: 18,
@@ -405,10 +405,10 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
             // Job Title Card
             _buildInfoCard(
               label: 'Job Title',
-              value: user.value?.creator?.jobTitle ?? 'Not specified',
+              value: user.value?.user?.creator?.jobTitle?? 'Not specified',
               hasEdit: true,
               onEdit: () {
-                showEditJobTitleSheet(context, user.value?.creator?.jobTitle ?? '');
+                showEditJobTitleSheet(context, user.value?.user?.creator?.jobTitle ?? '');
               },
               cardBackgroundColor: cardBackgroundColor,
               textColor: textColor,
@@ -419,10 +419,10 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
             // Bio Description Card
             _buildInfoCard(
               label: 'Bio Description',
-              value: user.value?.creator?.bioDescription ?? 'No bio provided.',
+              value: user.value?.user?.creator?.bio ?? 'No bio provided.',
               hasEdit: true,
               onEdit: () {
-                showEditBioDescriptionSheet(context, user.value?.creator?.bioDescription ?? 'No bio provided.');
+                showEditBioDescriptionSheet(context, user.value?.user?.creator?.bio ?? 'No bio provided.');
               },
               cardBackgroundColor: cardBackgroundColor,
               textColor: textColor,
@@ -433,7 +433,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
             // Where are you based? Card
             _buildInfoCard(
               label: 'Where are you based?',
-              value: widget.user.creator?.location ?? 'Not specified',
+              value: user.value?.user?.creator?.location ?? 'Not specified',
               hasEdit: false,
               cardBackgroundColor: cardBackgroundColor,
               textColor: textColor,

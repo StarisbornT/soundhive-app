@@ -10,9 +10,11 @@ import 'package:soundhive2/screens/non_creator/vest/soundhive_vest.dart';
 import 'package:soundhive2/screens/non_creator/wallet/transaction_history.dart';
 import 'package:soundhive2/screens/non_creator/wallet/wallet.dart';
 
+import '../../lib/dashboard_provider/apiresponseprovider.dart';
 import '../../lib/dashboard_provider/user_provider.dart';
 import '../../lib/navigator_provider.dart';
 import '../../utils/app_colors.dart';
+import '../auth/login.dart';
 import '../creator/profile/setup_screen.dart';
 import 'marketplace/marketplace.dart';
 
@@ -39,7 +41,7 @@ class NonCreatorDashboard extends ConsumerWidget {
         title: Consumer(
           builder: (context, ref, _) {
             final userData = ref.watch(userProvider).asData?.value;
-            final user = userData?.member;
+            final user = userData?.user;
             return Row(
               children: [
                 GestureDetector(
@@ -87,7 +89,7 @@ class NonCreatorDashboard extends ConsumerWidget {
           },
           child: userState.when(
             data: (userData) {
-              final user = userData.member;
+              final user = userData.user;
               return CustomScrollView(
                 slivers: [
                   SliverList(
@@ -206,7 +208,7 @@ class NonCreatorDashboard extends ConsumerWidget {
                               style: TextStyle(color: Colors.white70),
                             ),
                             onTap: () {
-                              if(userData.creator != null) {
+                              if(userData.user?.creator != null) {
                                 Navigator.pushReplacementNamed(context, CreatorDashboard.id);
                               }else {
                                 Navigator.push(
@@ -232,8 +234,10 @@ class NonCreatorDashboard extends ConsumerWidget {
                         child: _buildDrawerItem(
                             icon: 'images/power.png',
                             text: 'Sign Out',
-                            onTap: () {
-                              Navigator.pop(context);
+                            onTap: () async {
+                              await ref.read(apiresponseProvider.notifier).logout(context: context);
+                                Navigator.pushNamedAndRemoveUntil(context, Login.id, (route) => false);
+
                             },
                             textColor: Colors.white
                         ),
@@ -255,7 +259,7 @@ class NonCreatorDashboard extends ConsumerWidget {
           data: (user) {
             final List<Widget> pages = [
                Marketplace(user: user,),
-              WalletScreen(user: user.member!,),
+              WalletScreen(user: user.user!,),
               // SoundhiveVestScreen(user: user),
               // Marketplace(user: user),
               const Placeholder(),

@@ -23,11 +23,11 @@ class _WalletScreenState extends ConsumerState<WalletScreen> {
   @override
   void initState() {
     super.initState();
-    if(widget.user.account != null) {
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        ref.read(getAccountBalance.notifier).getAccountBalance(widget.user.account!.accountId);
-      });
-    }
+    // if(widget.user.account != null) {
+    //   WidgetsBinding.instance.addPostFrameCallback((_) {
+    //     ref.read(getAccountBalance.notifier).getAccountBalance(widget.user.account!.accountId);
+    //   });
+    // }
 
   }
   @override
@@ -68,7 +68,7 @@ class _WalletScreenState extends ConsumerState<WalletScreen> {
               ),
             ),
             const SizedBox(height: 8),
-              widget.user.account == null
+              widget.user.wallet == null
                   ?  Text(
                 '₦0.00',
                 style: GoogleFonts.roboto(
@@ -79,34 +79,17 @@ class _WalletScreenState extends ConsumerState<WalletScreen> {
                   )
                 ),
               )
-                  : serviceState.when(
-                data: (response) {
-                  final balance = response.data.accountBalance;
-                  return Text(
-                    Utils.formatCurrency(balance),
-                    style: GoogleFonts.roboto(
-                      textStyle: const TextStyle(
-                        color: Colors.white,
-                        fontSize: 24,
-                        fontWeight: FontWeight.w400,
-                      )
-                    ),
-                  );
-                },
-                loading: () => const CircularProgressIndicator(
-                  color: Colors.white,
-                  strokeWidth: 2,
-                ),
-                error: (err, _) => const Text(
-                  '₦0.00',
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 24,
-                    fontWeight: FontWeight.w400,
-                  ),
+                  : Text(
+                Utils.formatCurrency(widget.user.wallet?.balance),
+                style: GoogleFonts.roboto(
+                    textStyle: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 24,
+                      fontWeight: FontWeight.w400,
+                    )
                 ),
               ),
-              if(widget.user.account != null)
+              if(widget.user.wallet != null)
               Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
@@ -114,25 +97,25 @@ class _WalletScreenState extends ConsumerState<WalletScreen> {
                     onPressed: () {
                       Utils.showBankTransferBottomSheet(
                                   context,
-                                  widget.user.account?.bank,
-                                widget.user.account?.accountNumber,
-                                widget.user.account?.accountName
+                                  widget.user.wallet?.bankName,
+                                widget.user.wallet?.accountNumber,
+                                widget.user.firstName
                       );
                     },
-                    icon: Icon(Icons.add, color: Color(0xFF4D3490), size: 18),
-                    label: Text(
+                    icon: const Icon(Icons.add, color: Color(0xFF4D3490), size: 18),
+                    label: const Text(
                       'Add funds',
                       style: TextStyle(color: Color(0xFF4D3490), fontSize: 14),
                     ),
                     style: ElevatedButton.styleFrom(
                       backgroundColor: Colors.white,
-                      padding: EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(20),
                       ),
                     ),
                   ),
-                  SizedBox(width: 10),
+                  const SizedBox(width: 10),
                   OutlinedButton.icon(
                     onPressed: () {
                       Navigator.push(
@@ -142,14 +125,14 @@ class _WalletScreenState extends ConsumerState<WalletScreen> {
                         ),
                       );
                     },
-                    icon: Icon(Icons.download, color: Colors.white, size: 18),
-                    label: Text(
+                    icon: const Icon(Icons.download, color: Colors.white, size: 18),
+                    label: const Text(
                       'Withdraw',
                       style: TextStyle(color: Colors.white, fontSize: 14),
                     ),
                     style: OutlinedButton.styleFrom(
-                      padding: EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-                      side: BorderSide(color: Colors.white),
+                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                      side: const BorderSide(color: Colors.white),
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(20),
                       ),
@@ -162,7 +145,7 @@ class _WalletScreenState extends ConsumerState<WalletScreen> {
             ),
             const SizedBox(height: 16),
             // Activate Wallet Card
-            if(widget.user.account == null)
+            if(widget.user.wallet == null)
             Utils.reviewCard(
                 context,
                 title: "Activate Wallet",

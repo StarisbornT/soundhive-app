@@ -1,46 +1,92 @@
-import 'dart:io';
+import 'dart:async';
 
-import 'package:dio/dio.dart';
-import 'package:file_picker/file_picker.dart';
-import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:firebase_database/firebase_database.dart';
+import 'dart:convert';
+import 'dart:io';
 import 'package:image_picker/image_picker.dart';
-import 'package:soundhive2/lib/dashboard_provider/chat_send_provider.dart';
-import 'package:soundhive2/lib/dashboard_provider/getChatProvider.dart';
-import 'package:soundhive2/model/chat_send_model.dart';
+import 'package:file_picker/file_picker.dart';
+import 'package:soundhive2/utils/app_colors.dart';
 
-import '../../../model/user_model.dart';
+import '../../model/user_model.dart';
 
 class Message {
+  final String id;
   final String text;
-  final String time;
-  final bool isMe;
+  final String senderId;
+  final String senderName;
+  final String receiverId;
+  final DateTime timestamp;
+  final List<FileData> files;
   final bool isSystem;
-  final List<String>? fileUrls; // Now only stores URLs
-  final List<File>? pendingFiles;
 
   Message({
+    required this.id,
     required this.text,
-    required this.time,
-    this.isMe = false,
+    required this.senderId,
+    required this.senderName,
+    required this.receiverId,
+    required this.timestamp,
+    this.files = const [],
     this.isSystem = false,
-    this.pendingFiles,
-    this.fileUrls,
   });
-  Message copyWith({
-    String? text,
-    List<String>? fileUrls,
-    List<File>? pendingFiles,
-  }) {
+
+  factory Message.fromMap(Map<dynamic, dynamic> map, String id) {
     return Message(
-      text: text!,
-      time: time,
-      isMe: isMe,
-      isSystem: isSystem,
-      fileUrls: fileUrls ?? this.fileUrls,
-      pendingFiles: pendingFiles ?? this.pendingFiles,
+      id: id,
+      text: map['text'] ?? '',
+      senderId: map['senderId'] ?? '',
+      senderName: map['senderName'] ?? '',
+      receiverId: map['receiverId'] ?? '',
+      timestamp: DateTime.parse(map['timestamp']),
+      files: List<FileData>.from((map['files'] ?? []).map((f) => FileData.fromMap(f))),
+      isSystem: map['isSystem'] ?? false,
     );
+  }
+
+  Map<String, dynamic> toMap() {
+    return {
+      'text': text,
+      'senderId': senderId,
+      'senderName': senderName,
+      'receiverId': receiverId,
+      'timestamp': timestamp.toIso8601String(),
+      'files': files.map((f) => f.toMap()).toList(),
+      'isSystem': isSystem,
+    };
+  }
+}
+
+class FileData {
+  final String name;
+  final String type; // 'image', 'video', 'pdf', 'document'
+  final String base64Data;
+  final int size;
+
+  FileData({
+    required this.name,
+    required this.type,
+    required this.base64Data,
+    required this.size,
+  });
+
+  factory FileData.fromMap(Map<dynamic, dynamic> map) {
+    return FileData(
+      name: map['name'],
+      type: map['type'],
+      base64Data: map['base64Data'],
+      size: map['size'],
+    );
+  }
+
+  Map<String, dynamic> toMap() {
+    return {
+      'name': name,
+      'type': type,
+      'base64Data': base64Data,
+      'size': size,
+    };
   }
 }
 
@@ -49,155 +95,262 @@ class ChatScreen extends ConsumerStatefulWidget {
   final String sellerName;
   final String sellerService;
   final User user;
-  const ChatScreen({Key? key, required this.sellerId, required this.user, required this.sellerName, required this.sellerService}) : super(key: key);
+
+  const ChatScreen({
+    super.key,
+    required this.sellerId,
+    required this.user,
+    required this.sellerName,
+    required this.sellerService
+  });
+
   @override
-  _ChatScreenScreenState createState() => _ChatScreenScreenState();
+  _ChatScreenState createState() => _ChatScreenState();
 }
 
-class _ChatScreenScreenState extends ConsumerState<ChatScreen> {
-  List<File> _pendingFiles = [];
-  String _pendingText = '';
-  List<Message> _messages = [];
-
+class _ChatScreenState extends ConsumerState<ChatScreen> {
   final TextEditingController _controller = TextEditingController();
+  final List<File> _pendingFiles = [];
+  final DatabaseReference _dbRef = FirebaseDatabase.instance.ref();
+  late StreamSubscription<DatabaseEvent> _messageSubscription;
+  final ScrollController _scrollController = ScrollController();
+
+  List<Message> _messages = [];
+  bool _isLoading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _setupRealtimeListener();
+    _loadInitialMessages();
+  }
+
+  @override
+  void dispose() {
+    _messageSubscription.cancel();
+    _scrollController.dispose();
+    super.dispose();
+  }
+  void _scrollToBottom() {
+    if (_scrollController.hasClients) {
+      _scrollController.animateTo(
+        _scrollController.position.maxScrollExtent,
+        duration: const Duration(milliseconds: 300),
+        curve: Curves.easeOut,
+      );
+    }
+  }
+  void _setupRealtimeListener() {
+    final chatId = _getChatId(widget.user.id.toString(), widget.sellerId);
+
+    _messageSubscription = _dbRef
+        .child('chats/$chatId/messages')
+        .orderByChild('timestamp')
+        .onValue
+        .listen((DatabaseEvent event) {
+      if (event.snapshot.value != null) {
+        final Map<dynamic, dynamic> messagesMap =
+        event.snapshot.value as Map<dynamic, dynamic>;
+
+        final List<Message> messages = [];
+
+        messagesMap.forEach((key, value) {
+          messages.add(Message.fromMap(value, key));
+        });
+
+        // Sort by timestamp
+        messages.sort((a, b) => a.timestamp.compareTo(b.timestamp));
+
+        setState(() {
+          _messages = messages;
+          _isLoading = false;
+        });
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          _scrollToBottom();
+        });
+      }
+    }, onError: (error) {
+      print('Error in message stream: $error');
+      setState(() => _isLoading = false);
+    });
+  }
+
+  Future<void> _loadInitialMessages() async {
+    // Add system message
+    setState(() {
+      _messages.insert(0, Message(
+        id: 'system',
+        text: "Do not mark this job as completed if your job has not been completed",
+        senderId: 'system',
+        senderName: 'System',
+        receiverId: widget.user.id.toString(),
+        timestamp: DateTime.now(),
+        isSystem: true,
+      ));
+    });
+  }
+
+  String _getChatId(String userId1, String userId2) {
+    final ids = [userId1, userId2]..sort();
+    return '${ids[0]}_${ids[1]}';
+  }
+
+  Future<List<FileData>> _processFiles(List<File> files) async {
+    final List<FileData> fileDataList = [];
+
+    for (final file in files) {
+      try {
+        // Read file as bytes and encode as base64
+        final bytes = await file.readAsBytes();
+        final base64Data = base64Encode(bytes);
+
+        // Determine file type
+        final String type = _getFileType(file.path);
+
+        fileDataList.add(FileData(
+          name: file.path.split('/').last,
+          type: type,
+          base64Data: base64Data,
+          size: bytes.length,
+        ));
+      } catch (e) {
+        print('Error processing file: $e');
+      }
+    }
+
+    return fileDataList;
+  }
+
+  String _getFileType(String filePath) {
+    final extension = filePath.toLowerCase().split('.').last;
+
+    if (['jpg', 'jpeg', 'png', 'gif', 'webp'].contains(extension)) {
+      return 'image';
+    } else if (['mp4', 'mov', 'avi', 'mkv'].contains(extension)) {
+      return 'video';
+    } else if (extension == 'pdf') {
+      return 'pdf';
+    } else {
+      return 'document';
+    }
+  }
+
+  Future<void> _sendMessage(String text) async {
+    if (text.isEmpty && _pendingFiles.isEmpty) return;
+
+    final user = widget.user;
+    final chatId = _getChatId(user.id.toString(), widget.sellerId);
+    final messageRef = _dbRef.child('chats/$chatId/messages').push();
+
+    // Process files first
+    List<FileData> fileData = [];
+    if (_pendingFiles.isNotEmpty) {
+      fileData = await _processFiles(_pendingFiles);
+    }
+
+    final message = Message(
+      id: messageRef.key!,
+      text: text,
+      senderId: user.id.toString(),
+      senderName: user.firstName,
+      receiverId: widget.sellerId,
+      timestamp: DateTime.now(),
+      files: fileData,
+    );
+
+    try {
+      await messageRef.set(message.toMap());
+      _controller.clear();
+      setState(() {
+        _pendingFiles.clear();
+      });
+    } catch (e) {
+      print('Error sending message: $e');
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Failed to send message')),
+      );
+    }
+  }
 
   void _handleFilesSelected(List<File> files) {
     setState(() {
       _pendingFiles.addAll(files);
     });
   }
-  Future<String> _uploadFileToCloudinary(File file) async {
-    final formData = FormData.fromMap({
-      'file': await MultipartFile.fromFile(file.path),
-      'upload_preset': 'soundhive',
-    });
 
-    final response = await Dio().post(
-      'https://api.cloudinary.com/v1_1/image/upload',
-      data: formData,
-    );
-
-    if (response.statusCode != 200) {
-      throw Exception('Upload failed: ${response.data}');
-    }
-
-    return response.data['secure_url'] as String;
-  }
-
-  Future<void> _submitToBackend(String text) async {
-    try {
-      String finalMessage = text;
-      List<String> uploadedUrls = [];
-      // Upload files first if any
-      if (_pendingFiles.isNotEmpty) {
-        for (final file in _pendingFiles) {
-          final url = await _uploadFileToCloudinary(file);
-          uploadedUrls.add(url);
-        }
-
-        // Append URLs to the message
-        if (text.isNotEmpty) {
-          finalMessage = '$text\n\nAttachments:\n${uploadedUrls.join('\n')}';
-        } else {
-          finalMessage = 'Attachments:\n${uploadedUrls.join('\n')}';
-        }
-      }
-
-      // Send to backend with only receiver_id and message
-      final response = await ref.read(chatSendProvider.notifier).sendMessage(
-        receiverId: widget.sellerId,
-        message: finalMessage,
-      );
-
-      if (response.message == "Message sent") {
-        // Update the message with URLs after successful send
-        setState(() {
-          _messages.last = _messages.last.copyWith(
-            text: finalMessage,
-            fileUrls: _pendingFiles.isNotEmpty ? uploadedUrls : null,
-          );
-        });
-        _pendingFiles.clear();
-        _controller.clear();
-      }
-    } catch (e) {
-      print('Error sending message: $e');
-      // Remove the optimistic message if failed
-      setState(() {
-        if (_messages.isNotEmpty) _messages.removeLast();
-      });
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Failed to send message: ${e.toString()}')),
-      );
-    }
-  }
-
-  void _sendMessage(String text) {
-    if (text.isEmpty && _pendingFiles.isEmpty) return;
-
-    setState(() {
-      _messages.add(Message(
-        text: text,
-        pendingFiles: _pendingFiles.isEmpty ? null : List.from(_pendingFiles),
-        time: _getCurrentTime(),
-        isMe: true,
-      ));
-      _pendingText = '';
-    });
-    _submitToBackend(text);
-    _pendingFiles.clear();
-    _controller.clear();
-  }
   void _removeFile(int index) {
     setState(() {
       _pendingFiles.removeAt(index);
     });
   }
 
-  String _getCurrentTime() {
-    final now = DateTime.now();
-    final hour = now.hour % 12 == 0 ? 12 : now.hour % 12;
-    final period = now.hour >= 12 ? 'PM' : 'AM';
-    return '${hour}:${now.minute.toString().padLeft(2, '0')} $period';
-  }
-  String _formatApiTime(String createdAt) {
-    final dateTime = DateTime.parse(createdAt).toLocal();
-    final hour = dateTime.hour % 12 == 0 ? 12 : dateTime.hour % 12;
-    final period = dateTime.hour >= 12 ? 'PM' : 'AM';
-    return '${hour}:${dateTime.minute.toString().padLeft(2, '0')} $period';
-  }
-  @override
-  void initState() {
-    super.initState();
-    _loadInitialMessages();
+  String _formatTime(DateTime timestamp) {
+    final hour = timestamp.hour % 12 == 0 ? 12 : timestamp.hour % 12;
+    final period = timestamp.hour >= 12 ? 'PM' : 'AM';
+    return '${hour}:${timestamp.minute.toString().padLeft(2, '0')} $period';
   }
 
-  Future<void> _loadInitialMessages() async {
-    // Load system message first
-    _messages = [
-      Message(
-        text: "Do not mark this job as completed this if your job has not been completed",
-        time: '',
-        isSystem: true,
-        pendingFiles: [],
-      ),
-    ];
-
-    // Load API messages
-    await ref.read(getChatProvider.notifier).getChat(widget.sellerId);
+  void _handleAttachment(BuildContext context) {
+    showModalBottomSheet(
+      context: context,
+      builder: (BuildContext context) {
+        return SafeArea(
+          child: Container(
+            color: AppColors.BACKGROUNDCOLOR,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                ListTile(
+                  leading: const Icon(Icons.image, color: Colors.white),
+                  title: const Text('Photo & Video', style: TextStyle(color: Colors.white)),
+                  onTap: () async {
+                    Navigator.pop(context);
+                    final files = await ImagePicker().pickMultiImage();
+                    if (files.isNotEmpty) {
+                      _handleFilesSelected(files.map((f) => File(f.path)).toList());
+                    }
+                  },
+                ),
+                ListTile(
+                  leading: const Icon(Icons.insert_drive_file, color: Colors.white),
+                  title: const Text('Document', style: TextStyle(color: Colors.white)),
+                  onTap: () async {
+                    Navigator.pop(context);
+                    final result = await FilePicker.platform.pickFiles(
+                      allowMultiple: true,
+                    );
+                    if (result != null) {
+                      _handleFilesSelected(result.paths.map((p) => File(p!)).toList());
+                    }
+                  },
+                ),
+                ListTile(
+                  leading: const Icon(Icons.camera_alt, color: Colors.white),
+                  title: const Text('Camera', style: TextStyle(color: Colors.white)),
+                  onTap: () async {
+                    Navigator.pop(context);
+                    final file = await ImagePicker().pickImage(source: ImageSource.camera);
+                    if (file != null) _handleFilesSelected([File(file.path)]);
+                  },
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
   }
 
   @override
   Widget build(BuildContext context) {
-    final chatState = ref.watch(getChatProvider);
     return Scaffold(
-      backgroundColor: Color(0xFF050110),
+      backgroundColor: const Color(0xFF050110),
       appBar: AppBar(
-        backgroundColor: Color(0xFF1A191E),
+        backgroundColor: const Color(0xFF1A191E),
         title: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(widget.sellerName, style: TextStyle(color: Colors.white, fontSize: 14),),
+              Text(widget.sellerName, style: const TextStyle(color: Colors.white, fontSize: 14)),
               Text(widget.sellerService,
                   style: Theme.of(context)
                       .textTheme
@@ -209,50 +362,41 @@ class _ChatScreenScreenState extends ConsumerState<ChatScreen> {
           onPressed: () => Navigator.pop(context),
         ),
       ),
-      body: chatState.when(
-        loading: () => const Center(child: CircularProgressIndicator()),
-        error: (error, stack) => Center(child: Text('Error: $error', style: TextStyle(color: Colors.white),)),
-        data: (apiChats) {
-          // Convert API data to Message objects
-          final apiMessages = apiChats.map((chat) => Message(
-            text: chat.message,
-            time: _formatApiTime(chat.createdAt),
-            isMe: chat.senderId == widget.user.memberId,
-            fileUrls: null,
-          )).toList();
-
-          // Combine system message with API messages
-          final allMessages = [
-            _messages.firstWhere((m) => m.isSystem),
-            ...apiMessages,
-            ..._messages.where((m) => !m.isSystem),
-          ];
-
-          return Column(
-            children: [
-              Expanded(
-                child: ListView.builder(
-                  padding: const EdgeInsets.all(8),
-                  itemCount: allMessages.length,
-                  itemBuilder: (context, index) {
-                    final message = allMessages[index];
-                    if (message.isSystem) {
-                      return _SystemMessage(message: message);
-                    }
-                    return _ChatBubble(message: message);
-                  },
-                ),
-              ),
-              _MessageInput(
-                controller: _controller,
-                onSend: _sendMessage,
-                onFilesSelected: _handleFilesSelected,
-                onRemoveFile: _removeFile,
-                pendingFiles: _pendingFiles,
-              )
-            ],
-          );
-        },
+      body: Column(
+        children: [
+          Expanded(
+            child: ListView.builder(
+              controller: _scrollController,
+              padding: const EdgeInsets.all(8),
+              itemCount: _messages.length,
+              itemBuilder: (context, index) {
+                final message = _messages[index];
+                if (message.isSystem) {
+                  return _SystemMessage(message: message);
+                }
+                return _ChatBubble(
+                  message: message,
+                  isMe: message.senderId == widget.user.id.toString(),
+                  formatTime: _formatTime,
+                );
+              },
+            ),
+          ),
+          _MessageInput(
+            controller: _controller,
+            onSend: (text) {
+              _sendMessage(text);
+              // Scroll to bottom after sending a message
+              WidgetsBinding.instance.addPostFrameCallback((_) {
+                _scrollToBottom();
+              });
+            },
+            onFilesSelected: _handleFilesSelected,
+            onRemoveFile: _removeFile,
+            pendingFiles: _pendingFiles,
+            onAttachment: _handleAttachment,
+          )
+        ],
       ),
     );
   }
@@ -273,20 +417,20 @@ class _SystemMessage extends StatelessWidget {
         width: 271,
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
         decoration: BoxDecoration(
-          color: Color.fromRGBO(255, 221, 118, 0.1),
+          color: const Color.fromRGBO(255, 221, 118, 0.1),
           borderRadius: BorderRadius.circular(50),
         ),
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(Icons.warning, color: Color(0xFFFFDD76), size: 12,),
-            SizedBox(width: 8,),
+            const Icon(Icons.warning, color: Color(0xFFFFDD76), size: 12),
+            const SizedBox(width: 8),
             Flexible(
               child: Text(
                 message.text,
                 style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                  color: Color(0xFFFFDD76),
-                  fontSize: 10
+                    color: const Color(0xFFFFDD76),
+                    fontSize: 10
                 ),
               ),
             ),
@@ -299,15 +443,23 @@ class _SystemMessage extends StatelessWidget {
 
 class _ChatBubble extends StatelessWidget {
   final Message message;
+  final bool isMe;
+  final String Function(DateTime) formatTime;
 
-  const _ChatBubble({required this.message});
+  const _ChatBubble({
+    required this.message,
+    required this.isMe,
+    required this.formatTime,
+  });
 
-  Widget _buildFilePreview(File file) {
+  Widget _buildFilePreview(FileData fileData) {
+    final bytes = base64Decode(fileData.base64Data);
+
     return Padding(
       padding: const EdgeInsets.only(bottom: 8),
       child: ClipRRect(
         borderRadius: BorderRadius.circular(8),
-        child: file.path.toLowerCase().endsWith('.pdf')
+        child: fileData.type == 'pdf'
             ? Container(
           width: 200,
           height: 200,
@@ -315,42 +467,19 @@ class _ChatBubble extends StatelessWidget {
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Icon(Icons.picture_as_pdf, size: 48, color: Colors.white),
-              Text('PDF Document', style: TextStyle(color: Colors.white)),
+              const Icon(Icons.picture_as_pdf, size: 48, color: Colors.white),
+              const Text('PDF Document', style: TextStyle(color: Colors.white)),
+              Text(fileData.name, style: const TextStyle(color: Colors.white70, fontSize: 10)),
             ],
           ),
         )
-            : Image.file(file, width: 200, height: 200, fit: BoxFit.cover),
-      ),
-    );
-  }
-
-  Widget _buildUrlPreview(String url) {
-    final isImage = url.toLowerCase().contains('.jpg') ||
-        url.toLowerCase().contains('.png') ||
-        url.toLowerCase().contains('.jpeg');
-    final isPdf = url.toLowerCase().contains('.pdf');
-
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 8),
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(8),
-        child: isPdf
-            ? Container(
+            : fileData.type == 'image'
+            ? Image.memory(
+          bytes,
           width: 200,
           height: 200,
-          color: Colors.grey[800],
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Icon(Icons.picture_as_pdf, size: 48, color: Colors.white),
-              Text('PDF Document', style: TextStyle(color: Colors.white)),
-              Text('(Uploaded)', style: TextStyle(color: Colors.white70, fontSize: 10)),
-            ],
-          ),
+          fit: BoxFit.cover,
         )
-            : isImage
-            ? Image.network(url, width: 200, height: 200, fit: BoxFit.cover)
             : Container(
           width: 200,
           height: 200,
@@ -359,9 +488,9 @@ class _ChatBubble extends StatelessWidget {
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Icon(Icons.insert_drive_file, size: 48, color: Colors.white),
-                Text('Download File', style: TextStyle(color: Colors.white)),
-                Text('(Uploaded)', style: TextStyle(color: Colors.white70, fontSize: 10)),
+                const Icon(Icons.insert_drive_file, size: 48, color: Colors.white),
+                const Text('Download File', style: TextStyle(color: Colors.white)),
+                Text(fileData.name, style: const TextStyle(color: Colors.white70, fontSize: 10)),
               ],
             ),
           ),
@@ -373,32 +502,23 @@ class _ChatBubble extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Align(
-      alignment: message.isMe ? Alignment.centerRight : Alignment.centerLeft,
+      alignment: isMe ? Alignment.centerRight : Alignment.centerLeft,
       child: Container(
         constraints: BoxConstraints(
           maxWidth: MediaQuery.of(context).size.width * 0.75,
         ),
         margin: const EdgeInsets.symmetric(vertical: 4),
         decoration: BoxDecoration(
-          color: message.isMe
-              ? const Color(0xFF4D3490)
-              : const Color(0xFF1A191E),
+          color: isMe ? const Color(0xFF4D3490) : const Color(0xFF1A191E),
           borderRadius: BorderRadius.circular(12),
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.end,
           children: [
-            if (message.pendingFiles != null)
-              ...message.pendingFiles!.map((file) => _buildFilePreview(file)),
-            if (message.fileUrls != null)
-              ...message.fileUrls!.map((url) => _buildUrlPreview(url)),
-
-
+            if (message.files.isNotEmpty)
+              ...message.files.map((file) => _buildFilePreview(file)),
             Padding(
-              padding: const EdgeInsets.symmetric(
-                  horizontal: 16,
-                  vertical: 8
-              ),
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.end,
                 children: [
@@ -409,7 +529,7 @@ class _ChatBubble extends StatelessWidget {
                     ),
                   const SizedBox(height: 4),
                   Text(
-                    message.time,
+                    formatTime(message.timestamp),
                     style: const TextStyle(
                       fontSize: 10,
                       color: Colors.white70,
@@ -425,13 +545,12 @@ class _ChatBubble extends StatelessWidget {
   }
 }
 
-
-
 class _MessageInput extends StatelessWidget {
   final TextEditingController controller;
   final Function(String) onSend;
   final Function(List<File>) onFilesSelected;
   final Function(int) onRemoveFile;
+  final Function(BuildContext) onAttachment;
   final List<File> pendingFiles;
 
   const _MessageInput({
@@ -439,56 +558,9 @@ class _MessageInput extends StatelessWidget {
     required this.onSend,
     required this.onFilesSelected,
     required this.onRemoveFile,
+    required this.onAttachment,
     required this.pendingFiles,
   });
-
-  void _handleAttachment(BuildContext context) {
-    showModalBottomSheet(
-      context: context,
-      builder: (BuildContext context) {
-        return SafeArea(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              ListTile(
-                leading: const Icon(Icons.image),
-                title: const Text('Photo & Video'),
-                onTap: () async {
-                  Navigator.pop(context);
-                  final files = await ImagePicker().pickMultiImage();
-                  if (files.isNotEmpty) {
-                    onFilesSelected(files.map((f) => File(f.path)).toList());
-                  }
-                },
-              ),
-              ListTile(
-                leading: const Icon(Icons.insert_drive_file),
-                title: const Text('Document'),
-                onTap: () async {
-                  Navigator.pop(context);
-                  final result = await FilePicker.platform.pickFiles(
-                    allowMultiple: true,
-                  );
-                  if (result != null) {
-                    onFilesSelected(result.paths.map((p) => File(p!)).toList());
-                  }
-                },
-              ),
-              ListTile(
-                leading: const Icon(Icons.camera_alt),
-                title: const Text('Camera'),
-                onTap: () async {
-                  Navigator.pop(context);
-                  final file = await ImagePicker().pickImage(source: ImageSource.camera);
-                  if (file != null) onFilesSelected([File(file.path)]);
-                },
-              ),
-            ],
-          ),
-        );
-      },
-    );
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -517,13 +589,11 @@ class _MessageInput extends StatelessWidget {
                             color: Colors.grey[800],
                           ),
                           child: file.path.toLowerCase().endsWith('.pdf')
-                              ? Column(
+                              ? const Column(
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: [
-                              Icon(Icons.picture_as_pdf,
-                                  color: Colors.white, size: 40),
-                              Text('PDF',
-                                  style: TextStyle(color: Colors.white)),
+                               Icon(Icons.picture_as_pdf, color: Colors.white, size: 40),
+                               Text('PDF', style: TextStyle(color: Colors.white)),
                             ],
                           )
                               : Image.file(file, fit: BoxFit.cover),
@@ -534,12 +604,11 @@ class _MessageInput extends StatelessWidget {
                           child: GestureDetector(
                             onTap: () => onRemoveFile(index),
                             child: Container(
-                              decoration: BoxDecoration(
+                              decoration: const BoxDecoration(
                                 color: Colors.black54,
                                 shape: BoxShape.circle,
                               ),
-                              child: Icon(Icons.close,
-                                  size: 16, color: Colors.white),
+                              child: const Icon(Icons.close, size: 16, color: Colors.white),
                             ),
                           ),
                         ),
@@ -558,27 +627,27 @@ class _MessageInput extends StatelessWidget {
               padding: const EdgeInsets.symmetric(horizontal: 8),
               child: Row(
                 children: [
-                  // IconButton(
-                  //   icon: Icon(Icons.attach_file, color: Colors.white),
-                  //   onPressed: () => _handleAttachment(context),
-                  // ),
+                  IconButton(
+                    icon: const Icon(Icons.attach_file, color: Colors.white),
+                    onPressed: () => onAttachment(context),
+                  ),
                   Expanded(
                     child: TextField(
                       controller: controller,
-                      style: TextStyle(color: Colors.white),
+                      style: const TextStyle(color: Colors.white),
                       decoration: InputDecoration(
                         hintText: pendingFiles.isEmpty
                             ? 'Type something'
                             : 'Add a caption',
-                        hintStyle: TextStyle(color: Colors.white70),
+                        hintStyle: const TextStyle(color: Colors.white70),
                         border: InputBorder.none,
-                        contentPadding: EdgeInsets.symmetric(vertical: 16),
+                        contentPadding: const EdgeInsets.symmetric(vertical: 16),
                       ),
                       onSubmitted: onSend,
                     ),
                   ),
                   IconButton(
-                    icon: Icon(Icons.send, color: Colors.white),
+                    icon: const Icon(Icons.send, color: Colors.white),
                     onPressed: () => onSend(controller.text),
                   ),
                 ],

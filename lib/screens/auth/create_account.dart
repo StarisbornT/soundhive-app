@@ -42,6 +42,18 @@ class _CreateAccountScreenState extends State<CreateAccount> {
     dio.interceptors.add(BaseUrlInterceptor());
     initializeDioLogger(dio);
     passwordController.addListener(_validatePassword);
+    loadData();
+  }
+
+
+  String? identity;
+
+  Future<void> loadData() async {
+    String? storedEmail = await widget.storage.read(key: 'identity');
+    print("Identity $storedEmail");
+    setState(() {
+      identity = storedEmail;
+    });
   }
 
   Future<void> _saveFormData() async {
@@ -53,21 +65,21 @@ class _CreateAccountScreenState extends State<CreateAccount> {
       Map<String, String> payload = {
         "email": emailController.text,
         "password": passwordController.text,
+        "role": identity == "creator" ? "CREATOR" : "USER",
       };
       final options = Options(headers: {'Accept': 'application/json'});
       final response = await dio.post(
-          '/member/create',
+          '/auth/register',
           data: jsonEncode(payload),
           options: options
       );
       print(response);
-      if (response.statusCode == 201) {
+      if (response.statusCode == 200) {
         // LoaderService.hideLoader(context);
         setState(() {
           isLoading = false;
         });
-        final responseData = response.data;
-        await widget.storage.write(key: 'auth_token', value: responseData['token']);
+        await widget.storage.write(key: 'identity', value: identity);
         await widget.storage.write(key: 'email', value: emailController.text);
         Navigator.pushNamed(context, OtpScreen.id);
       }

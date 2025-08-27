@@ -104,8 +104,8 @@ class _VestDetailsScreenState extends ConsumerState<ActiveVestDetailsScreen> wit
                     child: Column(
                       children: [
                         const Text("Capital", style: TextStyle(color: Colors.white70)),
-                        Text("₦${investment.amount}",
-                            style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold, fontFamily: 'Roboto',)),
+                        // Text("₦${investment.amount}",
+                        //     style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold, fontFamily: 'Roboto',)),
                       ],
                     ),
                   ),
@@ -145,7 +145,7 @@ class _VestDetailsScreenState extends ConsumerState<ActiveVestDetailsScreen> wit
                         child: Column(
                           children: [
                             // buildInfoCard("Project", investment.investment.investmentName),
-                            buildInfoCard("Amount", "₦${investment.amount}"),
+                            // buildInfoCard("Amount", "₦${investment.amount}"),
                             // buildInfoCard("Maturity date", DateFormat('d MMMM, yyyy').format(DateTime.parse(investment.endDate))),
                             buildInfoCard("Maturity date", DateFormat('d MMMM, yyyy').format(DateFormat('dd-MM-yyyy').parse('15-05-2026'))),
                             // buildInfoCard("Interest", "${investment.}%"),

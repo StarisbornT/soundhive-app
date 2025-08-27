@@ -49,22 +49,29 @@ class _LoginScreenState extends State<Login> {
       };
       final options = Options(headers: {'Accept': 'application/json'});
       final response = await dio.post(
-          '/member/login',
+          '/auth/login',
           data: jsonEncode(payload),
           options: options
       );
-      print(response);
+
       if (response.statusCode == 200) {
         LoaderService.hideLoader(context);
         final responseData = response.data;
-        await widget.storage.write(key: 'auth_token', value: responseData['access_token']);
-        if(responseData['member']['status'] == "uncompleted") {
+
+        await widget.storage.write(key: 'auth_token', value: responseData['token']);
+
+        print("FULL RESPONSE: ${response.data}");
+        print("STATUS: ${responseData['member']['status']}");
+        Navigator.pushNamed(context, DashboardScreen.id);
+
+
+        if (responseData['member']['status'] == "uncompleted") {
           Navigator.pushNamed(context, UpdateProfile1.id);
-        }else {
+        } else {
           Navigator.pushNamed(context, DashboardScreen.id);
         }
-
       }
+
       else {
         showCustomAlert(
           context: context,

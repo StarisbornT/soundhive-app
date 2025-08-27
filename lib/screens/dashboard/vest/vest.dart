@@ -166,13 +166,7 @@ class _SoundhiveVestScreenState extends ConsumerState<SoundhiveVestScreen> with 
                           SizedBox(height: 15),
 
                           // Investment Cards List
-                    Expanded(
-                child: _tabController.index == 0
-                ? _buildVestOptions(serviceState)
-                  : _tabController.index == 1
-              ? _buildActiveInvestments(activeState)
-                : _buildMaturedInvestments(activeState),
-        )
+
 
                         ],
                       ),
@@ -274,81 +268,81 @@ class _SoundhiveVestScreenState extends ConsumerState<SoundhiveVestScreen> with 
       error: (error, _) => Center(child: Text('Error: $error')),
     );
   }
-  Widget _buildActiveInvestments(AsyncValue<ActiveInvestmentResponse> state) {
-    return state.when(
-      data: (response) {
-        final allServices = response.data;
-        if (allServices.isEmpty) {
-          return _buildEmptyState(context);
-        }
-        // final filteredServices = allServices.where((service) =>
-        //     service.investment.investmentName.toLowerCase().contains(_searchController.text.toLowerCase())
-        // ).toList();
-        if (response.data.isEmpty) return _buildEmptyState(context);
-        return ListView.builder(
-          itemCount: response.data.length,
-          itemBuilder: (context, index) {
-            return Padding(
-              padding: const EdgeInsets.symmetric(vertical: 5),
-              child: GestureDetector(
-                  onTap: () {
-                    Navigator.push(context,  MaterialPageRoute(
-                      builder: (context) => ActiveVestDetailsScreen(
-                        investment: allServices[index],
-                      ),
-                    ),);
-                  },
-                  child: _activeinvestmentCard(allServices[index])
-              ),
-            );
+  // Widget _buildActiveInvestments(AsyncValue<ActiveInvestmentResponse> state) {
+  //   return state.when(
+  //     data: (response) {
+  //       final allServices = response.data;
+  //       if (allServices.isEmpty) {
+  //         return _buildEmptyState(context);
+  //       }
+  //       // final filteredServices = allServices.where((service) =>
+  //       //     service.investment.investmentName.toLowerCase().contains(_searchController.text.toLowerCase())
+  //       // ).toList();
+  //       if (response.data.isEmpty) return _buildEmptyState(context);
+  //       return ListView.builder(
+  //         itemCount: response.data.length,
+  //         itemBuilder: (context, index) {
+  //           return Padding(
+  //             padding: const EdgeInsets.symmetric(vertical: 5),
+  //             child: GestureDetector(
+  //                 onTap: () {
+  //                   Navigator.push(context,  MaterialPageRoute(
+  //                     builder: (context) => ActiveVestDetailsScreen(
+  //                       investment: allServices[index],
+  //                     ),
+  //                   ),);
+  //                 },
+  //                 child: _activeinvestmentCard(allServices[index])
+  //             ),
+  //           );
+  //
+  //         },
+  //       );
+  //     },
+  //     loading: () => Center(child: CircularProgressIndicator()),
+  //     error: (error, _) => Center(child: Text('Error: $error')),
+  //   );
+  // }
 
-          },
-        );
-      },
-      loading: () => Center(child: CircularProgressIndicator()),
-      error: (error, _) => Center(child: Text('Error: $error')),
-    );
-  }
-
-  Widget _buildMaturedInvestments(AsyncValue<ActiveInvestmentResponse> state) {
-    return state.when(
-      data: (response) {
-        final maturedInvestments = response.data.where((investment) {
-          try {
-            final endDate = DateTime.parse(investment.endDate!);
-            final currentDate = DateTime.now();
-            return currentDate.isAfter(endDate);
-          } catch (e) {
-            return false;
-          }
-        }).toList();
-
-        if (maturedInvestments.isEmpty) return _buildEmptyState(context);
-
-        return ListView.builder(
-          itemCount: maturedInvestments.length,
-          itemBuilder: (context, index) => Padding(
-            padding: const EdgeInsets.symmetric(vertical: 5),
-            child: GestureDetector(
-              onTap: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => ActiveVestDetailsScreen(
-                      investment: maturedInvestments[index],
-                    ),
-                  ),
-                );
-              },
-              child: _activeinvestmentCard(maturedInvestments[index]),
-            ),
-          ),
-        );
-      },
-      loading: () => const Center(child: CircularProgressIndicator()),
-      error: (error, _) => Center(child: Text('Error: $error')),
-    );
-  }
+  // Widget _buildMaturedInvestments(AsyncValue<ActiveInvestmentResponse> state) {
+  //   return state.when(
+  //     data: (response) {
+  //       final maturedInvestments = response.data.where((investment) {
+  //         try {
+  //           final endDate = DateTime.parse(investment.endDate!);
+  //           final currentDate = DateTime.now();
+  //           return currentDate.isAfter(endDate);
+  //         } catch (e) {
+  //           return false;
+  //         }
+  //       }).toList();
+  //
+  //       if (maturedInvestments.isEmpty) return _buildEmptyState(context);
+  //
+  //       return ListView.builder(
+  //         itemCount: maturedInvestments.length,
+  //         itemBuilder: (context, index) => Padding(
+  //           padding: const EdgeInsets.symmetric(vertical: 5),
+  //           child: GestureDetector(
+  //             onTap: () {
+  //               Navigator.push(
+  //                 context,
+  //                 MaterialPageRoute(
+  //                   builder: (context) => ActiveVestDetailsScreen(
+  //                     investment: maturedInvestments[index],
+  //                   ),
+  //                 ),
+  //               );
+  //             },
+  //             child: _activeinvestmentCard(maturedInvestments[index]),
+  //           ),
+  //         ),
+  //       );
+  //     },
+  //     loading: () => const Center(child: CircularProgressIndicator()),
+  //     error: (error, _) => Center(child: Text('Error: $error')),
+  //   );
+  // }
   Widget _buildEmptyState(BuildContext context) {
     return Column(
       mainAxisAlignment: MainAxisAlignment.center,
@@ -435,71 +429,71 @@ class _SoundhiveVestScreenState extends ConsumerState<SoundhiveVestScreen> with 
     );
   }
 
-  Widget _activeinvestmentCard(ActiveInvestment investment) {
-    final isMatured = () {
-      try {
-        return DateTime.now().isAfter(DateTime.parse(investment.endDate!));
-      } catch (e) {
-        return false;
-      }
-    }();
-    return Container(
-      padding: EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: Color(0xFF1A102F),
-        borderRadius: BorderRadius.circular(12),
-        border: isMatured
-            ? Border.all(color: Colors.green)
-            : null,
-      ),
-      child: Row(
-        children: [
-          // Image section with proper error handling
-          // Container(
-          //   width: 100, // Fixed width for image container
-          //   height: 100,
-          //   child: (investment.investment.imageUrl.isNotEmpty)
-          //       ? Image.network(
-          //     investment.investment.imageUrl,
-          //     fit: BoxFit.cover,
-          //     errorBuilder: (context, error, stackTrace) => _buildImagePlaceholder(),
-          //   )
-          //       : _buildImagePlaceholder(),
-          // ),
-          SizedBox(width: 10),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                // Text(
-                //   investment.investment.investmentName,
-                //   style: TextStyle(
-                //       color: Colors.white,
-                //       fontSize: 16,
-                //       fontWeight: FontWeight.bold
-                //   ),
-                //   maxLines: 2,
-                //   overflow: TextOverflow.ellipsis,
-                // ),
-                SizedBox(height: 5),
-                Text(
-                  'Invested ${Utils.formatCurrency(investment.amount)}',
-                  style: TextStyle(color: Colors.white70, fontSize: 14, fontFamily: 'Roboto',),
-                ),
-                SizedBox(height: 5),
-                Text(
-                  // '${isMatured ? 'Matured' : 'Matures'}: ${DateFormat('dd/MM/yyyy').format(DateTime.parse(investment.endDate))}',
-                  '${isMatured ? 'Matured' : 'Matures'}: ${DateFormat('d MMMM, yyyy').format(DateFormat('dd-MM-yyyy').parse('15-05-2026'))}',
-                  style: TextStyle(color: Colors.white70, fontSize: 10),
-                ),
-
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
+  // Widget _activeinvestmentCard(ActiveInvestment investment) {
+  //   final isMatured = () {
+  //     try {
+  //       return DateTime.now().isAfter(DateTime.parse(investment.endDate!));
+  //     } catch (e) {
+  //       return false;
+  //     }
+  //   }();
+  //   return Container(
+  //     padding: EdgeInsets.all(12),
+  //     decoration: BoxDecoration(
+  //       color: Color(0xFF1A102F),
+  //       borderRadius: BorderRadius.circular(12),
+  //       border: isMatured
+  //           ? Border.all(color: Colors.green)
+  //           : null,
+  //     ),
+  //     child: Row(
+  //       children: [
+  //         // Image section with proper error handling
+  //         // Container(
+  //         //   width: 100, // Fixed width for image container
+  //         //   height: 100,
+  //         //   child: (investment.investment.imageUrl.isNotEmpty)
+  //         //       ? Image.network(
+  //         //     investment.investment.imageUrl,
+  //         //     fit: BoxFit.cover,
+  //         //     errorBuilder: (context, error, stackTrace) => _buildImagePlaceholder(),
+  //         //   )
+  //         //       : _buildImagePlaceholder(),
+  //         // ),
+  //         SizedBox(width: 10),
+  //         Expanded(
+  //           child: Column(
+  //             crossAxisAlignment: CrossAxisAlignment.start,
+  //             children: [
+  //               // Text(
+  //               //   investment.investment.investmentName,
+  //               //   style: TextStyle(
+  //               //       color: Colors.white,
+  //               //       fontSize: 16,
+  //               //       fontWeight: FontWeight.bold
+  //               //   ),
+  //               //   maxLines: 2,
+  //               //   overflow: TextOverflow.ellipsis,
+  //               // ),
+  //               SizedBox(height: 5),
+  //               Text(
+  //                 'Invested ${Utils.formatCurrency(investment.amount)}',
+  //                 style: TextStyle(color: Colors.white70, fontSize: 14, fontFamily: 'Roboto',),
+  //               ),
+  //               SizedBox(height: 5),
+  //               Text(
+  //                 // '${isMatured ? 'Matured' : 'Matures'}: ${DateFormat('dd/MM/yyyy').format(DateTime.parse(investment.endDate))}',
+  //                 '${isMatured ? 'Matured' : 'Matures'}: ${DateFormat('d MMMM, yyyy').format(DateFormat('dd-MM-yyyy').parse('15-05-2026'))}',
+  //                 style: TextStyle(color: Colors.white70, fontSize: 10),
+  //               ),
+  //
+  //             ],
+  //           ),
+  //         ),
+  //       ],
+  //     ),
+  //   );
+  // }
 
   Widget _buildImagePlaceholder() {
     return Container(

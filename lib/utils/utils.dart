@@ -444,7 +444,7 @@ class Utils {
     required Color hintTextColor,
     bool showTitle = true
   }) {
-    final bvn = user.creator?.bvn;
+    final bvn = user.user?.bvn;
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(16.0),
@@ -455,7 +455,7 @@ class Utils {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          if(showTitle!)
+          if(showTitle)
           Text(
             'Other Information',
             style: TextStyle(
@@ -465,13 +465,13 @@ class Utils {
           ),
           const SizedBox(height: 8),
           _buildInfoRow(
-              'Phone number', user.member?.phoneNumber ?? 'Not specified', textColor, hintTextColor),
+              'Phone number', user.user?.phoneNumber ?? 'Not specified', textColor, hintTextColor),
           _buildInfoRow(
-              'Email address', user.member?.email ?? 'Not specified', textColor, hintTextColor),
+              'Email address', user.user?.email ?? 'Not specified', textColor, hintTextColor),
           _buildInfoRow(
-              'Gender', user.creator?.gender?.capitalize() ?? 'Not specified', textColor, hintTextColor),
+              'Gender', user.user?.gender?.capitalize() ?? 'Not specified', textColor, hintTextColor),
           _buildInfoRow(
-              'Date of Birth', user.member?.dob ?? 'Not specified', textColor, hintTextColor),
+              'Date of Birth', user.user?.dob ?? 'Not specified', textColor, hintTextColor),
           _buildInfoRow(
             'BVN',
             bvn != null && bvn.length >= 4
@@ -481,7 +481,7 @@ class Utils {
             hintTextColor,
           ),
           _buildInfoRow(
-              'NIN', user.creator?.nin ?? 'Not specified', textColor, hintTextColor),
+              'NIN', user.user?.creator?.nin ?? 'Not specified', textColor, hintTextColor),
         ],
       ),
     );

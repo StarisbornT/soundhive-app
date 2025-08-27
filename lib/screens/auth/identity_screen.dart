@@ -16,10 +16,12 @@ class IdentityScreen extends StatefulWidget {
 
 class _IdentityScreenState extends State<IdentityScreen> {
   String? selectedIdentity;
+  String? selectedIdentityUpdate;
 
   void _selectIdentity(String identity) {
     setState(() {
       selectedIdentity = identity;
+      selectedIdentityUpdate = identity;
     });
   }
 
@@ -167,6 +169,7 @@ class _IdentityScreenState extends State<IdentityScreen> {
                 title: 'Contiue',
                 onPressed: selectedIdentity != null ? () async {
                   await widget.storage.write(key: 'identity', value: selectedIdentity);
+                  await widget.storage.write(key: 'identityUpdate', value: selectedIdentity);
                   print("Selected: $selectedIdentity");
                   Navigator.pushNamed(context, CreateAccount.id);
                 } : null,

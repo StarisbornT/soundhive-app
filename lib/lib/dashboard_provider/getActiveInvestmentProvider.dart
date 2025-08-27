@@ -28,7 +28,6 @@ class GetActiveInvestmentNotifier extends StateNotifier<AsyncValue<ActiveInvestm
     bool loadMore = false,
     String? serviceName,
     int? pageSize,
-    String status = 'Paid',
 }) async {
     if (_isLastPage && loadMore) return;
 
@@ -40,12 +39,10 @@ class GetActiveInvestmentNotifier extends StateNotifier<AsyncValue<ActiveInvestm
     }
     try {
       final response = await _dio.get(
-          '/member/service/purchase/list-member-service',
+          '/service/bookings/user',
           queryParameters: {
             'page': _currentPage,
             'per_page': pageSize,
-            'status': status,
-            if (serviceName != null && serviceName.isNotEmpty) 'service_name': serviceName,
           },
           options: Options(
               headers: {
@@ -55,7 +52,7 @@ class GetActiveInvestmentNotifier extends StateNotifier<AsyncValue<ActiveInvestm
           )
       );
       final result = ActiveInvestmentResponse.fromMap(response.data);
-      final newServices = result.data;
+      final newServices = result.data.data;
 
       _allServices.addAll(newServices);
       state = AsyncValue.data(result);

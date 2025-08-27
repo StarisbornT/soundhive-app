@@ -5,8 +5,11 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
 import 'package:soundhive2/utils/app_colors.dart';
 
+import 'package:soundhive2/lib/dashboard_provider/get_creator_services.dart';
 import '../../../model/creator_model.dart';
+import '../../../model/market_orders_service_model.dart';
 import '../../../utils/utils.dart';
+import 'creator_portfolio.dart';
 class CreatorProfile extends ConsumerStatefulWidget {
   final CreatorData creator;
   const CreatorProfile({super.key, required this.creator});
@@ -16,6 +19,16 @@ class CreatorProfile extends ConsumerStatefulWidget {
 }
 
 class _CreatorProfileState extends ConsumerState<CreatorProfile> {
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      if (mounted) {
+        await ref.read(getCreatorServiceProvider.notifier)
+            .getCreatorService(perPage: 10, memberId: widget.creator.userId);
+      }
+    });
+  }
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -58,7 +71,7 @@ class _CreatorProfileState extends ConsumerState<CreatorProfile> {
       child: Row(
         children: [
           IconButton(
-            icon: Icon(Icons.arrow_back_ios, color: Colors.white),
+            icon: const Icon(Icons.arrow_back_ios, color: Colors.white),
             onPressed: () {
               // Handle back button press
               Navigator.pop(context);
@@ -72,14 +85,14 @@ class _CreatorProfileState extends ConsumerState<CreatorProfile> {
   Widget _buildProfileHeader() {
     return Row(
       children: [
-        widget.creator.profileImage != null
+        widget.creator.user?.image != null
             ? Container(
           width: 80,
           height: 80,
           decoration: BoxDecoration(
             shape: BoxShape.circle,
             image: DecorationImage(
-              image: NetworkImage(widget.creator.profileImage ?? ''),
+              image: NetworkImage(widget.creator.user?.image ?? ''),
               fit: BoxFit.cover,
             ),
           ),
@@ -93,8 +106,8 @@ class _CreatorProfileState extends ConsumerState<CreatorProfile> {
           ),
           alignment: Alignment.center,
           child: Text(
-            widget.creator.member!.firstName.isNotEmpty
-                ? widget.creator.member!.firstName[0].toUpperCase()
+            widget.creator.user!.firstName.isNotEmpty
+                ? widget.creator.user!.firstName[0].toUpperCase()
                 : "?",
             style: const TextStyle(
               fontSize: 40,
@@ -104,12 +117,12 @@ class _CreatorProfileState extends ConsumerState<CreatorProfile> {
           ),
         ),
         const SizedBox(width: 15),
-        Expanded( // ✅ Added this
+        Expanded(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                "${widget.creator.member?.firstName} ${widget.creator.member?.lastName}",
+                "${widget.creator.user?.firstName} ${widget.creator.user?.lastName}",
                 style: const TextStyle(
                   color: Colors.white,
                   fontSize: 18,
@@ -160,7 +173,7 @@ class _CreatorProfileState extends ConsumerState<CreatorProfile> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          'About ${widget.creator.member?.firstName} ${widget.creator.member?.lastName}',
+          'About ${widget.creator.user?.firstName} ${widget.creator.user?.lastName}',
           style: const TextStyle(
             color: Colors.white,
             fontSize: 14,
@@ -169,7 +182,7 @@ class _CreatorProfileState extends ConsumerState<CreatorProfile> {
         ),
         const SizedBox(height: 10),
         Text(
-          widget.creator.bioDescription ?? '',
+          widget.creator.bio ?? '',
           style: const TextStyle(
             color: Colors.white70,
             fontSize: 12,
@@ -194,7 +207,7 @@ class _CreatorProfileState extends ConsumerState<CreatorProfile> {
 
   Widget _buildSocialIcon(IconData icon) {
     return Container(
-      padding: EdgeInsets.all(10),
+      padding: const EdgeInsets.all(10),
       decoration: BoxDecoration(
         color: Colors.white12,
         borderRadius: BorderRadius.circular(8),
@@ -220,6 +233,8 @@ class _CreatorProfileState extends ConsumerState<CreatorProfile> {
   }
 
   Widget _buildServicesSection() {
+    final serviceState = ref.watch(getCreatorServiceProvider);
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -232,31 +247,50 @@ class _CreatorProfileState extends ConsumerState<CreatorProfile> {
           ),
         ),
         const SizedBox(height: 20),
-        SizedBox(
-          height: 200, // Fixed height for the horizontal list
-          child: ListView.builder(
-            scrollDirection: Axis.horizontal,
-            itemCount: widget.creator.rates?.length ?? 0,
-            itemBuilder: (context, index) {
-              final rate = widget.creator.rates?[index];
-              if (rate == null) return const SizedBox.shrink();
-
-              return Padding(
-                padding: EdgeInsets.only(left: index == 0 ? 0 : 20),
-                child: _buildServiceCard(
-                  widget.creator.profileImage ?? '',
-                  rate.productName,
-                  Utils.formatCurrency(rate.amount),
-                ),
+        serviceState.when(
+          data: (services) {
+            if (services.isEmpty) {
+              return const Text(
+                "No services available",
+                style: TextStyle(color: Colors.white70),
               );
-            },
+            }
+
+            return SizedBox(
+              height: 200,
+              child: ListView.builder(
+                scrollDirection: Axis.horizontal,
+                itemCount: services.length,
+                itemBuilder: (context, index) {
+                  final service = services[index];
+
+                  return Padding(
+                    padding: EdgeInsets.only(left: index == 0 ? 0 : 20),
+                    child: _buildServiceCard(
+                      service.serviceImage ?? '',
+                      service.serviceName,
+                      Utils.formatCurrency(service.rate),
+                      service
+                    ),
+                  );
+                },
+              ),
+            );
+          },
+          error: (err, stack) => Text(
+            "Error: $err",
+            style: const TextStyle(color: Colors.red),
+          ),
+          loading: () => const Center(
+            child: CircularProgressIndicator(),
           ),
         ),
       ],
     );
   }
 
-  Widget _buildServiceCard(String imageUrl, String title, String price) {
+
+  Widget _buildServiceCard(String imageUrl, String title, String price, MarketOrder service) {
     return Container(
       width: 300,
       decoration: BoxDecoration(
@@ -274,7 +308,12 @@ class _CreatorProfileState extends ConsumerState<CreatorProfile> {
             right: 10,
             child: ElevatedButton(
               onPressed: () {
-                // Handle view portfolio
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => CreatorPortfolio(service: service),
+                  ),
+                );
               },
               style: ElevatedButton.styleFrom(
                 backgroundColor: const Color(0xFF1A1429),
@@ -292,16 +331,20 @@ class _CreatorProfileState extends ConsumerState<CreatorProfile> {
           Positioned(
             bottom: 15,
             left: 15,
-            right: 15, // <-- Add this line to let it expand
+            right: 15,
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Text(
-                  title,
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 14,
-                    fontWeight: FontWeight.w400,
+                Flexible(
+                  child: Text(
+                    title,
+                    maxLines: 2, // or more if you want
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 14,
+                      fontWeight: FontWeight.w400,
+                    ),
                   ),
                 ),
                 Text(
@@ -340,16 +383,16 @@ class AvailabilityCalendar extends StatefulWidget {
 class _AvailabilityCalendarState extends State<AvailabilityCalendar> {
   DateTime _currentMonth = DateTime(2025, 6, 1); // Starting with June 2025
   DateTime? _selectedDate;
-  List<DateTime> _availableDates = [];
+  final List<DateTime> _availableDates = [];
 
   @override
   void initState() {
     super.initState();
     // Convert string dates from API to DateTime objects
-    _availableDates = widget.creator.availabilityCalendar
-        ?.map((dateStr) => DateTime.parse(dateStr))
-        .toList() ??
-        [];
+    // _availableDates = widget.creator.availabilityCalendar
+    //     ?.map((dateStr) => DateTime.parse(dateStr))
+    //     .toList() ??
+    //     [];
   }
 
   void _previousMonth() {

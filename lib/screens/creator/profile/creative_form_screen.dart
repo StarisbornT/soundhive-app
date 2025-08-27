@@ -85,10 +85,8 @@ class _CreativeFormScreenState extends ConsumerState<CreativeFormScreen> {
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) async {
-      await ref.read(categoryProvider.notifier).getCategory();
-      final fetched = ref.read(categoryProvider).value?.data;
+
       setState(() {
-        services = fetched!;
         // Initialize controllers for any pre-selected services
         for (var service in selectedServices) {
           portfolioData[service] = PortfolioData();
@@ -201,7 +199,9 @@ class _CreativeFormScreenState extends ConsumerState<CreativeFormScreen> {
       );
       return;
     } finally {
-      LoaderService.hideLoader(context);
+      if(mounted){
+        LoaderService.hideLoader(context);
+      }
       _isSubmitting = false;
 
     }
@@ -272,58 +272,13 @@ class _CreativeFormScreenState extends ConsumerState<CreativeFormScreen> {
 
 
   Future<ApiResponseModel> _submitToBackend() async {
-    // Build portfolios array
-    final List<Map<String, dynamic>> portfolios = [];
-
-    for (var service in selectedServices) {
-      final data = portfolioData[service]!;
-      final portfolioItems = data.selectedFormats.value.map((format) {
-        switch (format) {
-          case 'image':
-            return {"type": "image", "url": data.imageUrl};
-          case 'audio':
-            return {"type": "audio", "url": data.audioUrl};
-          case 'link':
-            return {"type": "link", "url": data.linkController.text};
-          default:
-            return {"type": format, "url": ""};
-        }
-      }).toList();
-
-      portfolios.add({
-        "service_name": service.name,
-        "cover_image_url": data.coverUrl,
-        "portfolio_items": portfolioItems,
-      });
-    }
-
-    // Build rates array
-    final List<Map<String, String>> rates = [];
-    for (var service in selectedServices) {
-      rates.add({
-        "product_name": service.name,
-        "amount": rateControllers[service]!.text,
-      });
-    }
-
-    // Format dates
-    final formattedDates = availablityDates
-        .map((date) => DateFormat('yyyy-MM-dd').format(date))
-        .toList();
-
-
-
-    // Prepare payload
     final payload = {
       "job_title": jobTitleController.text,
-      "bio_description": bioController.text,
+      "bio": bioController.text,
       "location": locationController.text,
       "linkedin": linkedInController.text.isNotEmpty ? linkedInController.text : null,
       "x": xController.text.isNotEmpty ? xController.text : null,
       "instagram": instagramController.text.isNotEmpty ? instagramController.text : null,
-      "type_of_service": selectedServices.map((service) => service.name).toList(),
-      "availability_calendar": formattedDates,
-      "rates": rates,
     };
 
     try {
@@ -332,7 +287,7 @@ class _CreativeFormScreenState extends ConsumerState<CreativeFormScreen> {
         payload: payload,
       );
 
-      if (response.message != "Success") {
+      if (!response.status) {
         throw DioException(
           requestOptions: RequestOptions(path: ''),
           response: Response(
@@ -348,110 +303,6 @@ class _CreativeFormScreenState extends ConsumerState<CreativeFormScreen> {
       rethrow; // Rethrow to be caught in _submitForm
     }
   }
-
-
-
-  Future<void> _handleSubmissionError(dynamic error) async {
-    String errorMessage = 'An unexpected error occurred';
-
-    if (error is DioException) {
-      _logger.d('DIO ERROR RESPONSE: ${error.response?.data}');
-
-      switch (error.type) {
-        case DioExceptionType.connectionTimeout:
-        case DioExceptionType.sendTimeout:
-        case DioExceptionType.receiveTimeout:
-          errorMessage = 'Connection timeout - please check your internet';
-          break;
-        case DioExceptionType.badCertificate:
-          errorMessage = 'Security error occurred';
-          break;
-        case DioExceptionType.badResponse:
-          if (error.response?.statusCode == 422) {
-            errorMessage = _parseValidationErrors(error.response?.data);
-          } else if (error.response?.requestOptions.path.contains('cloudinary') ?? false) {
-            errorMessage = _parseCloudinaryError(error.response?.data);
-          } else {
-            errorMessage = _parseBackendError(error.response?.data);
-          }
-          break;
-        case DioExceptionType.cancel:
-          errorMessage = 'Request was cancelled';
-          break;
-        default:
-          errorMessage = error.message ?? 'Network error occurred';
-      }
-    } else if (error is FormatException) {
-      errorMessage = 'Invalid data format - please check your inputs';
-    } else if (error is Exception) {
-      errorMessage = error.toString();
-    }
-
-     showCustomAlert(
-      context: context,
-      isSuccess: false,
-      title: 'Error',
-      message: errorMessage,
-    );
-  }
-
-  String _parseValidationErrors(dynamic responseData) {
-    try {
-      final StringBuffer errorMessage = StringBuffer();
-
-      if (responseData is Map<String, dynamic>) {
-        // Add main error message if exists
-        if (responseData['message'] != null) {
-          errorMessage.writeln(responseData['message']);
-        }
-
-        // Parse field-specific errors
-        if (responseData['errors'] is Map<String, dynamic>) {
-          final errors = responseData['errors'] as Map<String, dynamic>;
-
-          errors.forEach((field, messages) {
-            if (messages is List) {
-              for (var message in messages) {
-                errorMessage.writeln('• ${message.toString().capitalizeFirst()}');
-              }
-            } else if (messages != null) {
-              errorMessage.writeln('• ${messages.toString().capitalizeFirst()}');
-            }
-          });
-        }
-      }
-
-      return errorMessage.toString().trim();
-    } catch (e) {
-      return 'Failed to process validation errors';
-    }
-  }
-
-  String _parseCloudinaryError(dynamic responseData) {
-    try {
-      return responseData?['error']?['message'] ?? 'Cloudinary upload failed';
-    } catch (e) {
-      return 'Failed to process media upload';
-    }
-  }
-
-  String _parseBackendError(dynamic responseData) {
-    try {
-      if (responseData is Map<String, dynamic>) {
-        return responseData['message'] ??
-            responseData['error'] ??
-            'Operation failed (${responseData['statusCode']})';
-      }
-      return 'An unknown error occurred';
-    } catch (e) {
-      return 'Failed to parse server response';
-    }
-  }
-
-// Extension to capitalize first letter of a string
-
-
-
 
   final List<Map<String, String>> portfolioFormat =[
     {'label': 'Image', 'value': 'image'},
@@ -472,7 +323,7 @@ class _CreativeFormScreenState extends ConsumerState<CreativeFormScreen> {
   }
 
   void _handleContinue() {
-    if (_currentStep == 5) {
+    if (_currentStep == 1) {
       _submitForm();
     } else {
       _nextStep();
@@ -504,64 +355,19 @@ class _CreativeFormScreenState extends ConsumerState<CreativeFormScreen> {
         }
         return true;
 
-      case 1: // Services Step
-        if (selectedServices.isEmpty) {
-          _showError("Please select at least one service");
+      case 1: // Socials Step (all optional)
+        if (xController.text.isEmpty) {
+          _showError("X is required");
           return false;
         }
-        return true;
-
-      case 2: // Rate Step - UPDATED
-        for (var service in selectedServices) {
-          if (rateControllers[service]!.text.isEmpty) {
-            _showError("Rate for $service is required");
-            return false;
-          }
-        }
-        return true;
-
-      case 3: // Portfolio Step - UPDATED
-        for (var service in selectedServices) {
-          final data = portfolioData[service]!;
-
-          // Validate cover image
-          if (data.coverNotifier.value == null) {
-            _showError("Cover image is required for $service");
-            return false;
-          }
-
-          // Validate selected formats
-          if (data.selectedFormats.value.isEmpty) {
-            _showError("Please select at least one portfolio format for $service");
-            return false;
-          }
-
-          // Validate each selected format
-          for (final format in data.selectedFormats.value) {
-            if (format == 'image' && data.imageNotifier.value == null) {
-              _showError("Image file is required for $service");
-              return false;
-            }
-            if (format == 'audio' && data.audioNotifier.value == null) {
-              _showError("Audio file is required for $service");
-              return false;
-            }
-            if (format == 'link' && data.linkController.text.isEmpty) {
-              _showError("Link is required for $service");
-              return false;
-            }
-          }
-        }
-        return true;
-
-      case 4: // Availability Step
-        if (availablityDates.isEmpty) {
-          _showError("Please select at least one availability date");
+        if (linkedInController.text.isEmpty) {
+          _showError("Linkedin is required");
           return false;
         }
-        return true;
-
-      case 5: // Socials Step (all optional)
+        if (instagramController.text.isEmpty) {
+          _showError("Instagram is required");
+          return false;
+        }
         return true;
 
       default:
@@ -582,10 +388,10 @@ class _CreativeFormScreenState extends ConsumerState<CreativeFormScreen> {
     return Row(
       mainAxisAlignment: MainAxisAlignment.center,
       children: List.generate(
-        6,
+        2,
             (index) => Container(
           margin: const EdgeInsets.symmetric(horizontal: 4),
-          width: 45,
+          width: 150,
           height: 4,
           decoration: BoxDecoration(
             color: index <= _currentStep ? AppColors.BUTTONCOLOR : const Color(0xFFBCAEE2),
@@ -601,72 +407,12 @@ class _CreativeFormScreenState extends ConsumerState<CreativeFormScreen> {
       case 0:
         return _buildBioStep();
       case 1:
-        return _buildServicesStep();
-      case 2:
-        return _rateStep();
-      case 3:
-        return _portfolioStep();
-      case 4:
-        return _availabilityStep();
-      case 5:
         return _buildSocials();
       default:
         return const Center(child: Text("More steps to come", style: TextStyle(color: Colors.white)));
     }
   }
 
-  Widget _buildServicesStep() {
-    final TextEditingController searchController = TextEditingController();
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        const SizedBox(height: 24),
-        const Text(
-          'Select the service(s) you want to add',
-          style: TextStyle(
-            fontSize: 16,
-            fontWeight: FontWeight.w400,
-            color: Colors.white,
-          ),
-        ),
-        const SizedBox(height: 10),
-        LabeledTextField(
-          label: 'Search',
-          controller: searchController,
-          prefixIcon: Icons.search,
-          hintText: "Search for service",
-        ),
-        const SizedBox(height: 20),
-        Wrap(
-          children: services.map((service) {
-            return CheckboxListTile(
-              value: selectedServices.contains(service),
-              activeColor: const Color(0xFF8F4EFF),
-              controlAffinity: ListTileControlAffinity.leading,
-              checkboxShape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(5)),
-              title: Text(service.name, style: const TextStyle(color: Colors.white)), // Assuming Category has a 'name' property
-              onChanged: (_) {
-                setState(() {
-                  if (selectedServices.contains(service)) {
-                    selectedServices.remove(service);
-                  } else {
-                    selectedServices.add(service);
-                    // Initialize controllers and portfolio data when adding a service
-                    if (!rateControllers.containsKey(service)) {
-                      rateControllers[service] = TextEditingController();
-                    }
-                    if (!portfolioData.containsKey(service)) {
-                      portfolioData[service] = PortfolioData();
-                    }
-                  }
-                });
-              },
-            );
-          }).toList(),
-        ),
-      ],
-    );
-  }
 
   Widget _buildBioStep() {
     return Column(
@@ -720,138 +466,21 @@ class _CreativeFormScreenState extends ConsumerState<CreativeFormScreen> {
         ),
         const SizedBox(height: 20),
         LabeledTextField(
-          label: 'Linkedin (Optional)',
+          label: 'Linkedin',
           controller: linkedInController,
           hintText: "Enter Link",
         ),
         const SizedBox(height: 10),
         LabeledTextField(
-          label: 'X (Optional)',
+          label: 'X',
           controller: xController,
           hintText: "Enter Link",
         ),
         const SizedBox(height: 10),
         LabeledTextField(
-            label: 'Instagram (Optional)',
+            label: 'Instagram',
             controller: instagramController,
             hintText: "Enter Link"
-        ),
-      ],
-    );
-  }
-
-  Widget _portfolioStep() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        const SizedBox(height: 24),
-        const Text(
-          'What are some of the amazing projects you have done so far?',
-          style: TextStyle(
-            fontSize: 24,
-            fontWeight: FontWeight.w400,
-            color: Colors.white,
-          ),
-        ),
-        const SizedBox(height: 10),
-        const Text(
-          'N.B: A good portfolio of work usually attract good clients.',
-          style: TextStyle(
-            fontSize: 14,
-            fontWeight: FontWeight.w300,
-            color: Color(0xFFF2F2F2),
-          ),
-        ),
-        const SizedBox(height: 20),
-
-        ...selectedServices.map((service) {
-          final data = portfolioData[service]!;
-          return Column(
-            children: [
-              PortfolioUploadSection(
-                title: service.name,
-                coverImageNotifier: data.coverNotifier,
-                imageFileNotifier: data.imageNotifier,
-                audioFileNotifier: data.audioNotifier,
-                linkController: data.linkController,
-                selectedFormatsNotifier: data.selectedFormats,
-              ),
-              const SizedBox(height: 20),
-            ],
-          );
-        }).toList(),
-      ],
-    );
-  }
-
-  Widget _rateStep() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        const SizedBox(height: 24),
-        const Text(
-          'What are your rates?',
-          style: TextStyle(
-            fontSize: 16,
-            fontWeight: FontWeight.w400,
-            color: Colors.white,
-          ),
-        ),
-        const SizedBox(height: 20),
-
-        ...selectedServices.map((service) {
-          return Column(
-            children: [
-              const SizedBox(height: 16),
-              CurrencyInputField(
-                label: service.name, // Assuming Category has a 'name' property
-                suffixText: 'per project',
-                controller: rateControllers[service]!,
-                onChanged: (value) {
-                  print('Input changed to: $value');
-                },
-                validator: (value) {
-                  if (value == null || value.isEmpty || double.tryParse(value) == null) {
-                    return 'Please enter a valid amount';
-                  }
-                  return null;
-                },
-              ),
-            ],
-          );
-        }).toList(),
-      ],
-    );
-  }
-
-  Widget _availabilityStep() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        const SizedBox(height: 24),
-        const Text(
-          'Create your availability calendar',
-          style: TextStyle(
-            fontSize: 24,
-            fontWeight: FontWeight.w400,
-            color: Colors.white,
-          ),
-        ),
-        const SizedBox(height: 10,),
-        const Text(
-          'You can always change this on the settings page.',
-          style: TextStyle(
-            fontSize: 12,
-            fontWeight: FontWeight.w300,
-            color: Color(0xFFF2F2F2),
-          ),
-        ),
-        const SizedBox(height: 20),
-        DateSelectionInput(
-          onDatesSelected: (dates) {
-            availablityDates = dates;
-            print('Selected dates: ${dates.map((d) => DateFormat('dd/MM/yyyy').format(d)).join(', ')}');
-          },
         ),
       ],
     );
@@ -885,7 +514,7 @@ class _CreativeFormScreenState extends ConsumerState<CreativeFormScreen> {
                 ),
                 const SizedBox(height: 10),
                 RoundedButton(
-                  title: _currentStep == 5 ? 'Submit' : 'Continue',
+                  title: _currentStep == 1 ? 'Submit' : 'Continue',
                     onPressed: _handleContinue,
                   color: AppColors.BUTTONCOLOR,
                 ),

@@ -63,15 +63,15 @@ class _SetupScreenState extends ConsumerState<SetupScreen> {
                   title: 'Verify your account',
                   subtitle:
                   'We want to know you in more detail, kindly provide your BVN, NIN, a government issued ID and utility bill.',
-                  status: widget.user.creator != null
+                  status: widget.user.user?.creator != null
                       ? 'Under review'
                       : 'Not submitted',
-                  statusColor: widget.user.creator != null
+                  statusColor: widget.user.user?.creator != null
                       ? Colors.amber
                       : Colors.red,
                   onTap:
-                    widget.user.creator == null ? () {
-                      Navigator.push(context, MaterialPageRoute(builder: (_) => VerifyIdentity(user: widget.user.member!,)));
+                    widget.user.user?.creator == null ? () {
+                      Navigator.push(context, MaterialPageRoute(builder: (_) => VerifyIdentity(user: widget.user.user!,)));
                     }: null
               ),
 
@@ -83,14 +83,14 @@ class _SetupScreenState extends ConsumerState<SetupScreen> {
                   title: 'Creative profile setup',
                   subtitle:
                   'Let us know what you can do, the projects you have done over time and how much you charge.',
-                  status: widget.user.creator?.status == "active"
+                  status: widget.user.user?.creator!.active != false
                       ? 'Under review'
                       : 'Not submitted',
-                  statusColor: widget.user.creator?.status == "active"
+                  statusColor: widget.user.user?.creator!.active != false
                       ? Colors.amber
                       : Colors.red,
                 onTap: () {
-                    if(widget.user.creator != null) {
+                    if(widget.user.user?.creator != null) {
                       Navigator.push(
                         context,
                         MaterialPageRoute(builder: (_) => const CreativeFormScreen()),

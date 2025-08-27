@@ -61,7 +61,7 @@ class _ServiceScreenState extends ConsumerState<ServiceDetailsScreen> {
                 children: [
                   Utils.confirmRow('Status', widget.services.status),
                   // Utils.confirmRow('Work Type', [widget.services.workType, ...widget.services.availableToWork]),
-                  Utils.confirmRow('Price', Utils.formatCurrency(widget.services.serviceAmount)),
+                  Utils.confirmRow('Price', Utils.formatCurrency(widget.services.rate)),
                   Utils.confirmRow('Date Submitted', DateFormat('dd/MM/yyyy').format(DateTime.parse(widget.services.createdAt))),
                 ],
               ),

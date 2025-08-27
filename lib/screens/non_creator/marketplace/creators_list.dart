@@ -32,9 +32,9 @@ class _CreatorsListState extends ConsumerState<CreatorsList> {
 
     setState(() {
       _filteredCreators = widget.creator.where((c) {
-        final firstName = c.member?.firstName.toLowerCase() ?? '';
-        final lastName = c.member?.lastName.toLowerCase() ?? '';
-        final jobTitle = c.jobTitle?.toLowerCase() ?? '';
+        final firstName = c.user?.firstName.toLowerCase() ?? '';
+        final lastName = c.user?.lastName.toLowerCase() ?? '';
+        final jobTitle = c.jobTitle.toLowerCase() ?? '';
 
         return firstName.contains(query) ||
             lastName.contains(query) ||
@@ -128,11 +128,11 @@ class _CreatorsListState extends ConsumerState<CreatorsList> {
                     },
                     child: Utils.buildCreativeCard(
                       context,
-                      name: '${creators.member?.firstName} ${creators.member?.lastName}',
+                      name: '${creators.user?.firstName} ${creators.user?.lastName}',
                       role: creators.jobTitle ?? '',
                       rating: 4.8,
-                      profileImage: creators.member?.profileImage ?? '',
-                      firstName: creators.member!.firstName,
+                      profileImage: creators.user?.image ?? '',
+                      firstName: creators.user!.firstName,
                     ),
                   );
                 },

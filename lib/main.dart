@@ -1,7 +1,6 @@
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
-import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:soundhive2/screens/auth/create_account.dart';
@@ -16,42 +15,25 @@ import 'package:soundhive2/screens/onboarding/just_curious.dart';
 import 'package:soundhive2/screens/onboarding/onboard.dart';
 import 'package:soundhive2/screens/onboarding/splash_screen.dart';
 import 'package:soundhive2/services/loader_service.dart';
-import 'package:webview_flutter/webview_flutter.dart';
-import 'package:webview_flutter_android/webview_flutter_android.dart';
-import 'package:webview_flutter_wkwebview/webview_flutter_wkwebview.dart';
-
 import 'lib/app_life_cycle.dart';
+import 'lib/auth_state_provider.dart';
 import 'lib/interceptor.dart';
 import 'lib/provider.dart';
+import 'package:firebase_core/firebase_core.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  // final FlutterLocalNotificationsPlugin flutterLocalNotificationsPlugin = FlutterLocalNotificationsPlugin();
-  // const AndroidInitializationSettings androidSettings = AndroidInitializationSettings('@mipmap/ic_launcher');
-  // final DarwinInitializationSettings iosSettings = const DarwinInitializationSettings(
-  //   requestAlertPermission: true,
-  //   requestBadgePermission: true,
-  //   requestSoundPermission: true,
-  // );
-  await dotenv.load(fileName: '.env.production');
-  Dio dio = Dio();
-  // if (WebViewPlatform.instance is WebKitWebViewPlatform) {
-  //   WebViewPlatform.instance = WebKitWebViewPlatform();
-  // } else if (WebViewPlatform.instance is AndroidWebViewPlatform) {
-  //   WebViewPlatform.instance = AndroidWebViewPlatform();
-  // }
 
+  await dotenv.load(fileName: '.env.production');
+  await Firebase.initializeApp(
+  );
+  Dio dio = Dio();
   initializeDioLogger(dio);
   final storage = FlutterSecureStorage();
   dio.interceptors.addAll([
     BaseUrlInterceptor(),
     TokenInterceptor(storage: storage),
   ]);
-  // final InitializationSettings initSettings = InitializationSettings(
-  //   android: androidSettings,
-  //   iOS: iosSettings,
-  // );
-  // await flutterLocalNotificationsPlugin.initialize(initSettings);
   final navigatorKey = GlobalKey<NavigatorState>();
   LoaderService.navigatorKey = navigatorKey;
   runApp(
@@ -75,6 +57,11 @@ class SoundHive extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final authState = ref.watch(authStateProvider);
+
+    if (authState.isLoading) {
+      return const MaterialApp(home: Scaffold(body: Center(child: CircularProgressIndicator())));
+    }
     final routeObserver = ref.read(routeObserverProvider);
     return MaterialApp(
       debugShowCheckedModeBanner: false,
@@ -83,7 +70,7 @@ class SoundHive extends ConsumerWidget {
         fontFamily: 'Nohemi',
       ),
       navigatorKey: navigatorKey,
-      initialRoute: SplashScreen.id,
+      initialRoute: authState.token != null ? DashboardScreen.id : SplashScreen.id,
       routes: {
         SplashScreen.id: (context) => const SplashScreen(),
         Onboard.id: (context) => const Onboard(),

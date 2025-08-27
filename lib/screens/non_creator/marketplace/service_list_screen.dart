@@ -169,7 +169,7 @@ class _ServicesListScreenState extends ConsumerState<ServicesListScreen>
                           child: _buildServiceCard(
                             context,
                             title: item.serviceName,
-                            price: '₦${item.serviceAmount}',
+                            price: '₦${item.rate}',
                             name:
                             "${item.user?.firstName} ${item.user?.lastName}",
                             rating: 4.5,

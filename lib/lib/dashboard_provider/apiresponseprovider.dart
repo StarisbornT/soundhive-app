@@ -8,6 +8,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
 import '../../model/apiresponse_model.dart';
+import '../../model/bvn_response_model.dart';
 import '../../services/loader_service.dart';
 import '../provider.dart';
 
@@ -91,7 +92,59 @@ class ApiResponseProvider extends StateNotifier<AsyncValue<void>> {
     try {
       LoaderService.showLoader(context);
       final response = await _dio.post(
-        '/member/service/purchase',
+        '/service/payment',
+        data: jsonEncode(payload),
+      );
+
+      if (response.statusCode == 200) {
+        state = const AsyncValue.data(null);
+        return ApiResponseModel.fromJson(response.data);
+      } else {
+        throw Exception(response.data['message'] ?? 'Something went wrong');
+      }
+    } catch (error, stackTrace) {
+      state = AsyncValue.error(error, stackTrace);
+      rethrow; // Let the caller handle the error
+    } finally {
+      LoaderService.hideLoader(context);
+    }
+  }
+
+  Future<ApiResponseModel> initiateDispute({
+    required BuildContext context,
+    required Map<dynamic, dynamic> payload
+  }) async {
+    state = const AsyncValue.loading();
+    try {
+      LoaderService.showLoader(context);
+      final response = await _dio.post(
+        '/dispute/initiate',
+        data: jsonEncode(payload),
+      );
+
+      if (response.statusCode == 200) {
+        state = const AsyncValue.data(null);
+        return ApiResponseModel.fromJson(response.data);
+      } else {
+        throw Exception(response.data['message'] ?? 'Something went wrong');
+      }
+    } catch (error, stackTrace) {
+      state = AsyncValue.error(error, stackTrace);
+      rethrow; // Let the caller handle the error
+    } finally {
+      LoaderService.hideLoader(context);
+    }
+  }
+  Future<ApiResponseModel> cancelDispute({
+    required BuildContext context,
+    required int bookingId,
+    required Map<dynamic, dynamic> payload
+  }) async {
+    state = const AsyncValue.loading();
+    try {
+      LoaderService.showLoader(context);
+      final response = await _dio.post(
+        '/dispute/close/$bookingId',
         data: jsonEncode(payload),
       );
 
@@ -110,13 +163,13 @@ class ApiResponseProvider extends StateNotifier<AsyncValue<void>> {
   }
   Future<ApiResponseModel> markAsCompleted({
     required BuildContext context,
-    required String memberServiceId,
+    required int memberServiceId,
   }) async {
     state = const AsyncValue.loading();
     try {
       LoaderService.showLoader(context);
       final response = await _dio.post(
-        '/member/service/purchase/mark-as-completed/$memberServiceId',
+        '/service/booking/$memberServiceId',
       );
 
       if (response.statusCode == 200) {
@@ -180,7 +233,7 @@ class ApiResponseProvider extends StateNotifier<AsyncValue<void>> {
       LoaderService.showLoader(context);
       final formData = jsonEncode(payload);
       final response = await _dio.post(
-          '/member/creator/create',
+          '/verify/identity',
           data: formData
       );
 
@@ -198,7 +251,8 @@ class ApiResponseProvider extends StateNotifier<AsyncValue<void>> {
     }
   }
 
-  Future<ApiResponseModel> sendIdVerification({
+
+  Future<BvnResponseModel> sendIdVerification({
     required BuildContext context,
     required Map<String, dynamic> payload
   }) async {
@@ -207,13 +261,13 @@ class ApiResponseProvider extends StateNotifier<AsyncValue<void>> {
       LoaderService.showLoader(context);
       final formData = jsonEncode(payload);
       final response = await _dio.post(
-          '/member/idverify/create',
+          '/bvn/initiate',
           data: formData
       );
 
       if (response.statusCode == 200) {
-        state = const AsyncValue.data(null); // line or error
-        return ApiResponseModel.fromJson(response.data);
+        state = const AsyncValue.data(null);
+        return BvnResponseModel.fromJson(response.data);
       } else {
         throw Exception(response.data['message'] ?? 'Something went wrong');
       }
@@ -257,11 +311,11 @@ class ApiResponseProvider extends StateNotifier<AsyncValue<void>> {
     try {
       LoaderService.showLoader(context);
       final response = await _dio.post(
-          '/member/account/generate'
+          '/generate/account'
       );
 
       if (response.statusCode == 200) {
-        state = const AsyncValue.data(null); // line or error
+        state = const AsyncValue.data(null);
         return ApiResponseModel.fromJson(response.data);
       } else {
         throw Exception(response.data['message'] ?? 'Something went wrong');
@@ -283,7 +337,7 @@ class ApiResponseProvider extends StateNotifier<AsyncValue<void>> {
       // LoaderService.showLoader(context);
       final formData = jsonEncode(payload);
       final response = await _dio.post(
-          '/member/creator/setup-creative-profile',
+          '/creative/profile',
           data: formData
       );
 
@@ -310,7 +364,7 @@ class ApiResponseProvider extends StateNotifier<AsyncValue<void>> {
       LoaderService.showLoader(context);
       final formData = jsonEncode(payload);
       final response = await _dio.post(
-          '/member/creator/updates/jobtitle',
+          '/update/job-title',
           data: formData
       );
 
@@ -337,7 +391,7 @@ class ApiResponseProvider extends StateNotifier<AsyncValue<void>> {
       LoaderService.showLoader(context);
       final formData = jsonEncode(payload);
       final response = await _dio.post(
-          '/member/creator/updates/jobdescription',
+          '/update/bio',
           data: formData
       );
 
@@ -364,7 +418,7 @@ class ApiResponseProvider extends StateNotifier<AsyncValue<void>> {
       LoaderService.showLoader(context);
       final formData = jsonEncode(payload);
       final response = await _dio.post(
-          '/member/creator/updates/job-social',
+          '/update/socials',
           data: formData
       );
 
@@ -391,7 +445,7 @@ class ApiResponseProvider extends StateNotifier<AsyncValue<void>> {
       LoaderService.showLoader(context);
       final formData = jsonEncode(payload);
       final response = await _dio.post(
-          '/member/creator/updates/update-profile',
+          '/update/image',
           data: formData
       );
 
@@ -417,7 +471,7 @@ class ApiResponseProvider extends StateNotifier<AsyncValue<void>> {
       // LoaderService.showLoader(context);
       final formData = jsonEncode(payload);
       final response = await _dio.post(
-          '/member/service/create',
+          '/create-service',
           data: formData
       );
 
@@ -478,6 +532,23 @@ class ApiResponseProvider extends StateNotifier<AsyncValue<void>> {
     }
   }
 
+  Future<void> logout({
+    required BuildContext context,
+  }) async {
+    state = const AsyncValue.loading();
+    try {
+      LoaderService.showLoader(context);
+      await _storage.deleteAll();
+      await Future.delayed(const Duration(milliseconds: 500));
+      Map<String, String> allData = await _storage.readAll();
+      print("Storage After Delete: $allData");
 
+    } catch (error, stackTrace) {
+      state = AsyncValue.error(error, stackTrace);
+      rethrow;
+    } finally {
+      LoaderService.hideLoader(context);
+    }
+  }
 
 }

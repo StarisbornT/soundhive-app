@@ -111,13 +111,17 @@ class _OtpScreenState extends ConsumerState<OtpScreen> with WidgetsBindingObserv
       };
       final options = Options(headers: {'Accept': 'application/json'});
       final response = await widget.dio.post(
-          '/member/verify-otp',
+          '/auth/verify',
           data: jsonEncode(payload),
           options: options
       );
       if (!mounted) return;
       LoaderService.hideLoader(context);
       if (response.statusCode == 200) {
+        final responseData = response.data;
+
+        await widget.storage.write(key: 'auth_token', value: responseData['token']);
+        await widget.storage.write(key: 'role', value: responseData['data']['role']);
         Navigator.pushNamed(context, UpdateProfile1.id);
       }
       else {

@@ -3,10 +3,7 @@ import 'dart:convert';
 import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
-import 'package:soundhive2/model/asset_model.dart';
 import 'package:soundhive2/model/service_model.dart';
-
-import '../../services/loader_service.dart';
 import '../provider.dart';
 final serviceProvider = StateNotifierProvider.family<AssetsNotifier, AsyncValue<ServiceResponse>, String>((ref, status) {
   final dio = ref.watch(dioProvider);
@@ -27,10 +24,9 @@ class AssetsNotifier extends StateNotifier<AsyncValue<ServiceResponse>> {
     state = const AsyncValue.loading();
     try {
       final response = await _dio.get(
-        '/member/service/list',
+        '/get-current-creator-service',
         queryParameters: {
-          'per_page': 10,
-          'status': status,
+          'status': status.toUpperCase(),
         },
         options: Options(headers: {
           'Accept': 'application/json',

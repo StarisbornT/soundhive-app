@@ -26,7 +26,7 @@ class _CategoriesState extends ConsumerState<Categories> {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) async {
       await ref.read(categoryProvider.notifier).getCategory();
-      final fetched = ref.read(categoryProvider).value?.data;
+      final fetched = ref.read(categoryProvider).value?.data.data;
       setState(() {
         _allCategories = fetched!;
         _filteredCategories = fetched;

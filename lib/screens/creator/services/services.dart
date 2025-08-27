@@ -100,7 +100,7 @@ class _ServiceScreenState extends ConsumerState<ServiceScreen> with TickerProvid
                     final publishedState = ref.watch(serviceProvider('published'));
                     return publishedState.when(
                       data: (serviceResponse) =>
-                          buildServiceList(serviceResponse.data, "No published services"),
+                          buildServiceList(serviceResponse.data.data, "No published services"),
                       loading: () => const Center(child: CircularProgressIndicator()),
                       error: (error, _) => Center(child: Text('Error: $error')),
                     );
@@ -112,7 +112,7 @@ class _ServiceScreenState extends ConsumerState<ServiceScreen> with TickerProvid
                     final pendingState = ref.watch(serviceProvider('pending'));
                     return pendingState.when(
                       data: (serviceResponse) =>
-                          buildServiceList(serviceResponse.data, "No services under review"),
+                          buildServiceList(serviceResponse.data.data, "No services under review"),
                       loading: () => const Center(child: CircularProgressIndicator()),
                       error: (error, _) => Center(child: Text('Error: $error')),
                     );
@@ -124,7 +124,7 @@ class _ServiceScreenState extends ConsumerState<ServiceScreen> with TickerProvid
                     final rejectedState = ref.watch(serviceProvider('rejected'));
                     return rejectedState.when(
                       data: (serviceResponse) =>
-                          buildServiceList(serviceResponse.data, "No rejected services"),
+                          buildServiceList(serviceResponse.data.data, "No rejected services"),
                       loading: () => const Center(child: CircularProgressIndicator()),
                       error: (error, _) => Center(child: Text('Error: $error')),
                     );
@@ -143,7 +143,7 @@ class _ServiceScreenState extends ConsumerState<ServiceScreen> with TickerProvid
         height: 70,
         child: RawMaterialButton(
           onPressed: () {
-            if(widget.user.creator != null) {
+            if(widget.user.user?.creator != null) {
               Navigator.push(context, MaterialPageRoute(builder: (_) => const AddNewServiceScreen()));
             }else {
               showCustomAlert(
@@ -210,26 +210,25 @@ class _ServiceScreenState extends ConsumerState<ServiceScreen> with TickerProvid
       itemBuilder: (context, index) {
         final item = items[index];
         return Container(
-          padding: EdgeInsets.all(12),
+          padding: const EdgeInsets.all(12),
           decoration: BoxDecoration(
             color: Colors.transparent,
             borderRadius: BorderRadius.circular(12),
           ),
           child: Row(
             children: [
-              // Image section with proper error handling
-              Container(
-                width: 100, // Fixed width for image container
+              SizedBox(
+                width: 100,
                 height: 100,
-                child: (item.serviceImage.isNotEmpty ?? false)
+                child: (item.serviceImage.isNotEmpty)
                     ? Image.network(
-                  item.serviceImage!,
+                  item.serviceImage,
                   fit: BoxFit.cover,
                   errorBuilder: (context, error, stackTrace) => Utils.buildImagePlaceholder(),
                 )
                     : Utils.buildImagePlaceholder(),
               ),
-              SizedBox(width: 10),
+              const SizedBox(width: 10),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -246,13 +245,13 @@ class _ServiceScreenState extends ConsumerState<ServiceScreen> with TickerProvid
                     ),
                     const SizedBox(height: 5),
                     Text(
-                      Utils.formatCurrency(item.serviceAmount),
+                      Utils.formatCurrency(item.rate),
                       style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.w500, fontFamily: 'Roboto'),
                     ),
-                    SizedBox(height: 5),
+                    const SizedBox(height: 5),
                     Text(
-                      '${item.status == "Pending" ? 'Submitted ${DateFormat('dd/MM/yyyy').format(DateTime.parse(item.createdAt))}' : ''}',
-                      style: TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.w500),
+                      item.status == "PENDING" ? 'Submitted ${DateFormat('dd/MM/yyyy').format(DateTime.parse(item.createdAt))}' : '',
+                      style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.w500),
                     ),
 
                   ],

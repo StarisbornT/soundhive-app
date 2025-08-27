@@ -22,17 +22,17 @@ class _TransactionHistoryScreenState extends ConsumerState<TransactionHistory>{
   @override
   void initState() {
     super.initState();
-    if(widget.user.member?.account != null) {
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        ref.read(getTransactionHistoryPlaceProvider.notifier).getTransactionHistory(widget.user.member?.account!.accountId ?? '');
-      });
-    }
+    // if(widget.user.member?.account != null) {
+    //   WidgetsBinding.instance.addPostFrameCallback((_) {
+    //     ref.read(getTransactionHistoryPlaceProvider.notifier).getTransactionHistory(widget.user.member?.account!.accountId ?? '');
+    //   });
+    // }
   }
 
   @override
   Widget build(BuildContext context) {
     final serviceState = ref.watch(getTransactionHistoryPlaceProvider);
-    final account = widget.user.member?.account;
+    final account = widget.user.user?.wallet;
 
     return Scaffold(
       backgroundColor: const Color(0xFF050110),
@@ -68,7 +68,7 @@ class _TransactionHistoryScreenState extends ConsumerState<TransactionHistory>{
                         onPressed: () {
                           Navigator.push(
                             context,
-                            MaterialPageRoute(builder: (_) => WalletScreen(user: widget.user.member!)),
+                            MaterialPageRoute(builder: (_) => WalletScreen(user: widget.user.user!)),
                           );
                         }
                     ),

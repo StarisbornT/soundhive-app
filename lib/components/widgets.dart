@@ -992,24 +992,11 @@ class _PaymentMethodSelectorState extends ConsumerState<PaymentMethodSelector> {
   @override
   void initState() {
     super.initState();
-    if(widget.user.account != null) {
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        ref.read(getAccountBalance.notifier).getAccountBalance(widget.user.account!.accountId);
-      });
-    }
 
   }
 
   void _showPaymentOptions(BuildContext context) {
     int selectedOption = _selectedMethod == 'Paystack Checkout' ? 1 : 0;
-    final serviceState = ref.watch(getAccountBalance);
-    final balanceText = widget.user.account == null
-        ? '₦0.00'
-        : serviceState.when(
-      data: (response) => Utils.formatCurrency(response.data.accountBalance),
-      loading: () => '₦0.00', // fallback text while loading
-      error: (err, _) => '₦0.00',
-    );
 
     showModalBottomSheet(
       context: context,
@@ -1039,30 +1026,18 @@ class _PaymentMethodSelectorState extends ConsumerState<PaymentMethodSelector> {
 
                   _buildPaymentOption(
                     context,
-                    title: 'Soundhive Vest - $balanceText',
+                    title: 'Soundhive Vest - ${widget.user.wallet?.balance}',
                     icon: Icons.account_balance_wallet,
                     selected: selectedOption == 0,
                     onTap: () => setStateBottomSheet(() => selectedOption = 0),
                     radioColor: Colors.white,
                   ),
-                  const SizedBox(height: 12),
-                  _buildPaymentOption(
-                    context,
-                    title: 'Paystack Checkout',
-                    icon: Icons.payment,
-                    selected: selectedOption == 1,
-                    onTap: () => setStateBottomSheet(() => selectedOption = 1),
-                    radioColor: Colors.white,
-                  ),
-
                   const SizedBox(height: 24),
 
                   RoundedButton(
                     title: 'Proceed',
                     onPressed: () {
-                      String method = selectedOption == 0
-                          ? 'savehaven'
-                          : 'Paystack Checkout';
+                      String method = "flutterwave";
 
                       setState(() => _selectedMethod = method);
                       widget.onSelected(method);
@@ -1083,14 +1058,6 @@ class _PaymentMethodSelectorState extends ConsumerState<PaymentMethodSelector> {
 
   @override
   Widget build(BuildContext context) {
-    final serviceState = ref.watch(getAccountBalance);
-    final balanceText = widget.user.account == null
-        ? '₦0.00'
-        : serviceState.when(
-      data: (response) => Utils.formatCurrency(response.data.accountBalance),
-      loading: () => '₦0.00', // fallback text while loading
-      error: (err, _) => '₦0.00',
-    );
     return GestureDetector(
       onTap: () => _showPaymentOptions(context),
       child: Container(
@@ -1104,7 +1071,7 @@ class _PaymentMethodSelectorState extends ConsumerState<PaymentMethodSelector> {
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
             Text(
-              _selectedMethod == "savehaven" ? 'Soundhive Vest - $balanceText'  : "Paystack Checkout",
+              "Flutterwave - ${widget.user.wallet?.balance}",
               style: TextStyle(
                 color: _selectedMethod == null ? Colors.grey : Colors.white,
               ),

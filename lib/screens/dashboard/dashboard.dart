@@ -19,7 +19,7 @@ class DashboardScreen extends ConsumerWidget {
         body: SafeArea(
           child: userState.when(
             data: (user) {
-              if (user.creator != null) {
+              if (user.user?.creator != null) {
                 return  CreatorDashboard();
               }else {
                 return NonCreatorDashboard();

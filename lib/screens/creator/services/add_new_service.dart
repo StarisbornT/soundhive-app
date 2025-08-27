@@ -14,6 +14,7 @@ import '../../../components/success.dart';
 import '../../../components/widgets.dart';
 import '../../../lib/dashboard_provider/apiresponseprovider.dart';
 import '../../../lib/dashboard_provider/categoryProvider.dart';
+import '../../../lib/dashboard_provider/sub_category_provider.dart';
 import '../../../lib/dashboard_provider/user_provider.dart';
 import '../../../model/apiresponse_model.dart';
 import '../../../services/loader_service.dart';
@@ -30,31 +31,31 @@ class AddNewServiceScreen extends ConsumerStatefulWidget {
 
 class _AddNewServiceScreenState extends ConsumerState<AddNewServiceScreen> {
   List<Category> services = [];
+  Category? selectedService;
+  String? selectedCategoryId;
+  String? selectedSubCategoryId;
 
   final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
-  final List<Category> selectedServices = [];
-  final Map<Category, TextEditingController> rateControllers = {};
-  final Map<Category, PortfolioData> portfolioData = {};
+  final TextEditingController rateController = TextEditingController(); // Single rate controller
+  final PortfolioData portfolioData = PortfolioData(); // Single portfolio data
   final TextEditingController serviceNameController = TextEditingController();
+  final TextEditingController categoryController = TextEditingController();
+  final TextEditingController subcategoryController = TextEditingController();
+
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) async {
       await ref.read(categoryProvider.notifier).getCategory();
-      final fetched = ref.read(categoryProvider).value?.data;
+      final fetched = ref.read(categoryProvider).value?.data.data;
       setState(() {
         services = fetched!;
-        for (var service in selectedServices) {
-          portfolioData[service] = PortfolioData();
-          rateControllers[service] = TextEditingController();
-        }
       });
     });
   }
 
   int _currentStep = 0;
   void _nextStep() {
-    // Validate only if not on the last step
     if (_currentStep < 5) {
       final isValid = _validateCurrentStep();
       if (!isValid) return;
@@ -68,51 +69,45 @@ class _AddNewServiceScreenState extends ConsumerState<AddNewServiceScreen> {
   bool _validateCurrentStep() {
     switch (_currentStep) {
       case 0: // Bio Step
-        if (selectedServices.isEmpty) {
-          _showError("Please select at least one service");
+        if (categoryController.text.isEmpty || serviceNameController.text.isEmpty) {
+          _showError("Please select a service");
           return false;
         }
         return true;
 
-      case 1: // Rate Step - UPDATED
-        for (var service in selectedServices) {
-          if (rateControllers[service]!.text.isEmpty) {
-            _showError("Rate for $service is required");
-            return false;
-          }
+      case 1: // Rate Step
+        if (rateController.text.isEmpty) {
+          _showError("Rate is required");
+          return false;
         }
         return true;
 
-      case 2: // Portfolio Step - UPDATED
-        for (var service in selectedServices) {
-          final data = portfolioData[service]!;
+      case 2: // Portfolio Step
+      // Validate cover image
+        if (portfolioData.coverNotifier.value == null) {
+          _showError("Cover image is required");
+          return false;
+        }
 
-          // Validate cover image
-          if (data.coverNotifier.value == null) {
-            _showError("Cover image is required for $service");
+        // Validate selected formats
+        if (portfolioData.selectedFormats.value.isEmpty) {
+          _showError("Please select at least one portfolio format");
+          return false;
+        }
+
+        // Validate each selected format
+        for (final format in portfolioData.selectedFormats.value) {
+          if (format == 'image' && portfolioData.imageNotifier.value == null) {
+            _showError("Image file is required");
             return false;
           }
-
-          // Validate selected formats
-          if (data.selectedFormats.value.isEmpty) {
-            _showError("Please select at least one portfolio format for $service");
+          if (format == 'audio' && portfolioData.audioNotifier.value == null) {
+            _showError("Audio file is required");
             return false;
           }
-
-          // Validate each selected format
-          for (final format in data.selectedFormats.value) {
-            if (format == 'image' && data.imageNotifier.value == null) {
-              _showError("Image file is required for $service");
-              return false;
-            }
-            if (format == 'audio' && data.audioNotifier.value == null) {
-              _showError("Audio file is required for $service");
-              return false;
-            }
-            if (format == 'link' && data.linkController.text.isEmpty) {
-              _showError("Link is required for $service");
-              return false;
-            }
+          if (format == 'link' && portfolioData.linkController.text.isEmpty) {
+            _showError("Link is required");
+            return false;
           }
         }
         return true;
@@ -124,22 +119,17 @@ class _AddNewServiceScreenState extends ConsumerState<AddNewServiceScreen> {
 
   void _showError(String message) {
     showCustomAlert(
-        context: context,
-        isSuccess: false,
-        title: "Error",
-        message: message
+      context: context,
+      isSuccess: false,
+      title: "Error",
+      message: message,
     );
   }
 
   @override
   void dispose() {
-    for (var controller in rateControllers.values) {
-      controller.dispose();
-    }
-    for (var data in portfolioData.values) {
-      data.dispose();
-    }
-
+    rateController.dispose();
+    portfolioData.dispose();
     super.dispose();
   }
 
@@ -158,6 +148,7 @@ class _AddNewServiceScreenState extends ConsumerState<AddNewServiceScreen> {
       });
     }
   }
+
   bool _isSubmitting = false;
   final Logger _logger = Logger();
 
@@ -168,29 +159,26 @@ class _AddNewServiceScreenState extends ConsumerState<AddNewServiceScreen> {
     try {
       LoaderService.showLoader(context);
 
-      // Upload all media files
-      await _uploadAllMedia();
+      // Upload media files
+      await _uploadServiceMedia(portfolioData);
 
       // Submit to backend
       await _submitToBackend();
 
-      // Navigate to success screen
-
       if (!mounted) return;
 
-      // 4. Hide loader before navigation
       LoaderService.hideLoader(context);
       final user = await ref.read(userProvider.notifier).loadUserProfile();
       await Navigator.pushReplacement(
         context,
         MaterialPageRoute(
           builder: (context) => Success(
-            title: 'Your new service(s) has been submitted for review',
+            title: 'Your new service has been submitted for review',
             subtitle: 'We will review it and get back to you shortly.',
             onButtonPressed: () {
               Navigator.pushReplacement(
                 context,
-                MaterialPageRoute(builder: (context) =>  ServiceScreen(user: user!,)),
+                MaterialPageRoute(builder: (context) => ServiceScreen(user: user!)),
               );
             },
           ),
@@ -201,16 +189,12 @@ class _AddNewServiceScreenState extends ConsumerState<AddNewServiceScreen> {
       LoaderService.hideLoader(context);
 
       String errorMessage = 'An unexpected error occurred';
-
-      // Print full error details for debugging
       print('FULL ERROR DETAILS: $error');
 
-      // Handle different Dio error types
       if (error is DioException) {
         if (error.response?.data != null) {
           try {
-            final apiResponse = ApiResponseModel.fromJson(
-                error.response?.data);
+            final apiResponse = ApiResponseModel.fromJson(error.response?.data);
             errorMessage = apiResponse.message;
           } catch (e) {
             errorMessage = 'Failed to parse error message';
@@ -220,16 +204,7 @@ class _AddNewServiceScreenState extends ConsumerState<AddNewServiceScreen> {
         }
       }
 
-
       print("Error: $errorMessage");
-      showCustomAlert(
-        context: context,
-        isSuccess: false,
-        title: 'Error',
-        message: errorMessage,
-      );
-
-      // Show the alert with the error message
       showCustomAlert(
         context: context,
         isSuccess: false,
@@ -240,9 +215,9 @@ class _AddNewServiceScreenState extends ConsumerState<AddNewServiceScreen> {
     } finally {
       LoaderService.hideLoader(context);
       _isSubmitting = false;
-
     }
   }
+
   Future<void> _uploadServiceMedia(PortfolioData data) async {
     // Upload cover image
     if (data.coverNotifier.value != null) {
@@ -261,8 +236,7 @@ class _AddNewServiceScreenState extends ConsumerState<AddNewServiceScreen> {
           resourceType: 'image',
           preset: 'soundhive',
         );
-      }
-      else if (format == 'audio' && data.audioNotifier.value != null) {
+      } else if (format == 'audio' && data.audioNotifier.value != null) {
         data.audioUrl = await _uploadFileToCloudinary(
           file: data.audioNotifier.value!,
           resourceType: 'video',
@@ -270,17 +244,6 @@ class _AddNewServiceScreenState extends ConsumerState<AddNewServiceScreen> {
         );
       }
     }
-  }
-  Future<void> _uploadAllMedia() async {
-    // Helper function to upload a portfolio section
-    final futures = <Future>[];
-
-    for (var service in selectedServices) {
-      final data = portfolioData[service]!;
-      futures.add(_uploadServiceMedia(data));
-    }
-
-    await Future.wait(futures);
   }
 
   Future<String> _uploadFileToCloudinary({
@@ -306,31 +269,34 @@ class _AddNewServiceScreenState extends ConsumerState<AddNewServiceScreen> {
     return response.data['secure_url'] as String;
   }
 
-
-
   Future<ApiResponseModel> _submitToBackend() async {
-    final List<Map<String, dynamic>> servicesPayload = [];
+    // Prepare portfolio data based on selected formats
+    final portfolioFormats = portfolioData.selectedFormats.value;
 
-    for (var service in selectedServices) {
-      final data = portfolioData[service]!;
-      final amount = rateControllers[service]?.text ?? "";
+    String? portfolioImage;
+    String? portfolioAudio;
+    String? portfolioLink;
 
-      // If the backend expects one portfolio item only (based on the example)
-      final primaryPortfolio = data.selectedFormats.value.isNotEmpty
-          ? data.selectedFormats.value.first
-          : "";
-
-      servicesPayload.add({
-        "service_name": service.name,
-        "service_amount": amount,
-        "service_image": data.coverUrl,
-        "service_portfolio_format": primaryPortfolio,
-        "service_portfolio_image": _getPortfolioUrl(data, primaryPortfolio),
-      });
+    // Set values based on what formats were selected
+    for (final format in portfolioFormats) {
+      if (format == 'image') {
+        portfolioImage = portfolioData.imageUrl;
+      } else if (format == 'audio') {
+        portfolioAudio = portfolioData.audioUrl;
+      } else if (format == 'link') {
+        portfolioLink = portfolioData.linkController.text;
+      }
     }
-    // Prepare payload
+
     final payload = {
-      "services": servicesPayload,
+      "category_id": int.parse(selectedCategoryId!),
+      "sub_category_id": int.parse(selectedSubCategoryId!),
+      "service_name": serviceNameController.text,
+      "rate": rateController.text,
+      "cover_image": portfolioData.coverUrl,
+      "service_image": portfolioImage ?? '',
+      "service_audio": portfolioAudio ?? '',
+      "link": portfolioLink ?? '',
     };
 
     try {
@@ -338,7 +304,7 @@ class _AddNewServiceScreenState extends ConsumerState<AddNewServiceScreen> {
         payload: payload,
       );
 
-      if (response.message != "sucess") {
+      if (!response.status) {
         throw DioException(
           requestOptions: RequestOptions(path: ''),
           response: Response(
@@ -351,27 +317,16 @@ class _AddNewServiceScreenState extends ConsumerState<AddNewServiceScreen> {
       return response;
     } catch (error) {
       _logger.e("Backend submission failed", error: error);
-      rethrow; // Rethrow to be caught in _submitForm
+      rethrow;
     }
   }
 
-  final List<Map<String, String>> portfolioFormat =[
+  final List<Map<String, String>> portfolioFormat = [
     {'label': 'Image', 'value': 'image'},
     {'label': 'Link', 'value': 'link'},
     {'label': 'Audio', 'value': 'audio'},
   ];
-  String _getPortfolioUrl(dynamic data, String format) {
-    switch (format) {
-      case 'image':
-        return data.imageUrl;
-      case 'audio':
-        return data.audioUrl;
-      case 'link':
-        return data.linkController.text;
-      default:
-        return '';
-    }
-  }
+
   Widget _buildProgressDots() {
     return Row(
       mainAxisAlignment: MainAxisAlignment.center,
@@ -389,27 +344,43 @@ class _AddNewServiceScreenState extends ConsumerState<AddNewServiceScreen> {
       ),
     );
   }
+
   Widget _buildStepContent() {
     switch (_currentStep) {
       case 0:
         return _buildBioStep();
       case 1:
-        return _buildServicesStep();
-      case 2:
         return _rateStep();
-      case 3:
+      case 2:
         return _portfolioStep();
       default:
         return const Center(child: Text("More steps to come", style: TextStyle(color: Colors.white)));
     }
   }
+
   Widget _buildBioStep() {
+    final categoryItems = services.map((category) {
+      return {
+        'value': category.id.toString(),
+        'label': category.name,
+      };
+    }).toList();
+
+    final subcategories = ref.watch(subcategoryProvider);
+
+    final subCategoryItems = (subcategories.value?.data ?? []).map((sub) {
+      return {
+        'value': sub.id.toString(),
+        'label': sub.name,
+      };
+    }).toList();
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         const SizedBox(height: 24),
         const Text(
-          'Service Name',
+          'Services',
           style: TextStyle(
             fontSize: 24,
             fontWeight: FontWeight.w400,
@@ -422,9 +393,30 @@ class _AddNewServiceScreenState extends ConsumerState<AddNewServiceScreen> {
           controller: serviceNameController,
           hintText: "Service Name",
         ),
+        LabeledSelectField(
+          label: "Category",
+          controller: categoryController,
+          items: categoryItems,
+          hintText: 'Select category',
+          onChanged: (selectedValue) {
+            selectedCategoryId = selectedValue;
+            ref.read(subcategoryProvider.notifier).getSubCategory(int.parse(selectedValue));
+          },
+        ),
+        LabeledSelectField(
+          label: "Sub Category",
+          controller: subcategoryController,
+          items: subCategoryItems,
+          hintText: 'Select sub category',
+          onChanged: (value) {
+            selectedSubCategoryId = value;
+          },
+        ),
+
       ],
     );
   }
+
   Widget _portfolioStep() {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -448,26 +440,18 @@ class _AddNewServiceScreenState extends ConsumerState<AddNewServiceScreen> {
           ),
         ),
         const SizedBox(height: 20),
-
-        ...selectedServices.map((service) {
-          final data = portfolioData[service]!;
-          return Column(
-            children: [
-              PortfolioUploadSection(
-                title: service.name, // Assuming Category has a 'name' property
-                coverImageNotifier: data.coverNotifier,
-                imageFileNotifier: data.imageNotifier,
-                audioFileNotifier: data.audioNotifier,
-                linkController: data.linkController,
-                selectedFormatsNotifier: data.selectedFormats,
-              ),
-              const SizedBox(height: 20),
-            ],
-          );
-        }).toList(),
+        PortfolioUploadSection(
+          title: serviceNameController.text,
+          coverImageNotifier: portfolioData.coverNotifier,
+          imageFileNotifier: portfolioData.imageNotifier,
+          audioFileNotifier: portfolioData.audioNotifier,
+          linkController: portfolioData.linkController,
+          selectedFormatsNotifier: portfolioData.selectedFormats,
+        ),
       ],
     );
   }
+
   Widget _rateStep() {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -482,83 +466,24 @@ class _AddNewServiceScreenState extends ConsumerState<AddNewServiceScreen> {
           ),
         ),
         const SizedBox(height: 20),
+        CurrencyInputField(
+          label: serviceNameController.text,
+          suffixText: 'per project',
+          controller: rateController,
+          onChanged: (value) {
+            print('Input changed to: $value');
+          },
+          validator: (value) {
+            if (value == null || value.isEmpty || double.tryParse(value) == null) {
+              return 'Please enter a valid amount';
+            }
+            return null;
+          },
+        ),
+      ],
+    );
+  }
 
-        ...selectedServices.map((service) {
-          return Column(
-            children: [
-              const SizedBox(height: 16),
-              CurrencyInputField(
-                label: service.name, // Assuming Category has a 'name' property
-                suffixText: 'per project',
-                controller: rateControllers[service]!,
-                onChanged: (value) {
-                  print('Input changed to: $value');
-                },
-                validator: (value) {
-                  if (value == null || value.isEmpty || double.tryParse(value) == null) {
-                    return 'Please enter a valid amount';
-                  }
-                  return null;
-                },
-              ),
-            ],
-          );
-        }).toList(),
-      ],
-    );
-  }
-  Widget _buildServicesStep() {
-    final TextEditingController searchController = TextEditingController();
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        const SizedBox(height: 24),
-        const Text(
-          'Select the service(s) you want to add',
-          style: TextStyle(
-            fontSize: 16,
-            fontWeight: FontWeight.w400,
-            color: Colors.white,
-          ),
-        ),
-        const SizedBox(height: 10),
-        LabeledTextField(
-          label: 'Search',
-          controller: searchController,
-          prefixIcon: Icons.search,
-          hintText: "Search for service",
-        ),
-        const SizedBox(height: 20),
-        Wrap(
-          children: services.map((service) {
-            return CheckboxListTile(
-              value: selectedServices.contains(service),
-              activeColor: const Color(0xFF8F4EFF),
-              controlAffinity: ListTileControlAffinity.leading,
-              checkboxShape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(5)),
-              title: Text(service.name, style: const TextStyle(color: Colors.white)), // Assuming Category has a 'name' property
-              onChanged: (_) {
-                setState(() {
-                  if (selectedServices.contains(service)) {
-                    selectedServices.remove(service);
-                  } else {
-                    selectedServices.add(service);
-                    // Initialize controllers and portfolio data when adding a service
-                    if (!rateControllers.containsKey(service)) {
-                      rateControllers[service] = TextEditingController();
-                    }
-                    if (!portfolioData.containsKey(service)) {
-                      portfolioData[service] = PortfolioData();
-                    }
-                  }
-                });
-              },
-            );
-          }).toList(),
-        ),
-      ],
-    );
-  }
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -581,10 +506,10 @@ class _AddNewServiceScreenState extends ConsumerState<AddNewServiceScreen> {
                 const Align(
                   alignment: Alignment.centerLeft,
                   child: Text(
-                      'Add a new service',
+                    'Add a new service',
                     style: TextStyle(
                       fontSize: 24,
-                      color: Colors.white
+                      color: Colors.white,
                     ),
                   ),
                 ),

@@ -46,13 +46,7 @@ class _MarketplaceState extends ConsumerState<Marketplace>
   final List<MarketOrder> filteredServices = [];
   late List<String> _selectedFilters = [];
   bool _showFilters = true;
-  final List<String> locationOptions = [
-    'Lagos',
-    'Ondo',
-    'Osun',
-    'Abuja',
-    'Portharcourt'
-  ];
+
 
   @override
   void didChangeDependencies() {
@@ -181,8 +175,6 @@ class _MarketplaceState extends ConsumerState<Marketplace>
         minPrice = double.tryParse(filter.replaceAll('Min: ₦', '').replaceAll(',', ''));
       } else if (filter.startsWith('Max:')) {
         maxPrice = double.tryParse(filter.replaceAll('Max: ₦', '').replaceAll(',', ''));
-      } else if (locationOptions.contains(filter)) {
-        locationFilters.add(filter.toLowerCase());
       }
     }
 
@@ -205,9 +197,9 @@ class _MarketplaceState extends ConsumerState<Marketplace>
 
       // Check price filters
       if (minPrice != null || maxPrice != null) {
-        final servicePrice = double.tryParse(service.serviceAmount.replaceAll(',', '')) ?? 0;
-        if (minPrice != null && servicePrice < minPrice!) return false;
-        if (maxPrice != null && servicePrice > maxPrice!) return false;
+        final servicePrice = double.tryParse(service.rate.replaceAll(',', '')) ?? 0;
+        if (minPrice != null && servicePrice < minPrice) return false;
+        if (maxPrice != null && servicePrice > maxPrice) return false;
       }
 
       return true;
@@ -238,16 +230,16 @@ class _MarketplaceState extends ConsumerState<Marketplace>
               children: [
                 Column(
                   children: [
-                    if (widget.user.creator?.status != "active")
+                    if (widget.user.user?.creator?.active != true)
                       Utils.reviewCard(
                         context,
-                        title: widget.user.creator != null
+                        title: widget.user.user?.creator != null
                             ? "Account under review"
                             : "Setup your creative profile",
-                        subtitle: widget.user.creator != null
+                        subtitle: widget.user.user?.creator != null
                             ? "We are currently reviewing your submissions..."
                             : "To publish anything or gain clients visibility...",
-                        image: widget.user.creator != null
+                        image: widget.user.user?.creator != null
                             ? "images/review.png"
                             : "images/bag.png",
                         onTap: () => Navigator.push(
@@ -331,16 +323,21 @@ class _MarketplaceState extends ConsumerState<Marketplace>
             final service = investment.service;
 
             return GestureDetector(
-              onTap: () => Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (context) => MarkAsCompletedScreen(
-                    services: service!,
-                    user: widget.user.member!,
-                    memberServiceId: investment.id.toString(),
-                  ),
-                ),
-              ),
+              onTap: () {
+                if(investment.status == "PENDING"){
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => MarkAsCompletedScreen(
+                        services: investment,
+                        user: widget.user.user!,
+                      ),
+                    ),
+                  );
+                }else {
+                  return;
+                }
+              },
               child: Card(
                 color: Colors.transparent,
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
@@ -376,15 +373,15 @@ class _MarketplaceState extends ConsumerState<Marketplace>
                       Container(
                         padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                         decoration: BoxDecoration(
-                          color: investment.endDate == null
+                          color: investment.status == "PENDING"
                               ? const Color.fromRGBO(255, 193, 7, 0.1)
                               : const Color.fromRGBO(76, 175, 80, 0.1),
                           borderRadius: BorderRadius.circular(12),
                         ),
                         child: Text(
-                          investment.endDate == null ? 'Ongoing' : 'Completed',
+                          investment.status == "PENDING" ? 'Ongoing' : 'Completed',
                           style: TextStyle(
-                            color: investment.endDate == null
+                            color: investment.status == "PENDING"
                                 ? const Color(0xFFFFC107)
                                 : const Color(0xFF4CAF50),
                             fontSize: 10,
@@ -520,8 +517,15 @@ class _MarketplaceState extends ConsumerState<Marketplace>
           error: (e, _) => Center(
               child: Text("Error loading creators: $e", style: const TextStyle(color: Colors.white))),
           data: (creatorListResponse) {
-            final creators = (creatorListResponse.data?.data ?? []).where((c) => c.member != null).toList();
-            return _buildCreativesSection(creators);
+            final creators =
+            (creatorListResponse.user?.data ?? []).where((c) => c.user != null).toList();
+
+            final notifier = ref.read(creatorProvider.notifier);
+
+            return CreativesSection(
+              creators: creators,
+              notifier: notifier,
+            );
           },
         ),
 
@@ -747,7 +751,7 @@ class _MarketplaceState extends ConsumerState<Marketplace>
       child: _buildServiceCard(
         context,
         title: item.serviceName,
-        price: '₦${item.serviceAmount}',
+        price: '₦${item.rate}',
         name: "${item.user?.firstName} ${item.user?.lastName}",
         rating: 4.5,
         clients: '20k clients',
@@ -758,85 +762,12 @@ class _MarketplaceState extends ConsumerState<Marketplace>
     );
   }
 
-  Widget _buildCreativesSection(List<CreatorData> creators) {
-    return Column(
-      children: [
-        Padding(
-          padding: const EdgeInsets.all(16.0),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              const Text(
-                'Highly rated creatives',
-                style: TextStyle(
-                  color: Colors.white,
-                  fontSize: 16,
-                  fontWeight: FontWeight.w400,
-                ),
-              ),
-              OutlinedButton(
-                onPressed: creators.isNotEmpty
-                    ? () => Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => CreatorsList(creator: creators),
-                  ),
-                )
-                    : null,
-                style: OutlinedButton.styleFrom(
-                  side: const BorderSide(color: Color(0xFF2C2C2C)),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(100),
-                  ),
-                ),
-                child: const Text(
-                  'View all',
-                  style: TextStyle(color: Color(0xFFB0B0B6), fontSize: 12),
-                ),
-              ),
-            ],
-          ),
-        ),
-        if (creators.isEmpty)
-          const Center(
-            child: Text("No creatives found", style: TextStyle(color: Colors.white)),
-          )
-        else
-          SizedBox(
-            height: 200,
-            child: ListView.builder(
-              scrollDirection: Axis.horizontal,
-              itemCount: creators.length,
-              itemBuilder: (context, index) {
-                final creator = creators[index];
-                return GestureDetector(
-                  onTap: () => Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => CreatorProfile(creator: creator),
-                    ),
-                  ),
-                  child: Utils.buildCreativeCard(
-                    context,
-                    name: '${creator.member?.firstName} ${creator.member?.lastName}',
-                    role: creator.jobTitle ?? '',
-                    rating: 4.8,
-                    profileImage: creator.member?.profileImage ?? '',
-                    firstName: creator.member!.firstName,
-                  ),
-                );
-              },
-            ),
-          ),
-      ],
-    );
-  }
-
   Widget _buildMoreServicesList(List<MarketOrder> services) {
     return SizedBox(
       height: 240,
       child: ListView.builder(
         scrollDirection: Axis.horizontal,
+
         itemCount: services.length,
         itemBuilder: (context, index) {
           final item = services[index];
@@ -850,7 +781,7 @@ class _MarketplaceState extends ConsumerState<Marketplace>
             child: _buildServiceCard(
               context,
               title: item.serviceName,
-              price: '₦${item.serviceAmount}',
+              price: '₦${item.rate}',
               name: "${item.user?.firstName ?? ''} ${item.user?.lastName ?? ''}",
               rating: 4.5,
               clients: '20k clients',
@@ -1005,17 +936,12 @@ class FilterScreen extends ConsumerStatefulWidget {
 class _FilterScreenState extends ConsumerState<FilterScreen> {
   final TextEditingController maximumAmount = TextEditingController();
   final TextEditingController minimumAmount = TextEditingController();
+  int? selectedCategoryId;
 
   // Track selected filters
   final Set<String> selectedCategories = {};
+  final Set<String> selectedCategoriesId = {};
   final Set<String> selectedLocations = {};
-  final List<String> locationOptions = [
-    'Lagos',
-    'Ondo',
-    'Osun',
-    'Abuja',
-    'Portharcourt'
-  ];
 
   @override
   void initState() {
@@ -1084,7 +1010,7 @@ class _FilterScreenState extends ConsumerState<FilterScreen> {
                         data: (categories) => Wrap(
                           spacing: 8.0,
                           runSpacing: 8.0,
-                          children: categories.data.map((category) {
+                          children: categories.data.data.map((category) {
                             return FilterChip(
                               label: category.name,
                               selected:
@@ -1093,8 +1019,10 @@ class _FilterScreenState extends ConsumerState<FilterScreen> {
                                 setState(() {
                                   if (selected) {
                                     selectedCategories.add(category.name);
+                                    selectedCategoriesId.add(category.id.toString());
                                   } else {
                                     selectedCategories.remove(category.name);
+                                    selectedCategoriesId.add(category.id.toString());
                                   }
                                 });
                               },
@@ -1108,37 +1036,6 @@ class _FilterScreenState extends ConsumerState<FilterScreen> {
                           'Error loading categories',
                           style: TextStyle(color: Colors.red),
                         ),
-                      ),
-                      const SizedBox(height: 32),
-
-                      // Location Section
-                      const Text(
-                        'Choose a Location',
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontSize: 18,
-                          fontWeight: FontWeight.w400,
-                        ),
-                      ),
-                      const SizedBox(height: 16),
-                      Wrap(
-                        spacing: 8.0,
-                        runSpacing: 8.0,
-                        children: locationOptions.map((location) {
-                          return FilterChip(
-                            label: location,
-                            selected: selectedLocations.contains(location),
-                            onSelected: (selected) {
-                              setState(() {
-                                if (selected) {
-                                  selectedLocations.add(location);
-                                } else {
-                                  selectedLocations.remove(location);
-                                }
-                              });
-                            },
-                          );
-                        }).toList(),
                       ),
                       const SizedBox(height: 32),
 
@@ -1192,9 +1089,7 @@ class _FilterScreenState extends ConsumerState<FilterScreen> {
 
                   // Add selected categories with a prefix
                   filters.addAll(selectedCategories.map((c) => 'Category:$c'));
-
-                  // Add selected locations
-                  filters.addAll(selectedLocations);
+                  filters.addAll(selectedCategoriesId);
 
                   // Add budget range if specified
                   if (minimumAmount.text.isNotEmpty) {
@@ -1248,3 +1143,120 @@ class FilterChip extends StatelessWidget {
     );
   }
 }
+
+class CreativesSection extends StatefulWidget {
+  final List<CreatorData> creators;
+  final CreatorNotifier notifier;
+
+  const CreativesSection({
+    super.key,
+    required this.creators,
+    required this.notifier,
+  });
+
+  @override
+  _CreativesSectionState createState() => _CreativesSectionState();
+}
+
+class _CreativesSectionState extends State<CreativesSection> {
+  final ScrollController _scrollController = ScrollController();
+
+  @override
+  void initState() {
+    super.initState();
+
+    _scrollController.addListener(() {
+      if (_scrollController.position.pixels >=
+          _scrollController.position.maxScrollExtent - 200) {
+        widget.notifier.loadNextPage();
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    _scrollController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final creators = widget.creators;
+
+    return Column(
+      children: [
+        Padding(
+          padding: const EdgeInsets.all(16.0),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              const Text(
+                'Highly rated creatives',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 16,
+                  fontWeight: FontWeight.w400,
+                ),
+              ),
+              OutlinedButton(
+                onPressed: creators.isNotEmpty
+                    ? () => Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => CreatorsList(creator: creators),
+                  ),
+                )
+                    : null,
+                style: OutlinedButton.styleFrom(
+                  side: const BorderSide(color: Color(0xFF2C2C2C)),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(100),
+                  ),
+                ),
+                child: const Text(
+                  'View all',
+                  style: TextStyle(color: Color(0xFFB0B0B6), fontSize: 12),
+                ),
+              ),
+            ],
+          ),
+        ),
+        if (creators.isEmpty)
+          const Center(
+            child: Text("No creatives found",
+                style: TextStyle(color: Colors.white)),
+          )
+        else
+          SizedBox(
+            height: 200,
+            child: ListView.builder(
+              controller: _scrollController,
+              scrollDirection: Axis.horizontal,
+              itemCount: creators.length,
+              itemBuilder: (context, index) {
+                final creator = creators[index];
+                return GestureDetector(
+                  onTap: () => Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => CreatorProfile(creator: creator),
+                    ),
+                  ),
+                  child: Utils.buildCreativeCard(
+                    context,
+                    name:
+                    '${creator.user?.firstName} ${creator.user?.lastName}',
+                    role: creator.jobTitle,
+                    rating: 4.8,
+                    profileImage: creator.user?.image ?? '',
+                    firstName: creator.user?.firstName ?? '',
+                  ),
+                );
+              },
+            ),
+          ),
+      ],
+    );
+  }
+}
+

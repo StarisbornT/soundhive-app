@@ -8,6 +8,7 @@ import 'package:soundhive2/utils/app_colors.dart';
 import 'package:soundhive2/utils/utils.dart';
 
 import 'package:soundhive2/lib/dashboard_provider/getAccountBalanceProvider.dart';
+import '../../lib/dashboard_provider/user_provider.dart';
 import '../../model/user_model.dart';
 import '../dashboard/withdraw.dart';
 import '../non_creator/wallet/wallet.dart';
@@ -24,33 +25,33 @@ class _CreatorHomeState extends ConsumerState<CreatorHome>  {
   @override
   void initState() {
     super.initState();
-    if(widget.user.member?.account != null) {
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        ref.read(getAccountBalance.notifier).getAccountBalance(widget.user.member!.account!.accountId);
-      });
-    }
+    // if(widget.user.member?.account != null) {
+    //   WidgetsBinding.instance.addPostFrameCallback((_) {
+    //     ref.read(getAccountBalance.notifier).getAccountBalance(widget.user.member!.account!.accountId);
+    //   });
+    // }
 
   }
 
   Widget _buildBalanceCard() {
-    final serviceState = ref.watch(getAccountBalance);
-
-    return serviceState.when(
-      loading: () => _walletCard("Account balance", "Loading...", showButton: true),
-      error: (err, _) => _walletCard("Account balance", "Error", showButton: true),
-      data: (response) => _walletCard(
+    final user = ref.watch(userProvider);
+    if(user.value?.user?.wallet == null) {
+      return _walletCard("Account balance", "Error", showButton: true);
+    }else {
+     return _walletCard(
         "Account balance",
-        response.data.accountBalance.toString(),
+        user.value?.user?.wallet?.balance ?? '',
         showButton: true,
-      ),
-    );
+      );
+    }
+
   }
 
   @override
   Widget build(BuildContext context) {
     final earnings = 0.0;
 
-
+    final user = ref.watch(userProvider);
     return PopScope(
       canPop: false,
       child: Scaffold(
@@ -63,12 +64,12 @@ class _CreatorHomeState extends ConsumerState<CreatorHome>  {
               children: [
                 // Review status
 
-                widget.user.creator?.status != "active" ?
+                (user.value?.user?.creator?.active != true) ?
                 Utils.reviewCard(
                     context,
-                    title: widget.user.creator != null ? "Account under review" : "Setup your creative profile",
-                    subtitle: widget.user.creator != null ? "We are currently reviewing your submissions, and will give feedback within 24hours." : "To publish anything or gain clients visibility on soundhive, you need to setup your profile.",
-                    image: widget.user.creator != null ? "images/review.png" : "images/bag.png",
+                    title: user.value?.user?.creator != null ? "Account under review" : "Setup your creative profile",
+                    subtitle: user.value?.user?.creator != null ? "We are currently reviewing your submissions, and will give feedback within 24hours." : "To publish anything or gain clients visibility on soundhive, you need to setup your profile.",
+                    image: user.value?.user?.creator != null ? "images/review.png" : "images/bag.png",
                     onTap: () {
                       Navigator.push(
                         context,
@@ -78,16 +79,16 @@ class _CreatorHomeState extends ConsumerState<CreatorHome>  {
                       );
                     }
                 ): SizedBox(),
-                SizedBox(height: 16),
+                const SizedBox(height: 16),
                 // Menu buttons
                 SingleChildScrollView(
                   scrollDirection: Axis.horizontal,
                   child: Row(
                     children: [
                       Utils.menuButton("Insights", true),
-                      SizedBox(width: 10),
+                      const SizedBox(width: 10),
                       Utils.menuButton("Bookings (2)", false),
-                      SizedBox(width: 10),
+                      const SizedBox(width: 10),
                       Utils.menuButton("Community (100)", false),
                     ],
                   ),
@@ -193,10 +194,10 @@ class _CreatorHomeState extends ConsumerState<CreatorHome>  {
             ),
           ),
           if (note != null) ...[
-            SizedBox(height: 12),
+            const SizedBox(height: 12),
             Text(
               note,
-              style: TextStyle(
+              style: const TextStyle(
                 color: Colors.white70,
                 fontSize: 12,
               ),
@@ -204,7 +205,7 @@ class _CreatorHomeState extends ConsumerState<CreatorHome>  {
           ],
           if (showButton) ...[
             const SizedBox(height: 16),
-            if(widget.user.member?.account != null) ...[
+            if(widget.user.user?.wallet != null) ...[
               Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
@@ -212,25 +213,25 @@ class _CreatorHomeState extends ConsumerState<CreatorHome>  {
                     onPressed: () {
                       Utils.showBankTransferBottomSheet(
                           context,
-                          widget.user.member?.account?.bank,
-                          widget.user.member?.account?.accountNumber,
-                          widget.user.member?.account?.accountName
+                          widget.user.user?.wallet?.bankName,
+                          widget.user.user?.wallet?.accountNumber,
+                          widget.user.user?.firstName
                       );
                     },
-                    icon: Icon(Icons.add, color: Color(0xFF4D3490), size: 18),
-                    label: Text(
+                    icon: const Icon(Icons.add, color: Color(0xFF4D3490), size: 18),
+                    label: const Text(
                       'Add funds',
                       style: TextStyle(color: Color(0xFF4D3490), fontSize: 14),
                     ),
                     style: ElevatedButton.styleFrom(
                       backgroundColor: Colors.white,
-                      padding: EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(20),
                       ),
                     ),
                   ),
-                  SizedBox(width: 10),
+                  const SizedBox(width: 10),
                   OutlinedButton.icon(
                     onPressed: () {
                       Navigator.push(
@@ -240,14 +241,14 @@ class _CreatorHomeState extends ConsumerState<CreatorHome>  {
                         ),
                       );
                     },
-                    icon: Icon(Icons.download, color: Colors.white, size: 18),
-                    label: Text(
+                    icon: const Icon(Icons.download, color: Colors.white, size: 18),
+                    label: const Text(
                       'Withdraw',
                       style: TextStyle(color: Colors.white, fontSize: 14),
                     ),
                     style: OutlinedButton.styleFrom(
-                      padding: EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-                      side: BorderSide(color: Colors.white),
+                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                      side: const BorderSide(color: Colors.white),
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(20),
                       ),
@@ -267,7 +268,7 @@ class _CreatorHomeState extends ConsumerState<CreatorHome>  {
                   Navigator.push(
                     context,
                     MaterialPageRoute(
-                      builder: (context) =>  WalletScreen(user: widget.user.member!,),
+                      builder: (context) =>  WalletScreen(user: widget.user.user!,),
                     ),
                   );
                 },
@@ -281,81 +282,13 @@ class _CreatorHomeState extends ConsumerState<CreatorHome>  {
     );
   }
 
-  // Widget _accountCard(String title, String amount, {bool showButton = false, String? note}) {
-  //   return Container(
-  //     width: 300,
-  //     height: 162,
-  //     padding: EdgeInsets.all(16),
-  //     decoration: BoxDecoration(
-  //       color: AppColors.BUTTONCOLOR,
-  //       borderRadius: BorderRadius.circular(12),
-  //     ),
-  //     child: Column(
-  //       crossAxisAlignment: CrossAxisAlignment.center,
-  //       mainAxisAlignment: MainAxisAlignment.center,
-  //       children: [
-  //         Text(
-  //           title,
-  //           style: TextStyle(color: Colors.white70, fontSize: 14),
-  //         ),
-  //         SizedBox(height: 8),
-  //         Text(
-  //           Utils.formatCurrency(amount),
-  //           style: GoogleFonts.roboto(
-  //             textStyle: const TextStyle(color: Colors.white, fontSize: 24),
-  //           ),
-  //         ),
-  //         if (note != null) ...[
-  //           SizedBox(height: 12),
-  //           Text(
-  //             note,
-  //             style: TextStyle(
-  //               color: Colors.white70,
-  //               fontSize: 12,
-  //             ),
-  //           ),
-  //         ],
-  //         if (showButton) ...[
-  //           const SizedBox(height: 16),
-  //           widget.user.member?.account != null ?
-  //           ElevatedButton.icon(
-  //             style: ElevatedButton.styleFrom(
-  //               backgroundColor: Colors.white,
-  //               foregroundColor: AppColors.BUTTONCOLOR,
-  //               shape: const StadiumBorder(),
-  //             ),
-  //             icon: const Icon(Icons.arrow_downward),
-  //             label: const Text("Withdraw"),
-  //             onPressed: () {},
-  //           ): ElevatedButton.icon(
-  //             style: ElevatedButton.styleFrom(
-  //               backgroundColor: Colors.white,
-  //               foregroundColor: AppColors.BUTTONCOLOR,
-  //               shape: const StadiumBorder(),
-  //             ),
-  //             label: const Text("Activate Wallet"),
-  //             onPressed: () {
-  //               Navigator.push(
-  //                 context,
-  //                 MaterialPageRoute(
-  //                   builder: (context) =>  WalletScreen(user: widget.user.member!,),
-  //                 ),
-  //               );
-  //             },
-  //           ),
-  //         ],
-  //       ],
-  //     ),
-  //   );
-  // }
-
   Widget _earningsGraph(double total) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text("₦${total.toStringAsFixed(2)}",
-            style: TextStyle(color: Colors.white, fontSize: 20)),
-        SizedBox(height: 16),
+            style: const TextStyle(color: Colors.white, fontSize: 20)),
+        const SizedBox(height: 16),
         Container(
           height: 200,
           decoration: BoxDecoration(

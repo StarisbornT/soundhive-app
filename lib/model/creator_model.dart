@@ -1,129 +1,169 @@
-
+import 'dart:convert';
 import 'package:soundhive2/model/user_model.dart';
 
 class CreatorListResponse {
   final String message;
-  final CreatorPaginatedData? data;
+  final CreatorPaginatedData? user;
 
-  CreatorListResponse({required this.message, this.data});
+  CreatorListResponse({
+    required this.message,
+    this.user,
+  });
+
+  factory CreatorListResponse.fromJson(String source) =>
+      CreatorListResponse.fromMap(json.decode(source));
 
   factory CreatorListResponse.fromMap(Map<String, dynamic> json) {
     return CreatorListResponse(
-      message: json['message'],
-      data: json['data'] != null ? CreatorPaginatedData.fromMap(json['data']) : null,
+      message: json['message'] ?? '',
+      user: json['user'] != null
+          ? CreatorPaginatedData.fromMap(json['user'])
+          : null,
     );
   }
 }
+
+
 
 class CreatorPaginatedData {
   final int currentPage;
   final List<CreatorData> data;
+  final String? firstPageUrl;
+  final int? from;
+  final int lastPage;
+  final String? lastPageUrl;
+  final List<Link> links;
+  final String? nextPageUrl;
+  final String path;
+  final int perPage;
+  final String? prevPageUrl;
+  final int? to;
+  final int total;
 
-  CreatorPaginatedData({required this.currentPage, required this.data});
+  CreatorPaginatedData({
+    required this.currentPage,
+    required this.data,
+    this.firstPageUrl,
+    this.from,
+    required this.lastPage,
+    this.lastPageUrl,
+    required this.links,
+    this.nextPageUrl,
+    required this.path,
+    required this.perPage,
+    this.prevPageUrl,
+    this.to,
+    required this.total,
+  });
+
+  factory CreatorPaginatedData.fromJson(String source) =>
+      CreatorPaginatedData.fromMap(json.decode(source));
 
   factory CreatorPaginatedData.fromMap(Map<String, dynamic> json) {
     return CreatorPaginatedData(
-      currentPage: json['current_page'],
-      data: json['data'] != null
-          ? List<CreatorData>.from(json['data'].map((x) => CreatorData.fromJson(x)))
-          : [],
+      currentPage: json['current_page'] ?? 1,
+      data: List<CreatorData>.from(
+          (json['data'] ?? []).map((x) => CreatorData.fromJson(x))),
+      firstPageUrl: json['first_page_url'],
+      from: json['from'],
+      lastPage: json['last_page'] ?? 1,
+      lastPageUrl: json['last_page_url'],
+      links: List<Link>.from((json['links'] ?? []).map((x) => Link.fromMap(x))),
+      nextPageUrl: json['next_page_url'],
+      path: json['path'] ?? '',
+      perPage: json['per_page'] is String
+          ? int.tryParse(json['per_page']) ?? 0
+          : (json['per_page'] ?? 0),
+      prevPageUrl: json['prev_page_url'],
+      to: json['to'],
+      total: json['total'] ?? 0,
     );
   }
 }
 
+
+
 class CreatorData {
   final int id;
-  final String? profileImage;
-  final String? memberId;
-  final String? gender;
-  final String? bvn;
-  final String? status;
-  final String? nin;
-  final String? idType;
-  final String? copyIdType;
-  final String? copyUtilityBill;
-  final String? jobTitle;
-  final String? bioDescription;
-  final String? location;
-  final List<String>? typeOfService;
-  final List<Rate>? rates;
-  final List<String>? availabilityCalendar;
-  final String? linkedin;
-  final String? x;
-  final String? instagram;
-  final String? createdAt;
-  final String? updatedAt;
-  final User? member;
+  final String userId;
+  final String gender;
+  final String nin;
+  final String idType;
+  final String? copyOfId;
+  final String utilityBill;
+  final String? copyOfUtilityBill;
+  final String jobTitle;
+  final String bio;
+  final bool active;
+  final String location;
+  final String linkedin;
+  final String x;
+  final String instagram;
+  final String createdAt;
+  final String updatedAt;
+  final User? user; // embedded user object
 
   CreatorData({
     required this.id,
-    this.memberId,
-    this.gender,
-    this.bvn,
-    this.profileImage,
-    this.status,
-    this.nin,
-    this.idType,
-    this.copyIdType,
-    this.copyUtilityBill,
-    this.jobTitle,
-    this.bioDescription,
-    this.location,
-    this.typeOfService,
-    this.rates,
-    this.availabilityCalendar,
-    this.linkedin,
-    this.x,
-    this.instagram,
-    this.createdAt,
-    this.updatedAt,
-    this.member
+    required this.userId,
+    required this.gender,
+    required this.nin,
+    required this.idType,
+    this.copyOfId,
+    required this.utilityBill,
+    this.copyOfUtilityBill,
+    required this.jobTitle,
+    required this.bio,
+    required this.active,
+    required this.location,
+    required this.linkedin,
+    required this.x,
+    required this.instagram,
+    required this.createdAt,
+    required this.updatedAt,
+    this.user,
   });
 
   factory CreatorData.fromJson(Map<String, dynamic> json) {
     return CreatorData(
-      id: json['id'],
-      memberId: json['member_id'],
-      profileImage: json['profile_image'],
-      gender: json['gender'],
-      status: json['status'],
-      bvn: json['bvn'],
-      nin: json['nin'],
-      idType: json['id_type'],
-      copyIdType: json['copy_id_type'],
-      copyUtilityBill: json['copy_utility_bill'],
-      jobTitle: json['job_title'],
-      bioDescription: json['bio_description'],
-      location: json['location'],
-      typeOfService: json['type_of_service'] != null
-          ? List<String>.from(json['type_of_service'].map((e) => e.toString()))
-          : null,
-      rates: json['rates'] != null
-          ? List<Rate>.from(json['rates'].map((x) => Rate.fromJson(x)))
-          : null,
-      availabilityCalendar: json['availability_calendar'] != null
-          ? List<String>.from(json['availability_calendar'].map((x) => x.toString()))
-          : null,
-      linkedin: json['linkedin'],
-      x: json['x'],
-      instagram: json['instagram'],
-      createdAt: json['created_at'],
-      updatedAt: json['updated_at'],
-      member: json['member'] != null ? User.fromJson(json['member']) : null,
+      id: json['id'] ?? 0,
+      userId: json['user_id'] ?? '',
+      gender: json['gender'] ?? '',
+      nin: json['nin'] ?? '',
+      idType: json['id_type'] ?? '',
+      copyOfId: json['copy_of_id'],
+      utilityBill: json['utility_bill'] ?? '',
+      copyOfUtilityBill: json['copy_of_utility_bill'],
+      jobTitle: json['job_title'] ?? '',
+      bio: json['bio'] ?? '',
+      active: json['active'] ?? false,
+      location: json['location'] ?? '',
+      linkedin: json['linkedin'] ?? '',
+      x: json['x'] ?? '',
+      instagram: json['instagram'] ?? '',
+      createdAt: json['created_at'] ?? '',
+      updatedAt: json['updated_at'] ?? '',
+      user: json['user'] != null ? User.fromJson(json['user']) : null,
     );
   }
 }
 
-class Rate {
-  final String productName;
-  final String amount;
+class Link {
+  final String? url;
+  final String label;
+  final bool active;
 
-  Rate({required this.productName, required this.amount});
+  Link({
+    this.url,
+    required this.label,
+    required this.active,
+  });
 
-  factory Rate.fromJson(Map<String, dynamic> json) {
-    return Rate(
-      productName: json['product_name'] ?? '',
-      amount: json['amount'] ?? '0',
+  factory Link.fromMap(Map<String, dynamic> map) {
+    return Link(
+      url: map['url'],
+      label: map['label'] ?? '',
+      active: map['active'] ?? false,
     );
   }
 }

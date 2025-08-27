@@ -4,10 +4,12 @@ import 'package:soundhive2/model/user_model.dart';
 
 class MarketOrdersPaginatedModel {
   final bool status;
+  final String message;
   final MarketOrdersPaginatedData data;
 
   MarketOrdersPaginatedModel({
     required this.status,
+    required this.message,
     required this.data,
   });
 
@@ -17,6 +19,7 @@ class MarketOrdersPaginatedModel {
   factory MarketOrdersPaginatedModel.fromMap(Map<String, dynamic> map) {
     return MarketOrdersPaginatedModel(
       status: map['status'] ?? false,
+      message: map['message'] ?? '',
       data: MarketOrdersPaginatedData.fromMap(map['data'] ?? {}),
     );
   }
@@ -26,7 +29,7 @@ class MarketOrdersPaginatedData {
   final int currentPage;
   final List<MarketOrder> data;
   final String firstPageUrl;
-  final int from;
+  final int? from;
   final int lastPage;
   final String lastPageUrl;
   final List<PageLink> links;
@@ -34,14 +37,14 @@ class MarketOrdersPaginatedData {
   final String path;
   final int perPage;
   final String? prevPageUrl;
-  final int to;
+  final int? to;
   final int total;
 
   MarketOrdersPaginatedData({
     required this.currentPage,
     required this.data,
     required this.firstPageUrl,
-    required this.from,
+    this.from,
     required this.lastPage,
     required this.lastPageUrl,
     required this.links,
@@ -49,7 +52,7 @@ class MarketOrdersPaginatedData {
     required this.path,
     required this.perPage,
     this.prevPageUrl,
-    required this.to,
+    this.to,
     required this.total,
   });
 
@@ -59,7 +62,7 @@ class MarketOrdersPaginatedData {
       data: List<MarketOrder>.from(
           map['data']?.map((x) => MarketOrder.fromMap(x)) ?? []),
       firstPageUrl: map['first_page_url'] ?? '',
-      from: map['from'] ?? 0,
+      from: map['from'],
       lastPage: map['last_page'] ?? 1,
       lastPageUrl: map['last_page_url'] ?? '',
       links: List<PageLink>.from(
@@ -68,7 +71,7 @@ class MarketOrdersPaginatedData {
       path: map['path'] ?? '',
       perPage: int.tryParse(map['per_page'].toString()) ?? 10,
       prevPageUrl: map['prev_page_url'],
-      to: map['to'] ?? 0,
+      to: map['to'],
       total: map['total'] ?? 0,
     );
   }
@@ -76,53 +79,53 @@ class MarketOrdersPaginatedData {
 
 class MarketOrder {
   final int id;
-  final String memberId;
-  final String status;
+  final String userId;
   final String serviceName;
-  final String serviceAmount;
+  final String categoryId;
+  final String subCategoryId;
+  final String rate;
+  final String coverImage;
+  final String? link;
   final String serviceImage;
-  final String servicePortfolioFormat;
-  final String servicePortfolioImage;
-  final String? servicePortfolioLink;
-  final String? servicePortfolioAudio;
+  final String? serviceAudio;
+  final String status;
   final String createdAt;
   final String updatedAt;
   final User? user;
-  final Creator? creator;
 
   MarketOrder({
     required this.id,
-    required this.memberId,
-    required this.status,
+    required this.userId,
     required this.serviceName,
-    required this.serviceAmount,
+    required this.categoryId,
+    required this.subCategoryId,
+    required this.rate,
+    required this.coverImage,
+    this.link,
     required this.serviceImage,
-    required this.servicePortfolioFormat,
-    required this.servicePortfolioImage,
-    this.servicePortfolioLink,
-    this.servicePortfolioAudio,
+    this.serviceAudio,
+    required this.status,
     required this.createdAt,
     required this.updatedAt,
     this.user,
-    this.creator
   });
 
   factory MarketOrder.fromMap(Map<String, dynamic> map) {
     return MarketOrder(
       id: map['id'] ?? 0,
-      memberId: map['member_id'] ?? '',
-      status: map['status'] ?? '',
+      userId: map['user_id'] ?? '',
       serviceName: map['service_name'] ?? '',
-      serviceAmount: map['service_amount'] ?? '',
+      categoryId: map['category_id'] ?? '',
+      subCategoryId: map['sub_category_id'] ?? '',
+      rate: map['rate'] ?? '',
+      coverImage: map['cover_image'] ?? '',
+      link: map['link'],
       serviceImage: map['service_image'] ?? '',
-      servicePortfolioFormat: map['service_portfolio_format'] ?? '',
-      servicePortfolioImage: map['service_portfolio_image'] ?? '',
-      servicePortfolioLink: map['service_portfolio_link'],
-      servicePortfolioAudio: map['service_portfolio_audio'],
+      serviceAudio: map['service_audio'],
+      status: map['status'] ?? '',
       createdAt: map['created_at'] ?? '',
       updatedAt: map['updated_at'] ?? '',
-      user: map['member'] != null ? User.fromJson(map['member']) : null,
-      creator: map['creator'] != null ? Creator.fromJson(map['creator']) : null,
+      user: map['user'] != null ? User.fromJson(map['user']) : null,
     );
   }
 }

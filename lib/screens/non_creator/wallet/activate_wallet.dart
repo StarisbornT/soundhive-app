@@ -3,6 +3,7 @@ import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:soundhive2/lib/dashboard_provider/apiresponseprovider.dart';
+import 'package:soundhive2/screens/dashboard/verification_webview.dart';
 import 'package:soundhive2/screens/non_creator/wallet/wallet.dart';
 
 import '../../../components/label_text.dart';
@@ -13,6 +14,7 @@ import '../../../lib/navigator_provider.dart';
 import '../../../model/apiresponse_model.dart';
 import '../../../utils/alert_helper.dart';
 import '../../../utils/app_colors.dart';
+import '../non_creator.dart';
 
 class ActivateWallet extends ConsumerStatefulWidget {
   const ActivateWallet({super.key});
@@ -35,8 +37,7 @@ class _ActivateWalletScreenState extends ConsumerState<ActivateWallet> {
   Future<void> sendIdVerification() async {
     try {
       final payload = {
-        "type": "BVN",
-        "id_number": bvnNumberController.text
+        "bvn": bvnNumberController.text
       };
 
       final response = await ref.read(apiresponseProvider.notifier).sendIdVerification(
@@ -44,9 +45,32 @@ class _ActivateWalletScreenState extends ConsumerState<ActivateWallet> {
         payload: payload,
       );
 
-      _identityId = response.data['_id'];
+      if (response.status == "success") {
+        final result = await Navigator.push<String>(
+          context,
+          MaterialPageRoute(
+            builder: (context) => VerificationWebView(
+              url: response.data!.authorizationUrl,
+            ),
+          ),
+        );
 
-      _nextStep();
+        if (result == 'success') {
+          generateAccount();
+        } else if (result != null && result.startsWith('error:')) {
+          final errorMessage = result.replaceFirst('error:', '');
+          print("⚠️ Verification failed: $errorMessage");
+
+          // Optional: Show error to user
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text(errorMessage)),
+          );
+        }
+      }
+
+
+
+
     } catch (error) {
       String errorMessage = 'An unexpected error occurred';
 
@@ -145,6 +169,7 @@ class _ActivateWalletScreenState extends ConsumerState<ActivateWallet> {
             subtitle: 'Your account has been generated successfully',
             onButtonPressed: () {
               ref.read(bottomNavigationProvider.notifier).state = 1;
+              Navigator.popUntil(context, ModalRoute.withName(NonCreatorDashboard.id));
             },
           ),
         ),
