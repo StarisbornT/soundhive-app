@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "153492997340",
+    "project_id": "soundhive-4c047",
+    "storage_bucket": "soundhive-4c047.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:153492997340:android:f2447739a5d577614d2019",
+        "android_client_info": {
+          "package_name": "com.example.soundhive2"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCo3xed0vvckcQkeIvQOmQIxr-avDVFZ7s"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
