@@ -9,6 +9,7 @@ import 'package:soundhive2/lib/provider.dart';
 import '../../services/loader_service.dart';
 import '../../utils/alert_helper.dart';
 import '../dashboard/dashboard.dart';
+import 'otp_screen.dart';
 
 class Login extends StatefulWidget {
   static String id = 'login';
@@ -61,14 +62,12 @@ class _LoginScreenState extends State<Login> {
         await widget.storage.write(key: 'auth_token', value: responseData['token']);
 
         print("FULL RESPONSE: ${response.data}");
-        print("STATUS: ${responseData['member']['status']}");
-        Navigator.pushNamed(context, DashboardScreen.id);
 
 
-        if (responseData['member']['status'] == "uncompleted") {
-          Navigator.pushNamed(context, UpdateProfile1.id);
-        } else {
+        if (responseData['user']['first_name'] != null) {
           Navigator.pushNamed(context, DashboardScreen.id);
+        } else {
+          Navigator.pushNamed(context, UpdateProfile1.id);
         }
       }
 
@@ -84,6 +83,12 @@ class _LoginScreenState extends State<Login> {
     catch(error) {
       LoaderService.hideLoader(context);
       if (error is DioError) {
+        if (error.response?.statusCode == 400) {
+
+          await widget.storage.write(key: 'email', value: emailController.text);
+          Navigator.pushNamed(context, OtpScreen.id);
+          return;
+        }
         String errorMessage = "Failed, Please check input";
 
         if (error.response != null && error.response!.data != null) {

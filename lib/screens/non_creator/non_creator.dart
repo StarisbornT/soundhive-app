@@ -2,17 +2,18 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:soundhive2/screens/creator/creator_dashboard.dart';
-import 'package:soundhive2/screens/dashboard/transaction_history.dart';
 import 'package:soundhive2/screens/non_creator/non_creator_profile.dart';
 import 'package:soundhive2/screens/non_creator/settings/settings.dart';
 import 'package:soundhive2/screens/non_creator/streaming/streaming.dart';
-import 'package:soundhive2/screens/non_creator/vest/soundhive_vest.dart';
+import 'package:soundhive2/screens/non_creator/vest/vest.dart';
 import 'package:soundhive2/screens/non_creator/wallet/transaction_history.dart';
 import 'package:soundhive2/screens/non_creator/wallet/wallet.dart';
+import 'package:soundhive2/screens/notifications/notifications.dart';
 
-import '../../lib/dashboard_provider/apiresponseprovider.dart';
-import '../../lib/dashboard_provider/user_provider.dart';
-import '../../lib/navigator_provider.dart';
+import 'package:soundhive2/lib/dashboard_provider/apiresponseprovider.dart';
+import 'package:soundhive2/lib/dashboard_provider/notification_provider.dart';
+import 'package:soundhive2/lib/dashboard_provider/user_provider.dart';
+import 'package:soundhive2/lib/navigator_provider.dart';
 import '../../utils/app_colors.dart';
 import '../auth/login.dart';
 import '../creator/profile/setup_screen.dart';
@@ -30,6 +31,7 @@ class NonCreatorDashboard extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final userState = ref.watch(userProvider);
     final selectedIndex = ref.watch(bottomNavigationProvider);
+    final unreadCount = ref.watch(notificationProvider);
 
     return Scaffold(
       key: _scaffoldKey,
@@ -71,8 +73,51 @@ class NonCreatorDashboard extends ConsumerWidget {
             );
           },
         ),
-        actions: const [
-          Icon(Icons.notifications_outlined, color: Colors.white),
+        actions: [
+          IconButton(
+            icon: Stack(
+              children: [
+                const Icon(
+                  Icons.notifications_sharp,
+                  color: Colors.white,
+                  size: 24,
+                ),
+                if (unreadCount > 0)
+                  Positioned(
+                    right: 0,
+                    top: 0,
+                    child: Container(
+                      padding: const EdgeInsets.all(4),
+                      decoration: const BoxDecoration(
+                        color: Colors.red,
+                        shape: BoxShape.circle,
+                      ),
+                      constraints: const BoxConstraints(
+                        minWidth: 16,
+                        minHeight: 16,
+                      ),
+                      child: Text(
+                        unreadCount > 9 ? '9+' : unreadCount.toString(),
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 10,
+                          fontWeight: FontWeight.bold,
+                        ),
+                        textAlign: TextAlign.center,
+                      ),
+                    ),
+                  ),
+              ],
+            ),
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => const NotificationsScreen()),
+              ).then((_) {
+                ref.read(notificationProvider.notifier).fetchUnreadCount();
+              });
+            },
+          ),
         ],
       ),
 
@@ -162,12 +207,8 @@ class NonCreatorDashboard extends ConsumerWidget {
                         );
                       }),
                       _buildDrawerItem(icon: 'images/soundhive.png', text: 'Soundhive Vest', onTap: () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (context) =>  const SoundhiveVest(),
-                          ),
-                        );
+                        Navigator.pop(context);
+                        ref.read(bottomNavigationProvider.notifier).state = 2;
                       }),
                       _buildDrawerItem(icon: 'images/wallet.png', text: 'Wallet', onTap: () {
                         Navigator.pop(context);
@@ -260,6 +301,7 @@ class NonCreatorDashboard extends ConsumerWidget {
             final List<Widget> pages = [
                Marketplace(user: user,),
               WalletScreen(user: user.user!,),
+              SoundhiveVestScreen(user: user,),
               // SoundhiveVestScreen(user: user),
               // Marketplace(user: user),
               const Placeholder(),

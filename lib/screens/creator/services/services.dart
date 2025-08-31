@@ -220,9 +220,9 @@ class _ServiceScreenState extends ConsumerState<ServiceScreen> with TickerProvid
               SizedBox(
                 width: 100,
                 height: 100,
-                child: (item.serviceImage.isNotEmpty)
+                child: (item.coverImage.isNotEmpty)
                     ? Image.network(
-                  item.serviceImage,
+                  item.coverImage,
                   fit: BoxFit.cover,
                   errorBuilder: (context, error, stackTrace) => Utils.buildImagePlaceholder(),
                 )

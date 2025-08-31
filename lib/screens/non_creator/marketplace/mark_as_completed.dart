@@ -9,20 +9,13 @@ import 'package:soundhive2/screens/non_creator/chat_screen.dart';
 import 'package:soundhive2/screens/non_creator/disputes/cancel_disputes.dart';
 import 'package:soundhive2/screens/non_creator/disputes/dispute_chat_screen.dart';
 import 'package:soundhive2/screens/non_creator/non_creator.dart';
-
-import '../../../components/pin_screen.dart';
 import '../../../components/rounded_button.dart';
 import '../../../components/success.dart';
-import '../../../lib/dashboard_provider/apiresponseprovider.dart';
-import '../../../lib/dashboard_provider/getMarketPlaceService.dart';
-import '../../../lib/dashboard_provider/serviceProvider.dart';
-import '../../../lib/dashboard_provider/user_provider.dart';
-import '../../../lib/navigator_provider.dart';
+import 'package:soundhive2/lib/dashboard_provider/apiresponseprovider.dart';
+import 'package:soundhive2/lib/navigator_provider.dart';
 import '../../../model/apiresponse_model.dart';
 import '../../../model/user_model.dart';
 import '../../../utils/alert_helper.dart';
-import '../../dashboard/marketplace/markplace_recept.dart';
-import '../vest/soundhive_vest.dart';
 
 class MarkAsCompletedScreen extends ConsumerStatefulWidget {
   final ActiveInvestment services;

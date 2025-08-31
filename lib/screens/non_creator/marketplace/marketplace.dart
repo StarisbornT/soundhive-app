@@ -1,9 +1,11 @@
 import 'dart:async';
 
 import 'package:cached_network_image/cached_network_image.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
+import 'package:shimmer/shimmer.dart';
 import 'package:soundhive2/components/label_text.dart';
 import 'package:soundhive2/components/rounded_button.dart';
 import 'package:soundhive2/screens/non_creator/marketplace/categories.dart';
@@ -76,6 +78,18 @@ class _MarketplaceState extends ConsumerState<Marketplace>
   void didPopNext() {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) {
+        ref.read(getMarketplaceServiceProvider.notifier).resetFilters();
+        ref.read(getMarketplaceServiceProvider.notifier).getMarketPlaceService();
+      }
+    });
+  }
+
+  @override
+  void didPush() {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        // Reset filters when navigating to marketplace
+        ref.read(getMarketplaceServiceProvider.notifier).resetFilters();
         ref.read(getMarketplaceServiceProvider.notifier).getMarketPlaceService();
       }
     });
@@ -93,6 +107,14 @@ class _MarketplaceState extends ConsumerState<Marketplace>
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) {
         _loadInitialData();
+        final route = ModalRoute.of(context);
+        if (route != null) {
+          route.addScopedWillPopCallback(() {
+            // This will be called when popping from this screen
+            ref.read(getMarketplaceServiceProvider.notifier).resetFilters();
+            return SynchronousFuture(true);
+          });
+        }
       }
     });
   }
@@ -161,49 +183,7 @@ class _MarketplaceState extends ConsumerState<Marketplace>
 
   // Optimized filter logic - single pass through the list
   List<MarketOrder> _applyFilters(List<MarketOrder> services) {
-    if (_selectedFilters.isEmpty) return services;
-
-    double? minPrice;
-    double? maxPrice;
-    final categoryFilters = <String>[];
-    final locationFilters = <String>[];
-
-    for (final filter in _selectedFilters) {
-      if (filter.startsWith('Category:')) {
-        categoryFilters.add(filter.replaceFirst('Category:', '').toLowerCase());
-      } else if (filter.startsWith('Min:')) {
-        minPrice = double.tryParse(filter.replaceAll('Min: ₦', '').replaceAll(',', ''));
-      } else if (filter.startsWith('Max:')) {
-        maxPrice = double.tryParse(filter.replaceAll('Max: ₦', '').replaceAll(',', ''));
-      }
-    }
-
-    return services.where((service) {
-      // Check category filters
-      if (categoryFilters.isNotEmpty) {
-        final serviceName = service.serviceName.toLowerCase();
-        if (!categoryFilters.any((filter) => serviceName.contains(filter))) {
-          return false;
-        }
-      }
-
-      // Check location filters
-      if (locationFilters.isNotEmpty) {
-        final serviceLocation = service.status.toLowerCase();
-        if (!locationFilters.any((filter) => serviceLocation.contains(filter))) {
-          return false;
-        }
-      }
-
-      // Check price filters
-      if (minPrice != null || maxPrice != null) {
-        final servicePrice = double.tryParse(service.rate.replaceAll(',', '')) ?? 0;
-        if (minPrice != null && servicePrice < minPrice) return false;
-        if (maxPrice != null && servicePrice > maxPrice) return false;
-      }
-
-      return true;
-    }).toList();
+    return services;
   }
 
   @override
@@ -296,7 +276,7 @@ class _MarketplaceState extends ConsumerState<Marketplace>
     final investments = ref.read(getActiveInvestmentProvider.notifier).allServices;
 
     return investmentsState.when(
-      loading: () => const Center(child: CircularProgressIndicator()),
+      loading: () => _buildShimmerBookingsList(),
       error: (e, _) => Center(child: Text("Error: $e", style: const TextStyle(color: Colors.white))),
       data: (_) {
         if (investments.isEmpty) {
@@ -313,10 +293,7 @@ class _MarketplaceState extends ConsumerState<Marketplace>
           itemCount: investments.length + (ref.read(getActiveInvestmentProvider.notifier).isLastPage ? 0 : 1),
           itemBuilder: (context, index) {
             if (index == investments.length) {
-              return const Padding(
-                padding: EdgeInsets.all(16.0),
-                child: Center(child: SizedBox()),
-              );
+              return _buildLoadingIndicator();
             }
 
             final investment = investments[index];
@@ -399,6 +376,31 @@ class _MarketplaceState extends ConsumerState<Marketplace>
     );
   }
 
+  Widget _buildShimmerBookingsList() {
+    return ListView.builder(
+      padding: const EdgeInsets.symmetric(horizontal: 16),
+      shrinkWrap: true,
+      physics: const AlwaysScrollableScrollPhysics(),
+      itemCount: 5,
+      itemBuilder: (context, index) {
+        return Padding(
+          padding: const EdgeInsets.symmetric(vertical: 8),
+          child: Shimmer.fromColors(
+            baseColor: Colors.grey[700]!,
+            highlightColor: Colors.grey[500]!,
+            child: Container(
+              height: 100,
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(12),
+              ),
+            ),
+          ),
+        );
+      },
+    );
+  }
+
   Widget buildMarketPlaceUI() {
     final marketplaceState = ref.watch(getMarketplaceServiceProvider);
     final creatorState = ref.watch(creatorProvider);
@@ -419,21 +421,21 @@ class _MarketplaceState extends ConsumerState<Marketplace>
                   ),
                   child: _selectedFilters.isEmpty
                       ? TextFormField(
-                      controller: _searchController,
-                      style: const TextStyle(color: Colors.white),
-                      onChanged: _onSearchChanged,
-                      decoration: InputDecoration(
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(8),
-                          borderSide: const BorderSide(color: Color(0xFF2C2C2C)),
-                        ),
-                          hintText: 'Search',
-                          hintStyle: const TextStyle(color: Colors.white54),
-                          prefixIcon: const Icon(Icons.search, color: Colors.white54),
-                          contentPadding: const EdgeInsets.symmetric(vertical: 14.0),
-                        ),
-                      )
-                          : _buildFilterChips(),
+                    controller: _searchController,
+                    style: const TextStyle(color: Colors.white),
+                    onChanged: _onSearchChanged,
+                    decoration: InputDecoration(
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(8),
+                        borderSide: const BorderSide(color: Color(0xFF2C2C2C)),
+                      ),
+                      hintText: 'Search',
+                      hintStyle: const TextStyle(color: Colors.white54),
+                      prefixIcon: const Icon(Icons.search, color: Colors.white54),
+                      contentPadding: const EdgeInsets.symmetric(vertical: 14.0),
+                    ),
+                  )
+                      : _buildFilterChips(),
                 ),
               ),
               if (_showFilters) _buildFilterButton(),
@@ -479,7 +481,7 @@ class _MarketplaceState extends ConsumerState<Marketplace>
 
         // Marketplace Services Grid
         marketplaceState.when(
-          loading: () => const Center(child: CircularProgressIndicator()),
+          loading: () => _buildShimmerServicesGrid(),
           error: (e, _) => Center(child: Text("Error: $e", style: const TextStyle(color: Colors.white))),
           data: (_) {
             final displayedServices = _applyFilters(services);
@@ -513,7 +515,7 @@ class _MarketplaceState extends ConsumerState<Marketplace>
 
         // Creatives Section
         creatorState.when(
-          loading: () => const Center(child: CircularProgressIndicator()),
+          loading: () => _buildShimmerCreativesSection(),
           error: (e, _) => Center(
               child: Text("Error loading creators: $e", style: const TextStyle(color: Colors.white))),
           data: (creatorListResponse) {
@@ -567,7 +569,7 @@ class _MarketplaceState extends ConsumerState<Marketplace>
 
         // More Services List
         marketplaceState.when(
-          loading: () => const Center(child: CircularProgressIndicator()),
+          loading: () => _buildShimmerMoreServicesList(),
           error: (e, _) => Center(
               child: Text("Error: $e", style: const TextStyle(color: Colors.white))),
           data: (_) {
@@ -582,6 +584,214 @@ class _MarketplaceState extends ConsumerState<Marketplace>
 
         const SizedBox(height: 20),
       ],
+    );
+  }
+
+  Widget _buildShimmerServicesGrid() {
+    return SizedBox(
+      height: 220,
+      child: PageView.builder(
+        scrollDirection: Axis.horizontal,
+        itemCount: 2,
+        itemBuilder: (context, pageIndex) {
+          return Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 8.0),
+            child: GridView.count(
+              physics: const NeverScrollableScrollPhysics(),
+              crossAxisCount: 2,
+              mainAxisSpacing: 6,
+              crossAxisSpacing: 5,
+              childAspectRatio: 0.75,
+              children: List.generate(4, (index) => _buildShimmerServiceItem()),
+            ),
+          );
+        },
+      ),
+    );
+  }
+
+  Widget _buildShimmerServiceItem() {
+    return Shimmer.fromColors(
+      baseColor: Colors.grey[700]!,
+      highlightColor: Colors.grey[500]!,
+      child: Container(
+        margin: const EdgeInsets.all(4),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(12),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Container(
+              height: 100,
+              decoration: const BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.vertical(top: Radius.circular(12)),
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.all(8.0),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Container(
+                    width: double.infinity,
+                    height: 12,
+                    color: Colors.white,
+                  ),
+                  const SizedBox(height: 4),
+                  Container(
+                    width: 60,
+                    height: 14,
+                    color: Colors.white,
+                  ),
+                  const SizedBox(height: 8),
+                  Row(
+                    children: [
+                      Container(
+                        width: 12,
+                        height: 12,
+                        color: Colors.white,
+                      ),
+                      const SizedBox(width: 4),
+                      Container(
+                        width: 80,
+                        height: 10,
+                        color: Colors.white,
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 4),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Row(
+                        children: [
+                          Container(
+                            width: 12,
+                            height: 12,
+                            color: Colors.white,
+                          ),
+                          const SizedBox(width: 4),
+                          Container(
+                            width: 40,
+                            height: 8,
+                            color: Colors.white,
+                          ),
+                        ],
+                      ),
+                      Row(
+                        children: [
+                          Container(
+                            width: 12,
+                            height: 12,
+                            color: Colors.white,
+                          ),
+                          const SizedBox(width: 4),
+                          Container(
+                            width: 40,
+                            height: 8,
+                            color: Colors.white,
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildShimmerCreativesSection() {
+    return Column(
+      children: [
+        Padding(
+          padding: const EdgeInsets.all(16.0),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Shimmer.fromColors(
+                baseColor: Colors.grey[700]!,
+                highlightColor: Colors.grey[500]!,
+                child: Container(
+                  width: 150,
+                  height: 16,
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(4),
+                  ),
+                ),
+              ),
+              Shimmer.fromColors(
+                baseColor: Colors.grey[700]!,
+                highlightColor: Colors.grey[500]!,
+                child: Container(
+                  width: 80,
+                  height: 30,
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(100),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+        SizedBox(
+          height: 200,
+          child: ListView.builder(
+            scrollDirection: Axis.horizontal,
+            itemCount: 3,
+            itemBuilder: (context, index) {
+              return Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 8.0),
+                child: Shimmer.fromColors(
+                  baseColor: Colors.grey[700]!,
+                  highlightColor: Colors.grey[500]!,
+                  child: Container(
+                    width: 150,
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                  ),
+                ),
+              );
+            },
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildShimmerMoreServicesList() {
+    return SizedBox(
+      height: 240,
+      child: ListView.builder(
+        scrollDirection: Axis.horizontal,
+        itemCount: 3,
+        itemBuilder: (context, index) {
+          return Padding(
+            padding: const EdgeInsets.only(left: 16.0, right: 8.0),
+            child: Shimmer.fromColors(
+              baseColor: Colors.grey[700]!,
+              highlightColor: Colors.grey[500]!,
+              child: Container(
+                width: 180,
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(12),
+                ),
+              ),
+            ),
+          );
+        },
+      ),
     );
   }
 
@@ -601,6 +811,51 @@ class _MarketplaceState extends ConsumerState<Marketplace>
               scrollDirection: Axis.horizontal,
               child: Row(
                 children: _selectedFilters.map((filter) {
+                  String displayText = '';
+                  VoidCallback? onRemove;
+
+                  if (filter.startsWith('Category:')) {
+                    displayText = filter.replaceFirst('Category:', '');
+                    onRemove = () {
+                      setState(() {
+                        // Remove both category name and ID filters
+                        _selectedFilters.removeWhere((f) =>
+                        f.startsWith('Category:') || f.startsWith('CategoryId:'));
+                        if (_selectedFilters.isEmpty) {
+                          _showFilters = true;
+                        }
+                        // Reset to get all services without filters
+                        ref.read(getMarketplaceServiceProvider.notifier).resetMarketplaceState();
+                      });
+                    };
+                  } else if (filter.startsWith('Min:')) {
+                    displayText = filter.replaceFirst('Min:', 'Min');
+                    onRemove = () {
+                      setState(() {
+                        _selectedFilters.remove(filter);
+                        if (_selectedFilters.isEmpty) {
+                          _showFilters = true;
+                        }
+                        // Reapply filters without the min price
+                        _applyServerFilters();
+                      });
+                    };
+                  } else if (filter.startsWith('Max:')) {
+                    displayText = filter.replaceFirst('Max:', 'Max');
+                    onRemove = () {
+                      setState(() {
+                        _selectedFilters.remove(filter);
+                        if (_selectedFilters.isEmpty) {
+                          _showFilters = true;
+                        }
+                        // Reapply filters without the max price
+                        _applyServerFilters();
+                      });
+                    };
+                  } else {
+                    return const SizedBox.shrink();
+                  }
+
                   return Container(
                     margin: const EdgeInsets.only(right: 8),
                     padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
@@ -611,19 +866,12 @@ class _MarketplaceState extends ConsumerState<Marketplace>
                     child: Row(
                       children: [
                         Text(
-                          filter,
+                          displayText,
                           style: const TextStyle(color: Colors.white, fontSize: 12),
                         ),
                         const SizedBox(width: 4),
                         GestureDetector(
-                          onTap: () {
-                            setState(() {
-                              _selectedFilters.remove(filter);
-                              if (_selectedFilters.isEmpty) {
-                                _showFilters = true;
-                              }
-                            });
-                          },
+                          onTap: onRemove,
                           child: const Icon(Icons.close, size: 14, color: Colors.white54),
                         ),
                       ],
@@ -638,6 +886,8 @@ class _MarketplaceState extends ConsumerState<Marketplace>
               setState(() {
                 _selectedFilters.clear();
                 _showFilters = true;
+                // Reset to get all services without filters
+                ref.read(getMarketplaceServiceProvider.notifier).resetMarketplaceState();
               });
             },
             child: const Text(
@@ -646,6 +896,49 @@ class _MarketplaceState extends ConsumerState<Marketplace>
             ),
           ),
         ],
+      ),
+    );
+  }
+
+  void _applyServerFilters() {
+    int? categoryId;
+    double? minPrice;
+    double? maxPrice;
+
+    for (final filter in _selectedFilters) {
+      if (filter.startsWith('CategoryId:')) {
+        categoryId = int.tryParse(filter.replaceFirst('CategoryId:', ''));
+      } else if (filter.startsWith('Min:')) {
+        minPrice = double.tryParse(filter.replaceAll('Min: ₦', '').replaceAll(',', ''));
+      } else if (filter.startsWith('Max:')) {
+        maxPrice = double.tryParse(filter.replaceAll('Max: ₦', '').replaceAll(',', ''));
+      }
+    }
+
+    // Apply server-side filters
+    ref.read(getMarketplaceServiceProvider.notifier).applyFilters(
+      categoryId: categoryId,
+      minPrice: minPrice,
+      maxPrice: maxPrice,
+    );
+  }
+
+  Widget _buildLoadingIndicator() {
+    return Padding(
+      padding: const EdgeInsets.all(16.0),
+      child: Center(
+        child: Shimmer.fromColors(
+          baseColor: Colors.grey[700]!,
+          highlightColor: Colors.grey[500]!,
+          child: Container(
+            width: 40,
+            height: 40,
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(20),
+            ),
+          ),
+        ),
       ),
     );
   }
@@ -684,6 +977,9 @@ class _MarketplaceState extends ConsumerState<Marketplace>
                 setState(() {
                   _selectedFilters = filters;
                   _showFilters = false;
+
+                  // Apply server-side filters using the helper method
+                  _applyServerFilters();
                 });
               }
             },
@@ -757,7 +1053,7 @@ class _MarketplaceState extends ConsumerState<Marketplace>
         clients: '20k clients',
         location: item.status,
         isRemote: item.status.toLowerCase().contains('remote'),
-        image: item.serviceImage,
+        image: item.coverImage,
       ),
     );
   }
@@ -787,7 +1083,7 @@ class _MarketplaceState extends ConsumerState<Marketplace>
               clients: '20k clients',
               location: item.status,
               isRemote: item.status.toLowerCase().contains('remote'),
-              image: item.serviceImage,
+              image: item.coverImage,
             ),
           );
         },
@@ -936,11 +1232,10 @@ class FilterScreen extends ConsumerStatefulWidget {
 class _FilterScreenState extends ConsumerState<FilterScreen> {
   final TextEditingController maximumAmount = TextEditingController();
   final TextEditingController minimumAmount = TextEditingController();
-  int? selectedCategoryId;
 
-  // Track selected filters
-  final Set<String> selectedCategories = {};
-  final Set<String> selectedCategoriesId = {};
+  // Track selected filters - now only single selection
+  String? selectedCategory;
+  String? selectedCategoryId;
   final Set<String> selectedLocations = {};
 
   @override
@@ -1013,24 +1308,36 @@ class _FilterScreenState extends ConsumerState<FilterScreen> {
                           children: categories.data.data.map((category) {
                             return FilterChip(
                               label: category.name,
-                              selected:
-                                  selectedCategories.contains(category.name),
+                              selected: selectedCategory == category.name,
                               onSelected: (selected) {
                                 setState(() {
                                   if (selected) {
-                                    selectedCategories.add(category.name);
-                                    selectedCategoriesId.add(category.id.toString());
-                                  } else {
-                                    selectedCategories.remove(category.name);
-                                    selectedCategoriesId.add(category.id.toString());
+                                    selectedCategory = category.name;
+                                    selectedCategoryId = category.id.toString();
+                                  } else if (selectedCategory == category.name) {
+                                    selectedCategory = null;
+                                    selectedCategoryId = null;
                                   }
                                 });
                               },
                             );
                           }).toList(),
                         ),
-                        loading: () => const Center(
-                          child: CircularProgressIndicator(color: Colors.white),
+                        loading: () => Wrap(
+                          spacing: 8.0,
+                          runSpacing: 8.0,
+                          children: List.generate(6, (index) => Shimmer.fromColors(
+                            baseColor: Colors.grey[700]!,
+                            highlightColor: Colors.grey[500]!,
+                            child: Container(
+                              width: 80,
+                              height: 32,
+                              decoration: BoxDecoration(
+                                color: Colors.white,
+                                borderRadius: BorderRadius.circular(100),
+                              ),
+                            ),
+                          )),
                         ),
                         error: (e, _) => const Text(
                           'Error loading categories',
@@ -1087,9 +1394,13 @@ class _FilterScreenState extends ConsumerState<FilterScreen> {
                 onPressed: () {
                   final List<String> filters = [];
 
-                  // Add selected categories with a prefix
-                  filters.addAll(selectedCategories.map((c) => 'Category:$c'));
-                  filters.addAll(selectedCategoriesId);
+                  // Add selected category with a prefix (only one category allowed)
+                  if (selectedCategory != null) {
+                    filters.add('Category:$selectedCategory');
+                    if (selectedCategoryId != null) {
+                      filters.add('CategoryId:$selectedCategoryId');
+                    }
+                  }
 
                   // Add budget range if specified
                   if (minimumAmount.text.isNotEmpty) {

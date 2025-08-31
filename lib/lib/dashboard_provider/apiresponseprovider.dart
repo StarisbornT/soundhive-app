@@ -26,19 +26,14 @@ class ApiResponseProvider extends StateNotifier<AsyncValue<void>> {
 
   Future<ApiResponseModel> joinInvestment({
     required BuildContext context,
-    required String investmentId,
-    required double amount,
-    bool saveBeneficiary = false,
+    required Map<dynamic, dynamic> payload
   }) async {
     state = const AsyncValue.loading();
     try {
       LoaderService.showLoader(context);
       final response = await _dio.post(
-        '/member/investment/join',
-        data: jsonEncode({
-          'investment_id': investmentId,
-          'amount': amount,
-        }),
+        '/soundhive-vests/buy',
+        data: jsonEncode(payload),
       );
 
       if (response.statusCode == 200) {

@@ -4,6 +4,7 @@ import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
 import '../../model/user_model.dart';
 import '../../screens/auth/login.dart';
+import '../../screens/auth/update_profile1.dart';
 import '../../services/loader_service.dart';
 import '../auth_state_provider.dart';
 import '../provider.dart';
@@ -33,6 +34,12 @@ class UserNotifier extends StateNotifier<AsyncValue<MemberCreatorResponse>> {
       ));
       final userData = MemberCreatorResponse.fromJson(response.data);
       state = AsyncValue.data(userData);
+      if (userData.user?.firstName == null || userData.user!.firstName.isEmpty) {
+        LoaderService.navigatorKey.currentState?.pushNamedAndRemoveUntil(
+          UpdateProfile1.id,
+              (route) => false,
+        );
+      }
       return userData;
     }on DioException catch (dioError, stackTrace) {
       if (dioError.response?.statusCode == 401) {

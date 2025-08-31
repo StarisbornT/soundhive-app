@@ -13,7 +13,7 @@ import '../../../model/user_model.dart';
 import '../../../utils/app_colors.dart';
 class TransactionHistory extends ConsumerStatefulWidget {
   final MemberCreatorResponse user;
-  const TransactionHistory({Key? key, required this.user}) : super(key: key);
+  const TransactionHistory({super.key, required this.user});
 
   @override
   _TransactionHistoryScreenState createState() => _TransactionHistoryScreenState();
@@ -22,6 +22,9 @@ class _TransactionHistoryScreenState extends ConsumerState<TransactionHistory>{
   @override
   void initState() {
     super.initState();
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        ref.read(getTransactionHistoryPlaceProvider.notifier).getTransactionHistory();
+      });
     // if(widget.user.member?.account != null) {
     //   WidgetsBinding.instance.addPostFrameCallback((_) {
     //     ref.read(getTransactionHistoryPlaceProvider.notifier).getTransactionHistory(widget.user.member?.account!.accountId ?? '');
@@ -134,7 +137,7 @@ class TransactionCard extends StatelessWidget {
       leading: CircleAvatar(
         backgroundColor: Color.fromRGBO(188, 174, 226, 0.3),
         child: Icon(
-          transaction.type == "Debit" ? FontAwesomeIcons.arrowDown : FontAwesomeIcons.arrowUp,
+          transaction.type == "DEBIT" ? FontAwesomeIcons.arrowDown : FontAwesomeIcons.arrowUp,
           color: Colors.white,
           size: 16,
         ),
@@ -152,7 +155,7 @@ class TransactionCard extends StatelessWidget {
 
 
       subtitle: Text(
-        transaction.type,
+        transaction.type ?? '',
         style: const TextStyle(color: Colors.grey, fontSize: 12),
       ),
       trailing: Column(
@@ -162,7 +165,7 @@ class TransactionCard extends StatelessWidget {
           Text(
             Utils.formatCurrency(transaction.amount),
             style:  GoogleFonts.roboto(
-              textStyle: TextStyle(
+              textStyle: const TextStyle(
                 color: Colors.white,
                 fontSize: 16,
                 fontWeight: FontWeight.bold,
@@ -171,7 +174,7 @@ class TransactionCard extends StatelessWidget {
             ),
           ),
           Text(
-            DateFormat('dd/MM/yyyy').format(DateTime.parse(transaction.transactionDate)),
+            DateFormat('dd/MM/yyyy').format(DateTime.parse(transaction.createdAt)),
             style: const TextStyle(color: Colors.grey, fontSize: 12),
           ),
         ],

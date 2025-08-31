@@ -33,6 +33,17 @@ class GetMyOrdersAssetNotifier extends StateNotifier<AsyncValue<MarketOrdersPagi
     await getMarketPlaceService();
   }
 
+  String _currentSearch = '';
+  int? _currentCategoryId;
+  bool _hasMore = true;
+
+  void resetFilters() {
+    _currentSearch = '';
+    _currentCategoryId = null;
+    _currentPage = 1;
+    _hasMore = true;
+  }
+
   // Get marketplace services with server-side filtering
   Future<void> getMarketPlaceService({
     bool loadMore = false,
@@ -94,6 +105,12 @@ class GetMyOrdersAssetNotifier extends StateNotifier<AsyncValue<MarketOrdersPagi
     } catch (error, stackTrace) {
       state = AsyncValue.error(error, stackTrace);
     }
+  }
+
+  void clearCategoryFilter() {
+    _currentCategoryId = null;
+    _currentPage = 1;
+    _hasMore = true;
   }
 
   // Apply filters from filter screen

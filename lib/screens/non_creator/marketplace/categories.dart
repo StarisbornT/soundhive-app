@@ -9,7 +9,7 @@ import 'service_list_screen.dart';
 
 class Categories extends ConsumerStatefulWidget {
   final MemberCreatorResponse user;
-  const Categories({Key? key, required this.user}) : super(key: key);
+  const Categories({super.key, required this.user});
 
   @override
   _CategoriesState createState() => _CategoriesState();
@@ -17,31 +17,61 @@ class Categories extends ConsumerStatefulWidget {
 
 class _CategoriesState extends ConsumerState<Categories> {
   final TextEditingController _searchController = TextEditingController();
-
-  List<Category> _allCategories = [];
-  List<Category> _filteredCategories = [];
+  final ScrollController _scrollController = ScrollController();
+  bool _isSearching = false;
 
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) async {
       await ref.read(categoryProvider.notifier).getCategory();
-      final fetched = ref.read(categoryProvider).value?.data.data;
-      setState(() {
-        _allCategories = fetched!;
-        _filteredCategories = fetched;
-      });
     });
+
     _searchController.addListener(_onSearchChanged);
+    _scrollController.addListener(_onScroll);
+  }
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    _scrollController.dispose();
+    super.dispose();
   }
 
   void _onSearchChanged() {
-    final query = _searchController.text.toLowerCase();
-    setState(() {
-      _filteredCategories = _allCategories
-          .where((category) => category.name.toLowerCase().contains(query))
-          .toList();
+    final query = _searchController.text.trim();
+    if (query.isEmpty) {
+      // Reset search if query is empty
+      if (_isSearching) {
+        _isSearching = false;
+        ref.read(categoryProvider.notifier).resetSearch();
+        ref.read(categoryProvider.notifier).getCategory();
+      }
+      return;
+    }
+
+    // Debounce search to avoid too many API calls
+    Future.delayed(const Duration(milliseconds: 500), () {
+      if (_searchController.text.trim() == query) {
+        _isSearching = true;
+        ref.read(categoryProvider.notifier).searchCategories(query);
+      }
     });
+  }
+
+  void _onScroll() {
+    if (_scrollController.position.pixels ==
+        _scrollController.position.maxScrollExtent) {
+      // Load more data when scrolled to bottom
+      ref.read(categoryProvider.notifier).loadMore();
+    }
+  }
+
+  void _clearSearch() {
+    _searchController.clear();
+    _isSearching = false;
+    ref.read(categoryProvider.notifier).resetSearch();
+    ref.read(categoryProvider.notifier).getCategory();
   }
 
   @override
@@ -79,68 +109,106 @@ class _CategoriesState extends ConsumerState<Categories> {
                 border: Border.all(color: Colors.white24),
                 borderRadius: BorderRadius.circular(8),
               ),
-              child: TextField(
-                controller: _searchController,
-                style: const TextStyle(color: Colors.white),
-                decoration: const InputDecoration(
-                  hintText: 'Search for a category',
-                  hintStyle: TextStyle(color: Colors.white38),
-                  prefixIcon: Icon(Icons.search, color: Colors.white38),
-                  border: InputBorder.none,
-                  contentPadding: EdgeInsets.all(16),
-                ),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: TextField(
+                      controller: _searchController,
+                      style: const TextStyle(color: Colors.white),
+                      decoration: const InputDecoration(
+                        hintText: 'Search by category name',
+                        hintStyle: TextStyle(color: Colors.white38),
+                        prefixIcon: Icon(Icons.search, color: Colors.white38),
+                        border: InputBorder.none,
+                        contentPadding: EdgeInsets.all(16),
+                      ),
+                    ),
+                  ),
+                  if (_searchController.text.isNotEmpty)
+                    IconButton(
+                      icon: const Icon(Icons.clear, color: Colors.white38),
+                      onPressed: _clearSearch,
+                    ),
+                ],
               ),
             ),
 
             // Loading, Error or Categories
             Expanded(
-              child: categoryState.isLoading
-                  ? const Center(child: CircularProgressIndicator())
-                  : _filteredCategories.isEmpty
-                  ? const Center(
-                child: Text(
-                  'No categories found.',
-                  style: TextStyle(color: Colors.white60),
+              child: categoryState.when(
+                loading: () => const Center(child: CircularProgressIndicator()),
+                error: (error, stackTrace) => Center(
+                  child: Text(
+                    'Error loading categories: $error',
+                    style: const TextStyle(color: Colors.white60),
+                  ),
                 ),
-              )
-                  : ListView.builder(
-                itemCount: _filteredCategories.length,
-                itemBuilder: (context, index) {
-                  final category = _filteredCategories[index];
-                  return Container(
-                    margin: const EdgeInsets.only(bottom: 12),
-                    child: ElevatedButton(
-                      onPressed: () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (context) => ServicesListScreen(
-                              categoryName: category.name,
-                              user: widget.user,
-                            ),
+                data: (categoryResponse) {
+                  final categories = categoryResponse.data.data;
+                  final hasMore = categoryResponse.data.nextPageUrl != null;
+
+                  if (categories.isEmpty) {
+                    return Center(
+                      child: Text(
+                        _isSearching
+                            ? 'No categories found for "${_searchController.text}"'
+                            : 'No categories found.',
+                        style: const TextStyle(color: Colors.white60),
+                      ),
+                    );
+                  }
+
+                  return ListView.builder(
+                    controller: _scrollController,
+                    itemCount: categories.length + (hasMore ? 1 : 0),
+                    itemBuilder: (context, index) {
+                      if (index == categories.length) {
+                        // Show loading indicator at the bottom for pagination
+                        return const Padding(
+                          padding: EdgeInsets.all(16.0),
+                          child: Center(
+                            child: CircularProgressIndicator(),
                           ),
                         );
-                      },
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.transparent,
-                        foregroundColor: Colors.white,
-                        side:
-                        const BorderSide(color: Colors.white12),
-                        padding: const EdgeInsets.symmetric(
-                            vertical: 16, horizontal: 16),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(8),
+                      }
+
+                      final category = categories[index];
+                      return Container(
+                        margin: const EdgeInsets.only(bottom: 12),
+                        child: ElevatedButton(
+                          onPressed: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => ServicesListScreen(
+                                  id: category.id,
+                                  user: widget.user,
+                                    categoryName: category.name
+                                ),
+                              ),
+                            );
+                          },
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.transparent,
+                            foregroundColor: Colors.white,
+                            side: const BorderSide(color: Colors.white12),
+                            padding: const EdgeInsets.symmetric(
+                                vertical: 16, horizontal: 16),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            elevation: 0,
+                          ),
+                          child: Align(
+                            alignment: Alignment.centerLeft,
+                            child: Text(
+                              category.name,
+                              style: const TextStyle(fontSize: 16),
+                            ),
+                          ),
                         ),
-                        elevation: 0,
-                      ),
-                      child: Align(
-                        alignment: Alignment.centerLeft,
-                        child: Text(
-                          category.name,
-                          style: const TextStyle(fontSize: 16),
-                        ),
-                      ),
-                    ),
+                      );
+                    },
                   );
                 },
               ),
@@ -151,4 +219,3 @@ class _CategoriesState extends ConsumerState<Categories> {
     );
   }
 }
-

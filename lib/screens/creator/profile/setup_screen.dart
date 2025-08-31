@@ -19,7 +19,7 @@ class _SetupScreenState extends ConsumerState<SetupScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFF0C0513), // Dark background
+      backgroundColor: const Color(0xFF0C0513),
       body: SafeArea(
         child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 10),
@@ -83,18 +83,26 @@ class _SetupScreenState extends ConsumerState<SetupScreen> {
                   title: 'Creative profile setup',
                   subtitle:
                   'Let us know what you can do, the projects you have done over time and how much you charge.',
-                  status: widget.user.user?.creator!.active != false
-                      ? 'Under review'
-                      : 'Not submitted',
-                  statusColor: widget.user.user?.creator!.active != false
-                      ? Colors.amber
-                      : Colors.red,
+                status: widget.user.user?.creator == null
+                    ? 'Not submitted'
+                    : (widget.user.user!.creator!.active == true
+                    ? 'Active'
+                    : 'Not submitted'),
+
+                statusColor: widget.user.user?.creator == null
+                    ? Colors.red
+                    : (widget.user.user!.creator!.active == true
+                    ? Colors.amber
+                    : Colors.red),
                 onTap: () {
                     if(widget.user.user?.creator != null) {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(builder: (_) => const CreativeFormScreen()),
-                      );
+                      if (!(widget.user.user?.creator?.active ?? false)) {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(builder: (_) => const CreativeFormScreen()),
+                        );
+                      }
+
                     }else {
                       showCustomAlert(
                         context: context,

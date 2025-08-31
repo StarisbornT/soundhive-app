@@ -38,7 +38,7 @@ class _ServiceScreenState extends ConsumerState<ServiceDetailsScreen> {
             Center(
               child: ClipRRect(
                 borderRadius: BorderRadius.circular(10),
-                child: Image.network(widget.services.serviceImage ?? '', height: 200, fit: BoxFit.cover),
+                child: Image.network(widget.services.coverImage, height: 200, fit: BoxFit.cover),
               ),
             ),
             const SizedBox(height: 16),
@@ -51,9 +51,9 @@ class _ServiceScreenState extends ConsumerState<ServiceDetailsScreen> {
             const SizedBox(height: 8),
             Container(
               width: double.infinity,
-              padding: EdgeInsets.all(16),
+              padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
-                color: Color(0xFF1A191E),
+                color: const Color(0xFF1A191E),
                 borderRadius: BorderRadius.circular(10),
               ),
               child: Column(

@@ -1,25 +1,25 @@
 import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
-import '../../model/transaction_history_model.dart';
+import '../../model/investment_statistics_model.dart';
 import '../provider.dart';
-final getTransactionHistoryPlaceProvider = StateNotifierProvider<GetTransactionHistoryNotifier, AsyncValue<TransactionHistoryResponse>>((ref) {
+final getInvestmentStatisticsProvider = StateNotifierProvider<GetInvestmentStatisticsNotifier, AsyncValue<InvestmentStatisticsModel>>((ref) {
   final dio = ref.watch(dioProvider);
   final storage = ref.watch(storageProvider);
-  return GetTransactionHistoryNotifier(dio, storage);
+  return GetInvestmentStatisticsNotifier(dio, storage);
 });
 
-class GetTransactionHistoryNotifier extends StateNotifier<AsyncValue<TransactionHistoryResponse>> {
+class GetInvestmentStatisticsNotifier extends StateNotifier<AsyncValue<InvestmentStatisticsModel>> {
   final Dio _dio;
   final FlutterSecureStorage _storage;
 
-  GetTransactionHistoryNotifier(this._dio, this._storage) : super(const AsyncValue.loading());
+  GetInvestmentStatisticsNotifier(this._dio, this._storage) : super(const AsyncValue.loading());
 
-  Future<void> getTransactionHistory() async {
+  Future<void> getBreakDown(int id) async {
     state = const AsyncValue.loading();
     try {
       final response = await _dio.get(
-          '/transactions',
+          '/soundhive-vests/$id/statistics',
           options: Options(
               headers: {
                 'Accept': 'application/json',
@@ -27,7 +27,7 @@ class GetTransactionHistoryNotifier extends StateNotifier<AsyncValue<Transaction
               }
           )
       );
-      final serviceResponse = TransactionHistoryResponse.fromMap(response.data);
+      final serviceResponse = InvestmentStatisticsModel.fromMap(response.data);
       state = AsyncValue.data(serviceResponse);
     } catch (error, stackTrace) {
       state = AsyncValue.error(error, stackTrace);

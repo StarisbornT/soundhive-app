@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:pin_code_fields/pin_code_fields.dart';
 import 'package:soundhive2/screens/auth/update_profile1.dart';
+import '../../services/fcm_service.dart';
 import '../../services/loader_service.dart';
 import '../../utils/alert_helper.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -119,6 +120,9 @@ class _OtpScreenState extends ConsumerState<OtpScreen> with WidgetsBindingObserv
       LoaderService.hideLoader(context);
       if (response.statusCode == 200) {
         final responseData = response.data;
+
+        final fcmService = FcmTokenService(widget.dio);
+        await fcmService.registerFcmToken(email!);
 
         await widget.storage.write(key: 'auth_token', value: responseData['token']);
         await widget.storage.write(key: 'role', value: responseData['data']['role']);

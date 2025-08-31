@@ -3,6 +3,7 @@ import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:soundhive2/lib/dashboard_provider/apiresponseprovider.dart';
+import 'package:soundhive2/screens/dashboard/dashboard.dart';
 import 'package:soundhive2/screens/dashboard/verification_webview.dart';
 import 'package:soundhive2/screens/non_creator/wallet/wallet.dart';
 
@@ -168,8 +169,7 @@ class _ActivateWalletScreenState extends ConsumerState<ActivateWallet> {
             title: 'Account generated',
             subtitle: 'Your account has been generated successfully',
             onButtonPressed: () {
-              ref.read(bottomNavigationProvider.notifier).state = 1;
-              Navigator.popUntil(context, ModalRoute.withName(NonCreatorDashboard.id));
+              Navigator.pushNamed(context, DashboardScreen.id);
             },
           ),
         ),

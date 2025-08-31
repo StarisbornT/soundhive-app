@@ -1,10 +1,12 @@
 import 'dart:convert';
 
 class TransactionHistoryResponse {
+  final bool success;
   final String message;
-  final TransactionData data;
+  final TransactionPagination data;
 
   TransactionHistoryResponse({
+    required this.success,
     required this.message,
     required this.data,
   });
@@ -14,298 +16,168 @@ class TransactionHistoryResponse {
 
   factory TransactionHistoryResponse.fromMap(Map<String, dynamic> map) {
     return TransactionHistoryResponse(
+      success: map['success'] ?? false,
       message: map['message'] ?? '',
-      data: TransactionData.fromMap(map['data']),
+      data: TransactionPagination.fromMap(map['data'] ?? {}),
     );
   }
 }
 
-class TransactionData {
-  final int statusCode;
-  final String message;
+class TransactionPagination {
+  final int currentPage;
   final List<Transaction> data;
-  final Pagination pagination;
+  final String? firstPageUrl;
+  final int? from;
+  final int lastPage;
+  final String? lastPageUrl;
+  final List<PageLink> links;
+  final String? nextPageUrl;
+  final String? path;
+  final int perPage;
+  final String? prevPageUrl;
+  final int? to;
+  final int total;
 
-  TransactionData({
-    required this.statusCode,
-    required this.message,
+  TransactionPagination({
+    required this.currentPage,
     required this.data,
-    required this.pagination,
+    this.firstPageUrl,
+    this.from,
+    required this.lastPage,
+    this.lastPageUrl,
+    required this.links,
+    this.nextPageUrl,
+    this.path,
+    required this.perPage,
+    this.prevPageUrl,
+    this.to,
+    required this.total,
   });
 
-  factory TransactionData.fromMap(Map<String, dynamic> map) {
-    return TransactionData(
-      statusCode: map['statusCode'] ?? 0,
-      message: map['message'] ?? '',
+  factory TransactionPagination.fromMap(Map<String, dynamic> map) {
+    return TransactionPagination(
+      currentPage: map['current_page'] ?? 1,
       data: List<Transaction>.from(
-        map['data']?.map((x) => Transaction.fromMap(x)) ?? [],
+        (map['data'] ?? []).map((x) => Transaction.fromMap(x)),
       ),
-      pagination: Pagination.fromMap(map['pagination']),
+      firstPageUrl: map['first_page_url'],
+      from: map['from'],
+      lastPage: map['last_page'] ?? 1,
+      lastPageUrl: map['last_page_url'],
+      links: List<PageLink>.from(
+        (map['links'] ?? []).map((x) => PageLink.fromMap(x)),
+      ),
+      nextPageUrl: map['next_page_url'],
+      path: map['path'],
+      perPage: map['per_page'] is int
+          ? map['per_page']
+          : int.tryParse(map['per_page'].toString()) ?? 0,
+      prevPageUrl: map['prev_page_url'],
+      to: map['to'],
+      total: map['total'] ?? 0,
     );
   }
 }
 
 class Transaction {
-  final bool isReversal;
-  final String id;
-  final String? cbaTransactionId;
-  final String client;
-  final Account account;
-  final String paymentReference;
-  final String type;
-  final String provider;
-  final String providerChannel;
-  final String? paymentServices;
+  final int id;
+  final String? type;
+  final String userId;
+  final String walletId;
+  final String title;
+  final String? bookingId;
+  final String reference;
+  final String amount;
+  final String totalAmount;
+  final String totalCharge;
+  final String transactionStatus;
+  final String? approvedForReversal;
+  final String? dateApprovedForReversal;
+  final String? dateMarkedForReversal;
+  final String? dateReversed;
   final String narration;
-  final num amount;
-  final num runningBalance;
-  final String transactionDate;
-  final String valueDate;
-  final int v;
+  final String? otherInfo;
+  final String? sourceBankName;
+  final String? currency;
+  final String? feeAmount;
+  final String? feePercent;
+  final String createdAt;
+  final String updatedAt;
+  final String vestId;
 
   Transaction({
-    required this.isReversal,
     required this.id,
-    this.cbaTransactionId,
-    required this.client,
-    required this.account,
-    required this.paymentReference,
-    required this.type,
-    required this.provider,
-    required this.providerChannel,
-    this.paymentServices,
-    required this.narration,
+    this.type,
+    required this.userId,
+    required this.walletId,
+    required this.title,
+    this.bookingId,
+    required this.reference,
     required this.amount,
-    required this.runningBalance,
-    required this.transactionDate,
-    required this.valueDate,
-    required this.v,
+    required this.totalAmount,
+    required this.totalCharge,
+    required this.transactionStatus,
+    this.approvedForReversal,
+    this.dateApprovedForReversal,
+    this.dateMarkedForReversal,
+    this.dateReversed,
+    required this.narration,
+    this.otherInfo,
+    this.sourceBankName,
+    this.currency,
+    this.feeAmount,
+    this.feePercent,
+    required this.createdAt,
+    required this.updatedAt,
+    required this.vestId,
   });
 
   factory Transaction.fromMap(Map<String, dynamic> map) {
     return Transaction(
-      isReversal: map['isReversal'] ?? false,
-      id: map['_id'] ?? '',
-      cbaTransactionId: map['cbaTransactionId'],
-      client: map['client'] ?? '',
-      account: Account.fromMap(map['account']),
-      paymentReference: map['paymentReference'] ?? '',
-      type: map['type'] ?? '',
-      provider: map['provider'] ?? '',
-      providerChannel: map['providerChannel'] ?? '',
-      paymentServices: map['paymentServices'],
+      id: map['id'] ?? 0,
+      type: map['type'],
+      userId: map['user_id'] ?? '',
+      walletId: map['wallet_id'] ?? '',
+      title: map['title'] ?? '',
+      bookingId: map['booking_id'],
+      reference: map['reference'] ?? '',
+      amount: map['amount'] ?? '0.00',
+      totalAmount: map['total_amount'] ?? '0.00',
+      totalCharge: map['total_charge'] ?? '0.00',
+      transactionStatus: map['transaction_status'] ?? '',
+      approvedForReversal: map['approved_for_reversal'],
+      dateApprovedForReversal: map['date_approved_for_reversal'],
+      dateMarkedForReversal: map['date_marked_for_reversal'],
+      dateReversed: map['date_reversed'],
       narration: map['narration'] ?? '',
-      amount: map['amount'] ?? 0,
-      runningBalance: map['runningBalance'] ?? 0,
-      transactionDate: map['transactionDate'] ?? '',
-      valueDate: map['valueDate'] ?? '',
-      v: map['__v'] ?? 0,
+      otherInfo: map['other_info'],
+      sourceBankName: map['source_bank_name'],
+      currency: map['currency'],
+      feeAmount: map['fee_amount'],
+      feePercent: map['fee_percent'],
+      createdAt: map['created_at'] ?? '',
+      updatedAt: map['updated_at'] ?? '',
+      vestId: map['vest_id'] ?? '',
     );
   }
 }
 
-class Account {
-  final bool canDebit;
-  final bool canCredit;
-  final String id;
-  final String client;
-  final String accountProduct;
-  final String accountNumber;
-  final String accountName;
-  final String accountType;
-  final String currencyCode;
-  final String bvn;
-  final String identityId;
-  final num accountBalance;
-  final num bookBalance;
-  final num interestBalance;
-  final num withHoldingTaxBalance;
-  final String status;
-  final bool isDefault;
-  final num nominalAnnualInterestRate;
-  final String interestCompoundingPeriod;
-  final String interestPostingPeriod;
-  final String interestCalculationType;
-  final String interestCalculationDaysInYearType;
-  final num minRequiredOpeningBalance;
-  final num lockinPeriodFrequency;
-  final String lockinPeriodFrequencyType;
-  final bool allowOverdraft;
-  final num overdraftLimit;
-  final bool chargeWithHoldingTax;
-  final bool chargeValueAddedTax;
-  final bool chargeStampDuty;
-  final NotificationSettings notificationSettings;
-  final bool isSubAccount;
-  final SubAccountDetails subAccountDetails;
-  final String externalReference;
-  final bool isDeleted;
-  final String createdAt;
-  final String updatedAt;
-  final String? nin;
-  final int v;
-  final String cbaAccountId;
+class PageLink {
+  final String? url;
+  final String label;
+  final bool active;
 
-  Account({
-    required this.canDebit,
-    required this.canCredit,
-    required this.id,
-    required this.client,
-    required this.accountProduct,
-    required this.accountNumber,
-    required this.accountName,
-    required this.accountType,
-    required this.currencyCode,
-    required this.bvn,
-    required this.identityId,
-    required this.accountBalance,
-    required this.bookBalance,
-    required this.interestBalance,
-    required this.withHoldingTaxBalance,
-    required this.status,
-    required this.isDefault,
-    required this.nominalAnnualInterestRate,
-    required this.interestCompoundingPeriod,
-    required this.interestPostingPeriod,
-    required this.interestCalculationType,
-    required this.interestCalculationDaysInYearType,
-    required this.minRequiredOpeningBalance,
-    required this.lockinPeriodFrequency,
-    required this.lockinPeriodFrequencyType,
-    required this.allowOverdraft,
-    required this.overdraftLimit,
-    required this.chargeWithHoldingTax,
-    required this.chargeValueAddedTax,
-    required this.chargeStampDuty,
-    required this.notificationSettings,
-    required this.isSubAccount,
-    required this.subAccountDetails,
-    required this.externalReference,
-    required this.isDeleted,
-    required this.createdAt,
-    required this.updatedAt,
-    this.nin,
-    required this.v,
-    required this.cbaAccountId,
+  PageLink({
+    this.url,
+    required this.label,
+    required this.active,
   });
 
-  factory Account.fromMap(Map<String, dynamic> map) {
-    return Account(
-      canDebit: map['canDebit'] ?? false,
-      canCredit: map['canCredit'] ?? false,
-      id: map['_id'] ?? '',
-      client: map['client'] ?? '',
-      accountProduct: map['accountProduct'] ?? '',
-      accountNumber: map['accountNumber'] ?? '',
-      accountName: map['accountName'] ?? '',
-      accountType: map['accountType'] ?? '',
-      currencyCode: map['currencyCode'] ?? '',
-      bvn: map['bvn'] ?? '',
-      identityId: map['identityId'] ?? '',
-      accountBalance: map['accountBalance'] ?? 0,
-      bookBalance: map['bookBalance'] ?? 0,
-      interestBalance: map['interestBalance'] ?? 0,
-      withHoldingTaxBalance: map['withHoldingTaxBalance'] ?? 0,
-      status: map['status'] ?? '',
-      isDefault: map['isDefault'] ?? false,
-      nominalAnnualInterestRate: map['nominalAnnualInterestRate'] ?? 0,
-      interestCompoundingPeriod: map['interestCompoundingPeriod'] ?? '',
-      interestPostingPeriod: map['interestPostingPeriod'] ?? '',
-      interestCalculationType: map['interestCalculationType'] ?? '',
-      interestCalculationDaysInYearType: map['interestCalculationDaysInYearType'] ?? '',
-      minRequiredOpeningBalance: map['minRequiredOpeningBalance'] ?? 0,
-      lockinPeriodFrequency: map['lockinPeriodFrequency'] ?? 0,
-      lockinPeriodFrequencyType: map['lockinPeriodFrequencyType'] ?? '',
-      allowOverdraft: map['allowOverdraft'] ?? false,
-      overdraftLimit: map['overdraftLimit'] ?? 0,
-      chargeWithHoldingTax: map['chargeWithHoldingTax'] ?? false,
-      chargeValueAddedTax: map['chargeValueAddedTax'] ?? false,
-      chargeStampDuty: map['chargeStampDuty'] ?? false,
-      notificationSettings: NotificationSettings.fromMap(map['notificationSettings']),
-      isSubAccount: map['isSubAccount'] ?? false,
-      subAccountDetails: SubAccountDetails.fromMap(map['subAccountDetails']),
-      externalReference: map['externalReference'] ?? '',
-      isDeleted: map['isDeleted'] ?? false,
-      createdAt: map['createdAt'] ?? '',
-      updatedAt: map['updatedAt'] ?? '',
-      nin: map['nin'],
-      v: map['__v'] ?? 0,
-      cbaAccountId: map['cbaAccountId'] ?? '',
-    );
-  }
-}
-
-class NotificationSettings {
-  final bool smsNotification;
-  final bool emailNotification;
-  final bool emailMonthlyStatement;
-  final bool smsMonthlyStatement;
-
-  NotificationSettings({
-    required this.smsNotification,
-    required this.emailNotification,
-    required this.emailMonthlyStatement,
-    required this.smsMonthlyStatement,
-  });
-
-  factory NotificationSettings.fromMap(Map<String, dynamic> map) {
-    return NotificationSettings(
-      smsNotification: map['smsNotification'] ?? false,
-      emailNotification: map['emailNotification'] ?? false,
-      emailMonthlyStatement: map['emailMonthlyStatement'] ?? false,
-      smsMonthlyStatement: map['smsMonthlyStatement'] ?? false,
-    );
-  }
-}
-
-class SubAccountDetails {
-  final String firstName;
-  final String lastName;
-  final String emailAddress;
-  final String bvn;
-  final String nin;
-  final String accountType;
-
-  SubAccountDetails({
-    required this.firstName,
-    required this.lastName,
-    required this.emailAddress,
-    required this.bvn,
-    required this.nin,
-    required this.accountType,
-  });
-
-  factory SubAccountDetails.fromMap(Map<String, dynamic> map) {
-    return SubAccountDetails(
-      firstName: map['firstName'] ?? '',
-      lastName: map['lastName'] ?? '',
-      emailAddress: map['emailAddress'] ?? '',
-      bvn: map['bvn'] ?? '',
-      nin: map['nin'] ?? '',
-      accountType: map['accountType'] ?? '',
-    );
-  }
-}
-
-class Pagination {
-  final int total;
-  final int pages;
-  final int page;
-  final int limit;
-
-  Pagination({
-    required this.total,
-    required this.pages,
-    required this.page,
-    required this.limit,
-  });
-
-  factory Pagination.fromMap(Map<String, dynamic> map) {
-    return Pagination(
-      total: map['total'] ?? 0,
-      pages: map['pages'] ?? 0,
-      page: map['page'] ?? 0,
-      limit: map['limit'] ?? 0,
+  factory PageLink.fromMap(Map<String, dynamic> map) {
+    return PageLink(
+      url: map['url'],
+      label: map['label'] ?? '',
+      active: map['active'] ?? false,
     );
   }
 }

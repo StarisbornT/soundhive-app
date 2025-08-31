@@ -8,7 +8,6 @@ import 'package:soundhive2/screens/non_creator/non_creator.dart';
 import 'package:soundhive2/utils/app_colors.dart';
 import '../../lib/dashboard_provider/apiresponseprovider.dart';
 import '../auth/login.dart';
-import '../non_creator/vest/soundhive_vest.dart';
 import '../non_creator/wallet/transaction_history.dart';
 import 'creator_home.dart';
 final creatorNavigationProvider = StateProvider<int>((ref) => 0);
@@ -158,12 +157,12 @@ class CreatorDashboard extends ConsumerWidget {
                         );
                       }),
                       _buildDrawerItem(icon: 'images/artist.png', text: 'Artist Arena', onTap: () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (context) =>  const SoundhiveVest(),
-                          ),
-                        );
+                        // Navigator.push(
+                        //   context,
+                        //   MaterialPageRoute(
+                        //     builder: (context) =>  const SoundhiveVest(),
+                        //   ),
+                        // );
                       }),
                       _buildDrawerItem(icon: 'images/transaction.png', text: 'Transactions History', onTap: () {
                         Navigator.push(
@@ -174,12 +173,12 @@ class CreatorDashboard extends ConsumerWidget {
                         );
                       }),
                       _buildDrawerItem(icon:'images/settings.png', text: 'Settings', onTap: () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (context) =>  const SoundhiveVest(),
-                          ),
-                        );
+                        // Navigator.push(
+                        //   context,
+                        //   MaterialPageRoute(
+                        //     builder: (context) =>  const SoundhiveVest(),
+                        //   ),
+                        // );
                       }),
                       const SizedBox(height: 20),
                       Padding(

@@ -1,6 +1,7 @@
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
+import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:soundhive2/screens/auth/create_account.dart';
@@ -14,7 +15,11 @@ import 'package:soundhive2/screens/non_creator/non_creator.dart';
 import 'package:soundhive2/screens/onboarding/just_curious.dart';
 import 'package:soundhive2/screens/onboarding/onboard.dart';
 import 'package:soundhive2/screens/onboarding/splash_screen.dart';
+import 'package:soundhive2/services/firebase_service.dart';
 import 'package:soundhive2/services/loader_service.dart';
+import 'package:webview_flutter/webview_flutter.dart';
+import 'package:webview_flutter_android/webview_flutter_android.dart';
+import 'package:webview_flutter_wkwebview/webview_flutter_wkwebview.dart';
 import 'lib/app_life_cycle.dart';
 import 'lib/auth_state_provider.dart';
 import 'lib/interceptor.dart';
@@ -27,8 +32,19 @@ void main() async {
   await dotenv.load(fileName: '.env.production');
   await Firebase.initializeApp(
   );
+  final container = ProviderContainer();
   Dio dio = Dio();
+  if (WebViewPlatform.instance is WebKitWebViewPlatform) {
+    WebViewPlatform.instance = WebKitWebViewPlatform();
+  } else if (WebViewPlatform.instance is AndroidWebViewPlatform) {
+    WebViewPlatform.instance = AndroidWebViewPlatform();
+  }
+
+  // Initialize Firebase Service
+  final firebaseService = FirebaseService(container);
+  await firebaseService.initialize();
   initializeDioLogger(dio);
+
   final storage = FlutterSecureStorage();
   dio.interceptors.addAll([
     BaseUrlInterceptor(),

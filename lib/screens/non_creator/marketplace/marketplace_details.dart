@@ -67,9 +67,9 @@ class _MarketplaceDetailsScreenState extends ConsumerState<MarketplaceDetails>  
         Center(
           child:  ClipRRect(
     borderRadius: BorderRadius.circular(10),
-    child: (widget.service.serviceImage.isNotEmpty)
+    child: (widget.service.coverImage.isNotEmpty)
     ? Image.network(
-    widget.service.serviceImage,
+    widget.service.coverImage,
     height: 200,
     fit: BoxFit.cover,
     errorBuilder: (context, error, stackTrace) =>
