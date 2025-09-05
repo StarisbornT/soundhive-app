@@ -6,7 +6,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:soundhive2/components/label_text.dart';
 import 'package:soundhive2/components/rounded_button.dart';
-import 'package:soundhive2/screens/creator/creator_home.dart';
 import 'package:soundhive2/utils/app_colors.dart';
 import '../../../components/image_picker.dart';
 import '../../../components/success.dart';
@@ -130,17 +129,84 @@ class _VerifyIdentityScreenState extends ConsumerState<VerifyIdentity> {
 
   void _submitForm() async {
     print('🔄 Starting submission');
-    print('📁 Image path: ${_imageNotifier.value?.path}');
 
+    // ✅ Check that all fields are filled before proceeding
+    if (selectedGender == null || selectedGender!.isEmpty) {
+      showCustomAlert(
+        context: context,
+        isSuccess: false,
+        title: 'Missing Field',
+        message: 'Please select your gender',
+      );
+      return;
+    }
+
+    if (bvnController.text.trim().isEmpty) {
+      showCustomAlert(
+        context: context,
+        isSuccess: false,
+        title: 'Missing Field',
+        message: 'Please enter your BVN',
+      );
+      return;
+    }
+
+    if (ninController.text.trim().isEmpty) {
+      showCustomAlert(
+        context: context,
+        isSuccess: false,
+        title: 'Missing Field',
+        message: 'Please enter your NIN',
+      );
+      return;
+    }
+
+    if (selectedIdType == null || selectedIdType!.isEmpty) {
+      showCustomAlert(
+        context: context,
+        isSuccess: false,
+        title: 'Missing Field',
+        message: 'Please select your ID type',
+      );
+      return;
+    }
+
+    if (_imageNotifier.value == null) {
+      showCustomAlert(
+        context: context,
+        isSuccess: false,
+        title: 'Missing Field',
+        message: 'Please upload a copy of your ID',
+      );
+      return;
+    }
+
+    if (selectedUtility == null || selectedUtility!.isEmpty) {
+      showCustomAlert(
+        context: context,
+        isSuccess: false,
+        title: 'Missing Field',
+        message: 'Please select a Utility Bill type',
+      );
+      return;
+    }
+
+    if (_utilityNotifier.value == null) {
+      showCustomAlert(
+        context: context,
+        isSuccess: false,
+        title: 'Missing Field',
+        message: 'Please upload your Utility Bill',
+      );
+      return;
+    }
+
+    // ✅ If all checks pass, continue with your existing logic
     try {
       LoaderService.showLoader(context);
 
-      final imageFile = _imageNotifier.value;
-      final utilityFile = _utilityNotifier.value;
-
-      if (imageFile == null || utilityFile == null) {
-        throw Exception('Both ID and utility images are required');
-      }
+      final imageFile = _imageNotifier.value!;
+      final utilityFile = _utilityNotifier.value!;
 
       bool isImageValid = await _isValidLocalPath(imageFile.path);
       bool isUtilityValid = await _isValidLocalPath(utilityFile.path);
@@ -157,61 +223,46 @@ class _VerifyIdentityScreenState extends ConsumerState<VerifyIdentity> {
       await _uploadMediaToCloudinary();
 
       // Submit to backend
-      final response = await _submitToBackend();
+      await _submitToBackend();
 
+      LoaderService.hideLoader(context);
+      await ref.read(userProvider.notifier).loadUserProfile();
 
-        LoaderService.hideLoader(context);
-        final user = await ref.read(userProvider.notifier).loadUserProfile();
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(
-            builder: (context) => Success(
-              title: 'Your information has been submitted successfully',
-              subtitle: 'Your account is currently under review, and will get feedback within the next 24hours',
-              onButtonPressed: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (_) => CreatorDashboard()),
-                );
-              },
-            ),
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(
+          builder: (context) => Success(
+            title: 'Your information has been submitted successfully',
+            subtitle:
+            'Your account is currently under review, and will get feedback within the next 24 hours',
+            onButtonPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => CreatorDashboard()),
+              );
+            },
           ),
-        );
-
-
+        ),
+      );
     } catch (error) {
       LoaderService.hideLoader(context);
 
       String errorMessage = 'An unexpected error occurred';
-
-      // Print full error details for debugging
       print('FULL ERROR DETAILS: $error');
 
-        // Handle different Dio error types
-        if (error is DioException) {
-          if (error.response?.data != null) {
-            try {
-              final apiResponse = ApiResponseModel.fromJson(
-                  error.response?.data);
-              errorMessage = apiResponse.message;
-            } catch (e) {
-              errorMessage = 'Failed to parse error message';
-            }
-          } else {
-            errorMessage = error.message ?? 'Network error occurred';
+      if (error is DioException) {
+        if (error.response?.data != null) {
+          try {
+            final apiResponse = ApiResponseModel.fromJson(error.response?.data);
+            errorMessage = apiResponse.message;
+          } catch (e) {
+            errorMessage = 'Failed to parse error message';
           }
+        } else {
+          errorMessage = error.message ?? 'Network error occurred';
         }
+      }
 
-
-        print("Error: $errorMessage");
-        showCustomAlert(
-          context: context,
-          isSuccess: false,
-          title: 'Error',
-          message: errorMessage,
-        );
-
-      // Show the alert with the error message
       showCustomAlert(
         context: context,
         isSuccess: false,
@@ -222,6 +273,7 @@ class _VerifyIdentityScreenState extends ConsumerState<VerifyIdentity> {
       LoaderService.hideLoader(context);
     }
   }
+
   Future<ApiResponseModel> _submitToBackend() async {
 
     final response = await ref.read(apiresponseProvider.notifier).verifyIdentity(

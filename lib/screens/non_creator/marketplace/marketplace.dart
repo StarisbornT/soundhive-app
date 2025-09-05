@@ -44,8 +44,6 @@ class _MarketplaceState extends ConsumerState<Marketplace>
   bool _isInitialized = false;
   final _searchController = TextEditingController();
 
-  final List<MarketOrder> allServices = [];
-  final List<MarketOrder> filteredServices = [];
   late List<String> _selectedFilters = [];
   bool _showFilters = true;
 
@@ -210,26 +208,32 @@ class _MarketplaceState extends ConsumerState<Marketplace>
               children: [
                 Column(
                   children: [
-                    if (widget.user.user?.creator?.active != true)
-                      Utils.reviewCard(
-                        context,
-                        title: widget.user.user?.creator != null
-                            ? "Account under review"
-                            : "Setup your creative profile",
-                        subtitle: widget.user.user?.creator != null
-                            ? "We are currently reviewing your submissions..."
-                            : "To publish anything or gain clients visibility...",
-                        image: widget.user.user?.creator != null
-                            ? "images/review.png"
-                            : "images/bag.png",
-                        onTap: () => Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (context) => SetupScreen(user: widget.user),
-                          ),
-                        ),
-                      ),
-                    const SizedBox(height: 10),
+                    if(widget.user.user?.creator == null)...[
+                      GestureDetector(
+                          onTap: (){
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => SetupScreen(user: widget.user),
+                              ),
+                            );
+                          },
+                          child: Image.asset('images/banner.png')
+                      )
+                    ]else if(!(widget.user.user?.creator!.active ?? false))...[
+                      GestureDetector(
+                        onTap: (){
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => SetupScreen(user: widget.user),
+                            ),
+                          );
+                          },
+                          child: Image.asset('images/banner.png')
+                      )
+                    ],
+                    const SizedBox(height: 20,),
                     SingleChildScrollView(
                       scrollDirection: Axis.horizontal,
                       child: Row(
@@ -404,7 +408,9 @@ class _MarketplaceState extends ConsumerState<Marketplace>
   Widget buildMarketPlaceUI() {
     final marketplaceState = ref.watch(getMarketplaceServiceProvider);
     final creatorState = ref.watch(creatorProvider);
-    final services = ref.read(getMarketplaceServiceProvider.notifier).allServices;
+    final servicesNotifier = ref.read(getMarketplaceServiceProvider.notifier);
+    final services = servicesNotifier.allServices;
+
 
     return Column(
       children: [
@@ -484,7 +490,7 @@ class _MarketplaceState extends ConsumerState<Marketplace>
           loading: () => _buildShimmerServicesGrid(),
           error: (e, _) => Center(child: Text("Error: $e", style: const TextStyle(color: Colors.white))),
           data: (_) {
-            final displayedServices = _applyFilters(services);
+            final displayedServices = services;
 
             if (displayedServices.isEmpty) {
               return Center(
@@ -509,7 +515,7 @@ class _MarketplaceState extends ConsumerState<Marketplace>
               context,
               MaterialPageRoute(builder: (context) => const Streaming()),
             ),
-            child: Utils.adsBanner(context),
+            child: Image.asset('images/discover.png'),
           ),
         ),
 
@@ -1006,7 +1012,7 @@ class _MarketplaceState extends ConsumerState<Marketplace>
               notification.metrics.pixels == notification.metrics.maxScrollExtent) {
             ref.read(getMarketplaceServiceProvider.notifier).getMarketPlaceService(
               loadMore: true,
-              pageSize: 20, // Pagination limit
+              pageSize: 20,
             );
           }
           return false;
@@ -1019,6 +1025,15 @@ class _MarketplaceState extends ConsumerState<Marketplace>
             final endIndex = (startIndex + 4).clamp(0, services.length);
             final pageItems = services.sublist(startIndex, endIndex);
 
+            // Create a list of items for this page, filling empty slots with empty containers
+            final gridItems = List<Widget>.generate(4, (index) {
+              if (index < pageItems.length) {
+                return _buildServiceItem(pageItems[index]);
+              } else {
+                return const SizedBox.shrink(); // Empty slot
+              }
+            });
+
             return Padding(
               padding: const EdgeInsets.symmetric(horizontal: 8.0),
               child: GridView.count(
@@ -1027,7 +1042,7 @@ class _MarketplaceState extends ConsumerState<Marketplace>
                 mainAxisSpacing: 6,
                 crossAxisSpacing: 5,
                 childAspectRatio: 0.75,
-                children: pageItems.map((item) => _buildServiceItem(item)).toList(),
+                children: gridItems,
               ),
             );
           },

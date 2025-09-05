@@ -10,9 +10,11 @@ class FcmTokenService {
   Future<void> registerFcmToken(String email) async {
     try {
       final fcmToken = await FirebaseMessaging.instance.getToken();
+      final options = Options(headers: {'Accept': 'application/json'});
       await dio.post(
         '/notification/set-up',
         data: {'token': fcmToken, "email": email},
+          options: options
       );
       print("FCM token registered successfully");
     } on FirebaseException catch (e) {

@@ -1,3 +1,5 @@
+import 'dart:ui';
+
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -6,12 +8,14 @@ import 'package:soundhive2/screens/creator/services/add_new_service.dart';
 import 'package:soundhive2/screens/creator/services/service_details_screen.dart';
 import 'package:soundhive2/utils/app_colors.dart';
 
+import '../../../components/rounded_button.dart';
 import '../../../components/widgets.dart';
 import 'package:soundhive2/lib/dashboard_provider/serviceProvider.dart';
 import '../../../model/service_model.dart';
 import '../../../model/user_model.dart';
 import '../../../utils/alert_helper.dart';
 import '../../../utils/utils.dart';
+import '../profile/setup_screen.dart';
 
 class ServiceScreen extends ConsumerStatefulWidget {
   final MemberCreatorResponse user;
@@ -37,6 +41,7 @@ class _ServiceScreenState extends ConsumerState<ServiceScreen> with TickerProvid
 
   @override
   Widget build(BuildContext context) {
+    final bool showBlur = widget.user.user?.creator == null || widget.user.user?.creator!.active == false;
 
     return Scaffold(
       backgroundColor: AppColors.BACKGROUNDCOLOR,
@@ -48,104 +53,176 @@ class _ServiceScreenState extends ConsumerState<ServiceScreen> with TickerProvid
           onPressed: () => Navigator.pop(context),
         ),
       ),
-      body: Column(
+      body: Stack(
         children: [
-          Padding(
-            padding: const EdgeInsets.all(16.0),
-            child: Column(
-              children: [
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceAround,
+          Column(
+            children: [
+              Padding(
+                padding: const EdgeInsets.all(16.0),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    _buildStatColumn(Utils.formatCurrency('100,300'), 'Amount Earned'),
-                    _buildStatColumn(Utils.formatCurrency('10,300'), 'Amount in escrow'),
-                    _buildStatColumn('15', 'Approved services'),
+                    const Text(
+                      'Earnings from Services',
+                      style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold
+                      ),
+                    ),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        _buildStatColumn(Utils.formatCurrency('100,300'), 'Amount Earned'),
+                        _buildStatColumn(Utils.formatCurrency('10,300'), 'Amount in escrows'),
+                      ],
+                    ),
+                    const SizedBox(height: 20),
+                    const Text(
+                        'Services Summary',
+                      style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold
+                      ),
+                    ),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        _buildStatColumn('14', 'Under review'),
+                        _buildStatColumn('15', 'Approved services'),
+
+                      ],
+                    ),
+                    const SizedBox(height: 20),
+                    const Divider(color: Colors.white54, thickness: 1),
                   ],
                 ),
-                const SizedBox(height: 20),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceAround,
+              ),
+              // Tab bar
+              TabBar(
+                controller: _tabController,
+                indicatorColor: const Color(0xFF917FC0),
+                labelColor: Colors.white,
+                unselectedLabelColor: Colors.white70,
+                labelStyle: const TextStyle(fontWeight: FontWeight.bold),
+                unselectedLabelStyle: const TextStyle(fontWeight: FontWeight.normal),
+                tabs: const [
+                  Tab(text: 'Published'),
+                  Tab(text: 'Under review'),
+                  Tab(text: 'Rejected'),
+                ],
+              ),
+              Expanded(
+                child: TabBarView(
+                  controller: _tabController,
                   children: [
-                    _buildStatColumn('14', 'Services under review'),
-                    _buildStatColumn('2', 'Rejected services'),
+                    Consumer(
+                      builder: (context, ref, _) {
+                        final publishedState = ref.watch(serviceProvider('published'));
+                        return publishedState.when(
+                          data: (serviceResponse) =>
+                              buildServiceList(serviceResponse.data.data, "No published services"),
+                          loading: () => const Center(child: CircularProgressIndicator()),
+                          error: (error, _) => Center(child: Text('Error: $error')),
+                        );
+                      },
+                    ),
+                    Consumer(
+                      builder: (context, ref, _) {
+                        final pendingState = ref.watch(serviceProvider('pending'));
+                        return pendingState.when(
+                          data: (serviceResponse) =>
+                              buildServiceList(serviceResponse.data.data, "No services under review"),
+                          loading: () => const Center(child: CircularProgressIndicator()),
+                          error: (error, _) => Center(child: Text('Error: $error')),
+                        );
+                      },
+                    ),
+                    Consumer(
+                      builder: (context, ref, _) {
+                        final rejectedState = ref.watch(serviceProvider('rejected'));
+                        return rejectedState.when(
+                          data: (serviceResponse) =>
+                              buildServiceList(serviceResponse.data.data, "No rejected services"),
+                          loading: () => const Center(child: CircularProgressIndicator()),
+                          error: (error, _) => Center(child: Text('Error: $error')),
+                        );
+                      },
+                    ),
                   ],
                 ),
-                const SizedBox(height: 20), // Spacing before the divider
-                const Divider(color: Colors.white54, thickness: 1), // Divider line
-              ],
-            ),
-          ),
-          // Tab Bar Section
-          TabBar(
-            controller: _tabController,
-            indicatorColor: Color(0xFF917FC0), // Color of the selected tab indicator
-            labelColor: Colors.white, // Color of the selected tab text
-            unselectedLabelColor: Colors.white70, // Color of unselected tab text
-            labelStyle: const TextStyle(fontWeight: FontWeight.bold),
-            unselectedLabelStyle: const TextStyle(fontWeight: FontWeight.normal),
-            tabs: const [
-              Tab(text: 'Published'),
-              Tab(text: 'Under review'),
-              Tab(text: 'Rejected'),
+              ),
             ],
           ),
-          // Tab Bar View (Content for each tab)
-          Expanded(
-            child: TabBarView(
-              controller: _tabController,
-              children: [
-                // Published Tab
-                Consumer(
-                  builder: (context, ref, _) {
-                    final publishedState = ref.watch(serviceProvider('published'));
-                    return publishedState.when(
-                      data: (serviceResponse) =>
-                          buildServiceList(serviceResponse.data.data, "No published services"),
-                      loading: () => const Center(child: CircularProgressIndicator()),
-                      error: (error, _) => Center(child: Text('Error: $error')),
-                    );
-                  },
+
+          // 🔥 Overlay blur (will cover everything including FAB)
+          if (showBlur)
+            Positioned.fill(
+              child: BackdropFilter(
+                filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
+                child: Container(
+                  color: Colors.black.withOpacity(0.3),
+                  alignment: Alignment.center,
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Center(
+                        child: Text(
+                          textAlign: TextAlign.center,
+                          (widget.user?.user?.creator == null)
+                              ? "Complete your KYC so as to activate your Soundhive Vest Account Unlock your ability to Invest in verifiable and quality entertainment projects or artists, as well as share in their success."
+                              : "Your account is under review",
+                          style: const TextStyle(color: Colors.white, fontSize: 18),
+                        ),
+                      ),
+                      const SizedBox(height: 10),
+                      if (widget.user?.user?.creator == null)
+                        RoundedButton(
+                          title: 'Verify my identity',
+                          onPressed: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => SetupScreen(user: widget.user),
+                              ),
+                            );
+                          },
+                          color: const Color(0xFF4D3490),
+                          borderWidth: 0,
+                          borderRadius: 12.0,
+                        )
+                    ],
+                  ),
                 ),
-                // Under review Tab (Pending)
-                Consumer(
-                  builder: (context, ref, _) {
-                    final pendingState = ref.watch(serviceProvider('pending'));
-                    return pendingState.when(
-                      data: (serviceResponse) =>
-                          buildServiceList(serviceResponse.data.data, "No services under review"),
-                      loading: () => const Center(child: CircularProgressIndicator()),
-                      error: (error, _) => Center(child: Text('Error: $error')),
-                    );
-                  },
-                ),
-                // Rejected Tab
-                Consumer(
-                  builder: (context, ref, _) {
-                    final rejectedState = ref.watch(serviceProvider('rejected'));
-                    return rejectedState.when(
-                      data: (serviceResponse) =>
-                          buildServiceList(serviceResponse.data.data, "No rejected services"),
-                      loading: () => const Center(child: CircularProgressIndicator()),
-                      error: (error, _) => Center(child: Text('Error: $error')),
-                    );
-                  },
-                ),
-              ],
+              ),
             ),
-          ),
-
-
         ],
       ),
-      // Floating Action Button
-      floatingActionButton: SizedBox(
+      floatingActionButton: showBlur
+          ? SizedBox(
+        width: 70,
+        height: 70,
+        child: RawMaterialButton(
+          onPressed: null, // Disabled when blur is shown
+          fillColor: const Color(0xFF8C52FF).withOpacity(0.6),
+          shape: const CircleBorder(),
+          elevation: 3,
+          child: const Icon(
+            Icons.add,
+            color: Colors.white70,
+            size: 36,
+          ),
+        ),
+      )
+          : SizedBox(
         width: 70,
         height: 70,
         child: RawMaterialButton(
           onPressed: () {
-            if(widget.user.user?.creator != null) {
+            if (widget.user.user?.creator != null) {
               Navigator.push(context, MaterialPageRoute(builder: (_) => const AddNewServiceScreen()));
-            }else {
+            } else {
               showCustomAlert(
                 context: context,
                 isSuccess: false,
@@ -153,7 +230,6 @@ class _ServiceScreenState extends ConsumerState<ServiceScreen> with TickerProvid
                 message: "Please Verify Account before setting up creative profile",
               );
             }
-
           },
           fillColor: const Color(0xFF8C52FF),
           shape: const CircleBorder(),
@@ -164,11 +240,9 @@ class _ServiceScreenState extends ConsumerState<ServiceScreen> with TickerProvid
             size: 36,
           ),
         ),
-      )
+      ),
     );
   }
-
-
 
   // Helper widget to build a single statistic column
   Widget _buildStatColumn(String value, String label) {

@@ -249,15 +249,16 @@ class NonCreatorDashboard extends ConsumerWidget {
                               style: TextStyle(color: Colors.white70),
                             ),
                             onTap: () {
-                              if(userData.user?.creator != null) {
-                                Navigator.pushReplacementNamed(context, CreatorDashboard.id);
-                              }else {
+                              if(userData.user?.creator == null || userData.user?.creator!.active == false) {
                                 Navigator.push(
                                   context,
                                   MaterialPageRoute(
                                     builder: (context) => SetupScreen(user: userData,),
                                   ),
                                 );
+
+                              }else {
+                                Navigator.pushReplacementNamed(context, CreatorDashboard.id);
                               }
                             },
                           ),

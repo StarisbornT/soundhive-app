@@ -1,14 +1,15 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter/material.dart';
 import 'package:soundhive2/lib/dashboard_provider/user_provider.dart';
-import 'package:soundhive2/lib/navigator_provider.dart';
 import 'package:soundhive2/screens/creator/profile/profile_screen.dart';
 import 'package:soundhive2/screens/creator/services/services.dart';
 import 'package:soundhive2/screens/non_creator/non_creator.dart';
 import 'package:soundhive2/utils/app_colors.dart';
-import '../../lib/dashboard_provider/apiresponseprovider.dart';
+import 'package:soundhive2/lib/dashboard_provider/apiresponseprovider.dart';
+import 'package:soundhive2/lib/dashboard_provider/notification_provider.dart';
 import '../auth/login.dart';
 import '../non_creator/wallet/transaction_history.dart';
+import '../notifications/notifications.dart';
 import 'creator_home.dart';
 final creatorNavigationProvider = StateProvider<int>((ref) => 0);
 
@@ -23,6 +24,7 @@ class CreatorDashboard extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final userState = ref.watch(userProvider);
     final selectedIndex = ref.watch(creatorNavigationProvider);
+    final unreadCount = ref.watch(notificationProvider);
 
     return Scaffold(
       key: _scaffoldKey,
@@ -51,7 +53,50 @@ class CreatorDashboard extends ConsumerWidget {
           },
         ),
         actions: [
-          const Icon(Icons.notifications_outlined, color: Colors.white),
+          IconButton(
+            icon: Stack(
+              children: [
+                const Icon(
+                  Icons.notifications_sharp,
+                  color: Colors.white,
+                  size: 24,
+                ),
+                if (unreadCount > 0)
+                  Positioned(
+                    right: 0,
+                    top: 0,
+                    child: Container(
+                      padding: const EdgeInsets.all(4),
+                      decoration: const BoxDecoration(
+                        color: Colors.red,
+                        shape: BoxShape.circle,
+                      ),
+                      constraints: const BoxConstraints(
+                        minWidth: 16,
+                        minHeight: 16,
+                      ),
+                      child: Text(
+                        unreadCount > 9 ? '9+' : unreadCount.toString(),
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 10,
+                          fontWeight: FontWeight.bold,
+                        ),
+                        textAlign: TextAlign.center,
+                      ),
+                    ),
+                  ),
+              ],
+            ),
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => const NotificationsScreen()),
+              ).then((_) {
+                ref.read(notificationProvider.notifier).fetchUnreadCount();
+              });
+            },
+          ),
           const SizedBox(width: 15),
           Consumer(
             builder: (context, ref, _) {

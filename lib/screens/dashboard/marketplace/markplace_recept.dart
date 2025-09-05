@@ -2,7 +2,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:soundhive2/model/market_orders_service_model.dart';
+import 'package:soundhive2/screens/non_creator/non_creator.dart';
 import '../../../components/rounded_button.dart';
+import '../../../lib/navigator_provider.dart';
 import '../../../model/user_model.dart';
 import '../../../utils/utils.dart';
 import '../../non_creator/marketplace/mark_as_completed.dart';
@@ -104,15 +106,7 @@ class _AssetScreenState extends ConsumerState<MarketplaceReceiptScreen> {
                   borderWidth: 0,
                   borderRadius: 25.0,
                   onPressed: () {
-                    // Navigator.push(
-                    //   context,
-                    //   MaterialPageRoute(
-                    //     builder: (context) => MarkAsCompletedScreen(
-                    //         services: widget.service,
-                    //       user: widget.user,
-                    //     ),
-                    //   ),
-                    // );
+                    Navigator.pushNamed(context, NonCreatorDashboard.id);
                   }
               )
             ])));

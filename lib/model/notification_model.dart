@@ -24,7 +24,7 @@ class PaginatedNotifications {
   final int currentPage;
   final List<NotificationData> notifications;
   final String firstPageUrl;
-  final int from;
+  final int? from; // nullable
   final int lastPage;
   final String lastPageUrl;
   final List<PageLink> links;
@@ -32,7 +32,7 @@ class PaginatedNotifications {
   final String path;
   final int perPage;
   final String? prevPageUrl;
-  final int to;
+  final int? to;   // nullable
   final int total;
 
   PaginatedNotifications({
@@ -53,21 +53,23 @@ class PaginatedNotifications {
 
   factory PaginatedNotifications.fromMap(Map<String, dynamic> json) {
     return PaginatedNotifications(
-      currentPage: json['current_page'],
+      currentPage: json['current_page'] ?? 1,
       notifications: List<NotificationData>.from(
-        json['data'].map((e) => NotificationData.fromMap(e)),
+        (json['data'] as List).map((e) => NotificationData.fromMap(e)),
       ),
-      firstPageUrl: json['first_page_url'],
-      from: json['from'],
-      lastPage: json['last_page'],
-      lastPageUrl: json['last_page_url'],
-      links: List<PageLink>.from(json['links'].map((e) => PageLink.fromMap(e))),
+      firstPageUrl: json['first_page_url'] ?? '',
+      from: json['from'] != null ? int.tryParse(json['from'].toString()) : null,
+      lastPage: json['last_page'] ?? 1,
+      lastPageUrl: json['last_page_url'] ?? '',
+      links: List<PageLink>.from(
+        (json['links'] as List).map((e) => PageLink.fromMap(e)),
+      ),
       nextPageUrl: json['next_page_url'],
-      path: json['path'],
+      path: json['path'] ?? '',
       perPage: int.tryParse(json['per_page'].toString()) ?? 0,
       prevPageUrl: json['prev_page_url'],
-      to: json['to'],
-      total: json['total'],
+      to: json['to'] != null ? int.tryParse(json['to'].toString()) : null,
+      total: int.tryParse(json['total'].toString()) ?? 0,
     );
   }
 }

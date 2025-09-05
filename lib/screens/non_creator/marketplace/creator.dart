@@ -51,13 +51,13 @@ class _CreatorProfileState extends ConsumerState<CreatorProfile> {
               const SizedBox(height: 30),
               _buildServicesSection(),
               const SizedBox(height: 30),
-              AvailabilityCalendar(
-                creator: widget.creator,
-                onDateSelected: (selectedDate) {
-                  // Handle date selection
-                  print('Selected date: $selectedDate');
-                },
-              )
+              // AvailabilityCalendar(
+              //   creator: widget.creator,
+              //   onDateSelected: (selectedDate) {
+              //     // Handle date selection
+              //     print('Selected date: $selectedDate');
+              //   },
+              // )
             ],
           ),
         ),

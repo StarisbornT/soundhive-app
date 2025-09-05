@@ -1026,7 +1026,7 @@ class _PaymentMethodSelectorState extends ConsumerState<PaymentMethodSelector> {
 
                   _buildPaymentOption(
                     context,
-                    title: 'Soundhive Vest - ${widget.user.wallet?.balance}',
+                    title: 'Wallet - ${widget.user.wallet?.balance}',
                     icon: Icons.account_balance_wallet,
                     selected: selectedOption == 0,
                     onTap: () => setStateBottomSheet(() => selectedOption = 0),
@@ -1037,7 +1037,7 @@ class _PaymentMethodSelectorState extends ConsumerState<PaymentMethodSelector> {
                   RoundedButton(
                     title: 'Proceed',
                     onPressed: () {
-                      String method = "flutterwave";
+                      String method = "wallet";
 
                       setState(() => _selectedMethod = method);
                       widget.onSelected(method);

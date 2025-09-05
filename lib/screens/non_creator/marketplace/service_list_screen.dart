@@ -10,11 +10,17 @@ import 'marketplace_details.dart';
 
 class ServicesListScreen extends ConsumerStatefulWidget {
   final int id;
+  final int? subCategoryId; // Add subcategory ID
   final String? categoryName;
   final MemberCreatorResponse user;
 
-  const ServicesListScreen({super.key, required this.id, this.categoryName, required this.user});
-
+  const ServicesListScreen({
+    super.key,
+    required this.id,
+    this.subCategoryId,
+    this.categoryName,
+    required this.user
+  });
   @override
   ConsumerState<ServicesListScreen> createState() => _ServicesListScreenState();
 }
@@ -45,7 +51,10 @@ class _ServicesListScreenState extends ConsumerState<ServicesListScreen>
       _routeObserver = ref.read(routeObserverProvider);
       _routeObserver.subscribe(this, ModalRoute.of(context)!);
       ref.read(getMarketplaceServiceProvider.notifier)
-          .getMarketPlaceService(categoryId: widget.id);
+          .getMarketPlaceService(
+        categoryId: widget.id,
+        subCategoryId: widget.subCategoryId, // Pass subcategory ID
+      );
     });
   }
 
@@ -78,7 +87,7 @@ class _ServicesListScreenState extends ConsumerState<ServicesListScreen>
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                widget.categoryName ?? '',
+                widget.categoryName ?? 'Services',
                 style: const TextStyle(
                   color: Colors.white,
                   fontSize: 24,

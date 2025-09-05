@@ -205,16 +205,22 @@ class _AddNewServiceScreenState extends ConsumerState<AddNewServiceScreen> {
       }
 
       print("Error: $errorMessage");
-      showCustomAlert(
-        context: context,
-        isSuccess: false,
-        title: 'Error',
-        message: errorMessage,
-      );
+      if(mounted) {
+        showCustomAlert(
+          context: context,
+          isSuccess: false,
+          title: 'Error',
+          message: errorMessage,
+        );
+      }
+
       return;
     } finally {
-      LoaderService.hideLoader(context);
-      _isSubmitting = false;
+      if(mounted) {
+        LoaderService.hideLoader(context);
+        _isSubmitting = false;
+      }
+
     }
   }
 

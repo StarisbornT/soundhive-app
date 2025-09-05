@@ -1,5 +1,6 @@
 import 'dart:ui';
-
+import 'package:dio/dio.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
@@ -9,11 +10,16 @@ import 'package:soundhive2/model/investment_model.dart';
 import 'package:soundhive2/screens/creator/profile/setup_screen.dart';
 import 'package:soundhive2/screens/non_creator/vest/vest_details.dart';
 import '../../../components/rounded_button.dart';
+import '../../../components/success.dart';
 import '../../../components/widgets.dart';
 import 'package:soundhive2/lib/dashboard_provider/getActiveVestProvider.dart';
+import '../../../lib/dashboard_provider/add_money_provider.dart';
+import '../../../lib/dashboard_provider/user_provider.dart';
+import '../../../model/add_money_model.dart';
 import '../../../model/get_active_vest_model.dart';
 import '../../../model/user_model.dart';
 import '../../../utils/utils.dart';
+import '../../dashboard/verification_webview.dart';
 import 'active_vest_details.dart';
 import 'package:shimmer/shimmer.dart';
 
@@ -115,6 +121,122 @@ class _SoundhiveVestScreenState extends ConsumerState<SoundhiveVestScreen> with 
     super.dispose();
   }
 
+  TextEditingController amountController = TextEditingController();
+  void _showAmountInputModal() {
+
+    final formatter = NumberFormat.currency(locale: 'en_US', symbol: '', decimalDigits: 0);
+
+    showDialog(
+      context: context,
+      builder: (_) {
+        return AlertDialog(
+          title: const Text("Enter Amount"),
+          content: TextField(
+            controller: amountController,
+            keyboardType: TextInputType.number,
+            inputFormatters: [
+              FilteringTextInputFormatter.digitsOnly,
+              TextInputFormatter.withFunction((oldValue, newValue) {
+                String newText = newValue.text.replaceAll(',', '');
+                if (newText.isEmpty) return newValue.copyWith(text: '');
+                final number = int.tryParse(newText);
+                if (number == null) return oldValue;
+                final newFormatted = formatter.format(number);
+                return TextEditingValue(
+                  text: newFormatted,
+                  selection: TextSelection.collapsed(offset: newFormatted.length),
+                );
+              }),
+            ],
+            style: const TextStyle(color: Colors.black),
+            decoration: const InputDecoration(
+              prefix: Text(
+                '₦ ',
+                style: TextStyle(
+                  fontFamily: 'Roboto',
+                  color: Colors.black,
+                ),
+              ),
+              hintText: "Enter amount to fund",
+              hintStyle: TextStyle(color: Colors.black54),
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () {
+                Navigator.of(context).pop();
+              },
+              child: const Text("Cancel"),
+            ),
+            ElevatedButton(
+              onPressed: () {
+                String cleanText = amountController.text.replaceAll(',', '');
+                int? amount = int.tryParse(cleanText);
+                if (amount != null && amount > 0) {
+                  Navigator.of(context).pop();
+                  fundWallet(); // will now work
+                }
+              },
+              child: const Text("Continue"),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  void fundWallet() async {
+    try {
+      final cleanAmount = amountController.text.replaceAll(',', '');
+      final response = await ref.read(addMoneyProvider.notifier).addMoney(
+        context: context,
+        amount: double.parse(cleanAmount), // safe parse
+      );
+      if (response.url != null) {
+        if (!mounted) return;
+        final result = await Navigator.push<String>(
+          context,
+          MaterialPageRoute(
+            builder: (context) => VerificationWebView(url: response.url!, title: 'Add Money',),
+          ),
+        );
+        if (result == 'success') {
+          if (mounted) {
+            await ref.read(userProvider.notifier).loadUserProfile();
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (context) => Success(
+                  title: 'Money Added Successfully',
+                  subtitle: 'You have funded your wallet',
+                  onButtonPressed: () {
+                    Navigator.pop(context);
+                  },
+                ),
+              ),
+            );
+
+          }
+        }
+      }
+    } catch (error) {
+      String errorMessage = 'An unexpected error occurred';
+      if (error is DioException) {
+        if (error.response?.data != null) {
+          try {
+            final apiResponse = AddMoneyModel.fromJson(error.response?.data);
+            errorMessage = apiResponse.message;
+          } catch (e) {
+            errorMessage = 'Failed to parse error message';
+          }
+        } else {
+          errorMessage = error.message ?? 'Network error occurred';
+        }
+      }
+      print("Error: $errorMessage");
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final tokenAsync = ref.watch(authTokenProvider);
@@ -142,25 +264,18 @@ class _SoundhiveVestScreenState extends ConsumerState<SoundhiveVestScreen> with 
                 if(user?.wallet != null)
                   WalletCard(
                       balance: user?.wallet!.balance ?? '',
-                      onAddFunds: () => Utils.showBankTransferBottomSheet(
-                          context,
-                          user?.wallet?.bankName,
-                          user?.wallet?.accountNumber,
-                          user?.firstName
-                      )
+                      onAddFunds: () {
+                        _showAmountInputModal();
+                      }
                   ),
-
                 const SizedBox(height: 20),
-
                 // Tabs
                 Expanded(
                   child: Stack(
                     children: [
-                      // Content Column (Tabs + Search + Investments)
                       Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          // Tabs Section
                           DefaultTabController(
                             length: 3,
                             child: Column(
@@ -204,7 +319,7 @@ class _SoundhiveVestScreenState extends ConsumerState<SoundhiveVestScreen> with 
                       ),
 
                       // Blur Overlay (Conditional)
-                      if (user?.creator == null)
+                      if (user?.creator == null || user!.creator!.active == false)
                         Positioned.fill(
                           top: 50,
                           child: BackdropFilter(
@@ -215,15 +330,16 @@ class _SoundhiveVestScreenState extends ConsumerState<SoundhiveVestScreen> with 
                               child: Column(
                                 mainAxisAlignment: MainAxisAlignment.center,
                                 children: [
-                                  const Center(
+                                   Center(
                                     child: Text(
                                       textAlign: TextAlign.center,
-                                      "Verify your Identity to invest in projects, events and artists curated by Soundhive",
-                                      style: TextStyle(
+                                      (user?.creator == null) ?  "Complete your KYC so as to activate your Soundhive Vest Account Unlock your ability to Invest in verifiable and quality entertainment projects or artists, as well as share in their success.": "Your account is under review",
+                                      style: const TextStyle(
                                           color: Colors.white, fontSize: 18),
                                     ),
                                   ),
                                   const SizedBox(height: 10),
+                                  if(user?.creator == null)
                                   RoundedButton(
                                     title: 'Verify my identity',
                                     onPressed: () {

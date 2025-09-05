@@ -1,6 +1,7 @@
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
 import 'package:soundhive2/components/rounded_button.dart';
 import 'package:soundhive2/lib/dashboard_provider/apiresponseprovider.dart';
@@ -296,10 +297,10 @@ class _VestDetailsScreenState extends ConsumerState<VestDetailsScreen>  {
           TextFormField(
             controller: _amountController,
             keyboardType: TextInputType.number,
-            style: const TextStyle(color: Colors.white),
+            style: const TextStyle(color: Colors.white, fontFamily: 'Roboto', ),
             decoration: const InputDecoration(
               hintText: 'Enter amount',
-              hintStyle: TextStyle(color: Colors.white54),
+              hintStyle: TextStyle(color: Colors.white54, fontFamily: 'Roboto', ),
               border: OutlineInputBorder(),
             ),
               inputFormatters: [CurrencyInputFormatter()],
@@ -389,8 +390,10 @@ class _VestDetailsScreenState extends ConsumerState<VestDetailsScreen>  {
                                     const SizedBox(width: 8),
                                     Expanded(
                                       child: Text(
-                                        'Soundhive Vest - ${Utils.formatCurrency('0')}',
-                                        style: const TextStyle(color: Colors.white),
+                                        'Soundhive Vest - ${Utils.formatCurrency(widget.user.wallet?.balance)}',
+                                        style: GoogleFonts.roboto(
+                                          textStyle: const TextStyle(color: Colors.white)
+                                        ),
                                         overflow: TextOverflow.ellipsis,
                                       ),
                                     ),

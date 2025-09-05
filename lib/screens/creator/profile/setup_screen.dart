@@ -35,7 +35,7 @@ class _SetupScreenState extends ConsumerState<SetupScreen> {
 
               // Title
               const Text(
-                'Setup your creative profile',
+                'Earn From the Creator Economy',
                 style: TextStyle(
                   fontSize: 24,
                   fontWeight: FontWeight.w400,
@@ -80,23 +80,23 @@ class _SetupScreenState extends ConsumerState<SetupScreen> {
               // Second card
               _buildDashedCard(
                   icon: Icons.work_outline,
-                  title: 'Creative profile setup',
+                  title: 'Complete your KYC',
                   subtitle:
-                  'Let us know what you can do, the projects you have done over time and how much you charge.',
+                  'Unlock your ability to Invest in verifiable and quality entertainment projects or artists, as well as share in their success.',
                 status: widget.user.user?.creator == null
                     ? 'Not submitted'
-                    : (widget.user.user!.creator!.active == true
-                    ? 'Active'
-                    : 'Not submitted'),
+                    : (widget.user.user!.creator!.jobTitle!.isEmpty
+                    ? 'Not submitted'
+                    : 'Under Review'),
 
                 statusColor: widget.user.user?.creator == null
                     ? Colors.red
-                    : (widget.user.user!.creator!.active == true
+                    : (widget.user.user!.creator!.jobTitle!.isNotEmpty
                     ? Colors.amber
                     : Colors.red),
                 onTap: () {
                     if(widget.user.user?.creator != null) {
-                      if (!(widget.user.user?.creator?.active ?? false)) {
+                      if (widget.user.user!.creator!.jobTitle!.isEmpty) {
                         Navigator.push(
                           context,
                           MaterialPageRoute(builder: (_) => const CreativeFormScreen()),

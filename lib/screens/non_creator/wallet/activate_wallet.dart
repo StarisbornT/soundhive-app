@@ -69,24 +69,25 @@ class _ActivateWalletScreenState extends ConsumerState<ActivateWallet> {
         }
       }
 
-
-
-
     } catch (error) {
+      // ✅ Exception handling (network/parse errors)
       String errorMessage = 'An unexpected error occurred';
 
       if (error is DioException) {
         if (error.response?.data != null) {
-          try {
-            final apiResponse = ApiResponseModel.fromJson(error.response?.data);
-            errorMessage = apiResponse.message;
-          } catch (e) {
-            errorMessage = 'Failed to parse error message';
+          final responseData = error.response?.data;
+
+          if (responseData is Map<String, dynamic>) {
+            // Pick the message if present
+            errorMessage = responseData['message'] ?? 'An unexpected error occurred';
+          } else {
+            errorMessage = 'Invalid error format received';
           }
         } else {
           errorMessage = error.message ?? 'Network error occurred';
         }
       }
+
 
       print("Error: $errorMessage");
       showCustomAlert(

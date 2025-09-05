@@ -5,9 +5,12 @@ import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:soundhive2/screens/auth/create_account.dart';
+import 'package:soundhive2/screens/auth/forgot_otp_screen.dart';
+import 'package:soundhive2/screens/auth/forgot_password.dart';
 import 'package:soundhive2/screens/auth/identity_screen.dart';
 import 'package:soundhive2/screens/auth/login.dart';
 import 'package:soundhive2/screens/auth/otp_screen.dart';
+import 'package:soundhive2/screens/auth/reset_password.dart';
 import 'package:soundhive2/screens/auth/update_profile1.dart';
 import 'package:soundhive2/screens/creator/creator_dashboard.dart';
 import 'package:soundhive2/screens/dashboard/dashboard.dart';
@@ -93,7 +96,10 @@ class SoundHive extends ConsumerWidget {
         IdentityScreen.id: (context) =>  IdentityScreen(storage: storage),
         CreateAccount.id: (context) => CreateAccount(storage: storage, dio: dio,),
         Login.id: (context) =>  Login(storage: storage, dio: dio,),
+        ForgotPassword.id: (context) =>  ForgotPassword(storage: storage, dio: dio,),
         OtpScreen.id: (context) => OtpScreen(storage: storage, dio: dio,),
+        ForgotOtpScreen.id: (context) => ForgotOtpScreen(storage: storage, dio: dio,),
+        ResetPassword.id: (context) => ResetPassword(storage: storage, dio: dio,),
         UpdateProfile1.id: (context) => UpdateProfile1(storage: storage, dio: dio,),
         JustCurious.id: (context) => JustCurious(storage: storage, dio: dio,),
         DashboardScreen.id: (context) => const DashboardScreen(),

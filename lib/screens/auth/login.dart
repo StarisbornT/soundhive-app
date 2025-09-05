@@ -9,6 +9,7 @@ import 'package:soundhive2/lib/provider.dart';
 import '../../services/loader_service.dart';
 import '../../utils/alert_helper.dart';
 import '../dashboard/dashboard.dart';
+import 'forgot_password.dart';
 import 'otp_screen.dart';
 
 class Login extends StatefulWidget {
@@ -161,6 +162,22 @@ class _LoginScreenState extends State<Login> {
               const SizedBox(height: 16),
               // Password Field
               _buildTextField('Password', 'Enter your password', true, passwordController),
+              const SizedBox(height: 10),
+              Container(
+                alignment: Alignment.topLeft,
+                child: GestureDetector(
+                  onTap: () {
+                    Navigator.pushNamed(context, ForgotPassword.id);
+                  },
+                  child: const Text(
+                    'Forgot Password',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 13
+                    ),
+                  ),
+                ),
+              ),
               const SizedBox(height: 16),
 
               _buildButton('Login', Color(0xFF4D3490)),

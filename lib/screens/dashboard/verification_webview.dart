@@ -4,8 +4,9 @@ import 'package:webview_flutter/webview_flutter.dart';
 
 class VerificationWebView extends ConsumerStatefulWidget {
   final String url;
+  final String? title;
 
-  const VerificationWebView({super.key, required this.url});
+  const VerificationWebView({super.key, required this.url, this.title});
 
   @override
   ConsumerState<VerificationWebView> createState() => _VerificationWebViewState();
@@ -66,8 +67,8 @@ class _VerificationWebViewState extends ConsumerState<VerificationWebView> {
           },
         ),
         backgroundColor: const Color(0xFF0C051F),
-        title: const Text(
-          'BVN Verification',
+        title:  Text(
+          widget.title ?? 'BVN Verification',
           style: TextStyle(color: Colors.white),
         ),
         actions: [

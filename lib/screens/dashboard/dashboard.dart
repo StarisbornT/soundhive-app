@@ -19,10 +19,10 @@ class DashboardScreen extends ConsumerWidget {
         body: SafeArea(
           child: userState.when(
             data: (user) {
-              if (user.user?.creator != null) {
-                return  CreatorDashboard();
-              }else {
+              if (user.user?.creator == null || user.user?.creator!.active == false) {
                 return NonCreatorDashboard();
+              }else {
+                return  CreatorDashboard();
               }
             },
             loading: () => const Center(child: CircularProgressIndicator()),

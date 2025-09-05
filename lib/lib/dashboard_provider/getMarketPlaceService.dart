@@ -36,6 +36,7 @@ class GetMyOrdersAssetNotifier extends StateNotifier<AsyncValue<MarketOrdersPagi
   String _currentSearch = '';
   int? _currentCategoryId;
   bool _hasMore = true;
+  int? _currentSubCategoryId;
 
   void resetFilters() {
     _currentSearch = '';
@@ -49,6 +50,7 @@ class GetMyOrdersAssetNotifier extends StateNotifier<AsyncValue<MarketOrdersPagi
     bool loadMore = false,
     String? serviceName,
     int? categoryId,
+    int? subCategoryId,
     double? minRate,
     double? maxRate,
     String? provider,
@@ -67,6 +69,7 @@ class GetMyOrdersAssetNotifier extends StateNotifier<AsyncValue<MarketOrdersPagi
     if (serviceName != null) _currentFilters['service_name'] = serviceName;
     if (categoryId != null) _currentFilters['category_id'] = categoryId;
     if (minRate != null) _currentFilters['min_rate'] = minRate;
+    if (subCategoryId != null) _currentFilters['sub_category_id'] = subCategoryId;
     if (maxRate != null) _currentFilters['max_rate'] = maxRate;
     if (provider != null) _currentFilters['provider'] = provider;
 
@@ -109,6 +112,7 @@ class GetMyOrdersAssetNotifier extends StateNotifier<AsyncValue<MarketOrdersPagi
 
   void clearCategoryFilter() {
     _currentCategoryId = null;
+    _currentSubCategoryId = null;
     _currentPage = 1;
     _hasMore = true;
   }
@@ -117,6 +121,7 @@ class GetMyOrdersAssetNotifier extends StateNotifier<AsyncValue<MarketOrdersPagi
   Future<void> applyFilters({
     int? categoryId,
     double? minPrice,
+    int? subCategoryId,
     double? maxPrice,
   }) async {
     _currentPage = 1;
@@ -125,6 +130,7 @@ class GetMyOrdersAssetNotifier extends StateNotifier<AsyncValue<MarketOrdersPagi
 
     await getMarketPlaceService(
       categoryId: categoryId,
+      subCategoryId: subCategoryId,
       minRate: minPrice,
       maxRate: maxPrice,
       pageSize: 20,

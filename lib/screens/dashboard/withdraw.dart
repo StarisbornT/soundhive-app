@@ -1,5 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 
 import '../../components/pin_screen.dart';
 
@@ -48,8 +49,10 @@ class WithdrawForm extends ConsumerWidget {
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            Text('Amount', style: TextStyle(fontSize: 14, color: Colors.white)),
-            Text('Wallet: ₦1,000,000.00', style: TextStyle(fontSize: 14, color: Color(0xFFBCAEE2))),
+            const Text('Amount', style: TextStyle(fontSize: 14, color: Colors.white)),
+            Text('Wallet: ₦1,000,000.00', style: GoogleFonts.roboto(
+    textStyle: const TextStyle(fontSize: 14, color: Color(0xFFBCAEE2))
+    ) ),
           ],
         ),
         SizedBox(height: 8),

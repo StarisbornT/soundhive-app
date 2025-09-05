@@ -26,6 +26,7 @@ class _CreatorPortfolioState extends ConsumerState<CreatorPortfolio> {
     final size = MediaQuery.of(context).size;
 
     final service= widget.service;
+    final user = ref.watch(userProvider);
 
     return Scaffold(
       backgroundColor: AppColors.BACKGROUNDCOLOR,
@@ -161,7 +162,7 @@ class _CreatorPortfolioState extends ConsumerState<CreatorPortfolio> {
 
             // Book Button
             RoundedButton(
-              title:  service.user?.wallet == null ?
+              title:  user.value?.user?.wallet == null ?
               "Activate your wallet"
                   :  'Book',
               onPressed: () {
