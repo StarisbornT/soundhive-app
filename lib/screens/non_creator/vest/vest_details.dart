@@ -458,7 +458,7 @@ class _VestDetailsScreenState extends ConsumerState<VestDetailsScreen>  {
               confirmRow('Amount', Utils.formatCurrency(_investmentAmount!)),
               confirmRow('Maturity Date', _calculateMaturityDate(widget.investment.createdAt, widget.investment.duration)),
               confirmRow('Interest', widget.investment.roi),
-              confirmRow('Expected repayment', _calculateExpectedRepayment(_investmentAmount!, widget.investment.roi, widget.investment.duration)),
+              confirmRow('Expected Return', _calculateExpectedRepayment(_investmentAmount!, widget.investment.roi, widget.investment.duration)),
             ],
           ),
         ),

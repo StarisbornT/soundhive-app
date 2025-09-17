@@ -17,44 +17,53 @@ class GetActiveInvestmentNotifier extends StateNotifier<AsyncValue<ActiveInvestm
   List<ActiveInvestment> _allServices = [];
   int _currentPage = 1;
   bool _isLastPage = false;
+  bool _isLoadingMore = false;
+
   bool get isLastPage => _isLastPage;
-
-  GetActiveInvestmentNotifier(this._dio, this._storage) : super(const AsyncValue.loading());
-
+  bool get isLoadingMore => _isLoadingMore;
   List<ActiveInvestment> get allServices => _allServices;
 
+  GetActiveInvestmentNotifier(this._dio, this._storage)
+      : super(const AsyncValue.loading());
 
   Future<void> getActiveInvestments({
     bool loadMore = false,
-    String? serviceName,
     int? pageSize,
-}) async {
+  }) async {
     if (_isLastPage && loadMore) return;
 
-    if (!loadMore) {
+    if (loadMore) {
+      _isLoadingMore = true;
+      state = state; // keep old data
+    } else {
       state = const AsyncValue.loading();
       _currentPage = 1;
       _allServices = [];
       _isLastPage = false;
     }
+
     try {
       final response = await _dio.get(
-          '/service/bookings/user',
-          queryParameters: {
-            'page': _currentPage,
-            'per_page': pageSize,
-          },
-          options: Options(
-              headers: {
-                'Accept': 'application/json',
-                'Content-Type': 'application/json'
-              }
-          )
+        '/service/bookings/user',
+        queryParameters: {
+          'page': _currentPage,
+          'per_page': pageSize,
+        },
+        options: Options(headers: {
+          'Accept': 'application/json',
+          'Content-Type': 'application/json',
+        }),
       );
+
       final result = ActiveInvestmentResponse.fromMap(response.data);
       final newServices = result.data.data;
 
-      _allServices.addAll(newServices);
+      if (loadMore) {
+        _allServices.addAll(newServices);
+      } else {
+        _allServices = newServices;
+      }
+
       state = AsyncValue.data(result);
 
       if (newServices.isEmpty) {
@@ -64,6 +73,8 @@ class GetActiveInvestmentNotifier extends StateNotifier<AsyncValue<ActiveInvestm
       }
     } catch (error, stackTrace) {
       state = AsyncValue.error(error, stackTrace);
+    } finally {
+      _isLoadingMore = false;
     }
   }
 }

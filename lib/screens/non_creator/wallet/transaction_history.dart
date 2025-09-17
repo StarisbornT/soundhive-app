@@ -25,11 +25,7 @@ class _TransactionHistoryScreenState extends ConsumerState<TransactionHistory>{
       WidgetsBinding.instance.addPostFrameCallback((_) {
         ref.read(getTransactionHistoryPlaceProvider.notifier).getTransactionHistory();
       });
-    // if(widget.user.member?.account != null) {
-    //   WidgetsBinding.instance.addPostFrameCallback((_) {
-    //     ref.read(getTransactionHistoryPlaceProvider.notifier).getTransactionHistory(widget.user.member?.account!.accountId ?? '');
-    //   });
-    // }
+
   }
 
   @override

@@ -12,8 +12,8 @@ import '../../../utils/alert_helper.dart';
 import '../non_creator.dart';
 
 class CancelRequest extends ConsumerStatefulWidget {
-  final int bookingId;
-  const CancelRequest({super.key, required this.bookingId});
+  final int disputeId;
+  const CancelRequest({super.key, required this.disputeId});
 
   @override
   _CancelRequestScreenState createState() => _CancelRequestScreenState();
@@ -31,7 +31,7 @@ class _CancelRequestScreenState extends ConsumerState<CancelRequest> {
     try {
       final response =  await ref.read(apiresponseProvider.notifier).cancelDispute(
         context: context,
-        bookingId: widget.bookingId,
+        disputeId: widget.disputeId,
         payload: {
           "reason": cancelController.text
         },

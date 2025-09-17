@@ -8,6 +8,7 @@ import 'dart:io';
 import 'package:image_picker/image_picker.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:soundhive2/utils/app_colors.dart';
+import '../../../lib/dashboard_provider/user_provider.dart';
 import '../../../model/user_model.dart';
 
 class Message {
@@ -15,6 +16,7 @@ class Message {
   final String text;
   final String senderId;
   final String senderName;
+  final String disputeTitle;
   final String receiverId;
   final DateTime timestamp;
   final List<FileData> files;
@@ -26,6 +28,7 @@ class Message {
     required this.text,
     required this.senderId,
     required this.senderName,
+    required this.disputeTitle,
     required this.receiverId,
     required this.timestamp,
     this.files = const [],
@@ -40,6 +43,7 @@ class Message {
       senderId: map['senderId'] ?? '',
       senderName: map['senderName'] ?? '',
       receiverId: map['receiverId'] ?? '',
+      disputeTitle: map['disputeTitle'] ?? '',
       timestamp: DateTime.parse(map['timestamp']),
       files: List<FileData>.from((map['files'] ?? []).map((f) => FileData.fromMap(f))),
       isSystem: map['isSystem'] ?? false,
@@ -53,6 +57,7 @@ class Message {
       'senderId': senderId,
       'senderName': senderName,
       'receiverId': receiverId,
+      'disputeTitle': disputeTitle,
       'timestamp': timestamp.toIso8601String(),
       'files': files.map((f) => f.toMap()).toList(),
       'isSystem': isSystem,
@@ -97,13 +102,15 @@ class DisputeChatScreen extends ConsumerStatefulWidget {
   final String sellerId;
   final String disputeId;
   final String sellerName;
-  final User user;
+  final String senderName;
+  final String userId;
 
   const DisputeChatScreen({
     super.key,
     required this.sellerId,
     required this.disputeId,
-    required this.user,
+    required this.senderName,
+    required this.userId,
     required this.sellerName,
   });
 
@@ -205,7 +212,8 @@ class _DisputeChatScreenState extends ConsumerState<DisputeChatScreen> {
         text: "Do not mark this job as completed if your job has not been completed",
         senderId: 'system',
         senderName: 'System',
-        receiverId: widget.user.id.toString(),
+          disputeTitle: 'System',
+        receiverId: widget.userId,
         timestamp: DateTime.now(),
         isSystem: true,
         participants: []
@@ -268,16 +276,25 @@ class _DisputeChatScreenState extends ConsumerState<DisputeChatScreen> {
     if (_pendingFiles.isNotEmpty) {
       fileData = await _processFiles(_pendingFiles);
     }
+    final currentUser = ref.read(userProvider).value?.user;
+    if (currentUser == null) return;
+
+    final userId = currentUser.id.toString();
+
+    final customerName = userId == widget.sellerId
+        ? widget.sellerName // Current user is seller, so customer is the sender
+        : widget.senderName;
 
     final message = Message(
       id: messageRef.key!,
       text: text,
-      senderId: widget.user.id.toString(),
-      senderName: widget.user.firstName,
+      senderId: widget.userId,
+      senderName: widget.senderName,
+      disputeTitle: "Dispute Resolution with $customerName",
       receiverId: '', // Not needed in group chat
       timestamp: DateTime.now(),
       files: fileData,
-      participants: [widget.user.id.toString(), widget.sellerId, adminId],
+      participants: [widget.userId, widget.sellerId, adminId],
     );
 
     try {
@@ -309,7 +326,7 @@ class _DisputeChatScreenState extends ConsumerState<DisputeChatScreen> {
   String _formatTime(DateTime timestamp) {
     final hour = timestamp.hour % 12 == 0 ? 12 : timestamp.hour % 12;
     final period = timestamp.hour >= 12 ? 'PM' : 'AM';
-    return '${hour}:${timestamp.minute.toString().padLeft(2, '0')} $period';
+    return '$hour:${timestamp.minute.toString().padLeft(2, '0')} $period';
   }
 
   void _handleAttachment(BuildContext context) {
@@ -373,7 +390,7 @@ class _DisputeChatScreenState extends ConsumerState<DisputeChatScreen> {
         title: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text("Dispute Resolution with ${widget.user.firstName}", style: const TextStyle(color: Colors.white, fontSize: 14)),
+              Text("Dispute Resolution with ${widget.senderName}", style: const TextStyle(color: Colors.white, fontSize: 14)),
               ]),
         leading: IconButton(
           icon: const Icon(Icons.arrow_back_ios, color: Colors.white),
@@ -392,7 +409,7 @@ class _DisputeChatScreenState extends ConsumerState<DisputeChatScreen> {
                 if (message.isSystem) {
                   return _SystemMessage(message: message);
                 }
-                final isMe = message.senderId == widget.user.id.toString();
+                final isMe = message.senderId == widget.userId;
                 final isAdmin = message.senderId == adminId;
                 return _GroupChatBubble(
                   message: message,

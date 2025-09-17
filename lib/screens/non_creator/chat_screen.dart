@@ -9,17 +9,23 @@ import 'package:image_picker/image_picker.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:soundhive2/utils/app_colors.dart';
 
+import '../../lib/dashboard_provider/user_provider.dart';
 import '../../model/user_model.dart';
 
+// Update your Message class
 class Message {
   final String id;
   final String text;
   final String senderId;
   final String senderName;
+  final String receiverName;
+  final String serviceName;
   final String receiverId;
   final DateTime timestamp;
+  final String customerName;
   final List<FileData> files;
   final bool isSystem;
+  final Map<String, bool> readBy;
 
   Message({
     required this.id,
@@ -27,21 +33,71 @@ class Message {
     required this.senderId,
     required this.senderName,
     required this.receiverId,
+    required this.serviceName,
+    required this.customerName,
+    required this.receiverName,
     required this.timestamp,
     this.files = const [],
     this.isSystem = false,
+    this.readBy = const {},
   });
 
   factory Message.fromMap(Map<dynamic, dynamic> map, String id) {
+    // Handle timestamp with proper null checking
+    DateTime timestamp;
+    try {
+      final timestampString = map['timestamp']?.toString();
+      if (timestampString != null && timestampString.isNotEmpty) {
+        timestamp = DateTime.parse(timestampString);
+      } else {
+        timestamp = DateTime.now(); // Fallback to current time
+      }
+    } catch (e) {
+      print('Error parsing timestamp: $e, using current time as fallback');
+      timestamp = DateTime.now(); // Fallback to current time
+    }
+
+    // Handle readBy field - it might be a List or a Map
+    Map<String, bool> readByMap = {};
+    try {
+      final readByValue = map['readBy'];
+      if (readByValue != null) {
+        if (readByValue is Map<dynamic, dynamic>) {
+          // Handle Map format: {"userId": true}
+          readByMap = Map<String, bool>.from(readByValue.map(
+                (key, value) => MapEntry(
+              key.toString(),
+              value?.toString() == 'true',
+            ),
+          ));
+        } else if (readByValue is List) {
+          // Handle List format: [null, true] - convert to Map
+          // This is a workaround for the incorrect data format
+          for (int i = 0; i < readByValue.length; i++) {
+            if (readByValue[i] != null) {
+              readByMap[i.toString()] = readByValue[i]?.toString() == 'true';
+            }
+          }
+        }
+      }
+    } catch (e) {
+      print('Error parsing readBy field: $e');
+      readByMap = {};
+    }
+
     return Message(
       id: id,
-      text: map['text'] ?? '',
-      senderId: map['senderId'] ?? '',
-      senderName: map['senderName'] ?? '',
-      receiverId: map['receiverId'] ?? '',
-      timestamp: DateTime.parse(map['timestamp']),
+      text: map['text']?.toString() ?? '',
+      senderId: map['senderId']?.toString() ?? '',
+      senderName: map['senderName']?.toString() ?? '',
+      receiverName: map['receiverName']?.toString() ?? '',
+      receiverId: map['receiverId']?.toString() ?? '',
+      serviceName: map['serviceName']?.toString() ?? '',
+      customerName: map['customerName']?.toString() ?? '',
+      timestamp: timestamp,
       files: List<FileData>.from((map['files'] ?? []).map((f) => FileData.fromMap(f))),
-      isSystem: map['isSystem'] ?? false,
+      isSystem: map['isSystem']?.toString() == 'true' || false,
+      readBy: readByMap,
     );
   }
 
@@ -50,10 +106,14 @@ class Message {
       'text': text,
       'senderId': senderId,
       'senderName': senderName,
+      'receiverName': receiverName,
+      'serviceName': serviceName,
       'receiverId': receiverId,
+      'customerName': customerName,
       'timestamp': timestamp.toIso8601String(),
       'files': files.map((f) => f.toMap()).toList(),
       'isSystem': isSystem,
+      'readBy': readBy, // This will ensure correct Map format
     };
   }
 }
@@ -94,13 +154,15 @@ class ChatScreen extends ConsumerStatefulWidget {
   final String sellerId;
   final String sellerName;
   final String sellerService;
-  final User user;
+  final String senderName;
+  final String receiverId;
 
   const ChatScreen({
     super.key,
     required this.sellerId,
-    required this.user,
+    required this.receiverId,
     required this.sellerName,
+    required this.senderName,
     required this.sellerService
   });
 
@@ -118,11 +180,149 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
   List<Message> _messages = [];
   bool _isLoading = true;
 
+  Future<void> _markMessagesAsRead() async {
+    final currentUser = ref.read(userProvider).value?.user;
+    if (currentUser == null) return;
+
+    final userId = currentUser.id.toString();
+
+    // Determine the other user ID
+    final otherUserId = userId == widget.sellerId
+        ? widget.receiverId  // Current user is seller, so other user is receiver
+        : widget.sellerId;   // Current user is buyer, so other user is seller
+
+    final chatId = _getChatId(userId, otherUserId);
+
+    // Update each message's readBy field with correct Map format
+    for (final message in _messages) {
+      if (message.senderId != userId && !message.readBy.containsKey(userId)) {
+        // Use correct Map format: {"userId": true}
+        await _dbRef.child('chats/$chatId/messages/${message.id}/readBy/$userId').set(true);
+      }
+    }
+
+    // Update the last read timestamp for this user
+    await _dbRef.child('chats/$chatId/lastRead/$userId').set(DateTime.now().toIso8601String());
+  }
+
+  Future<void> _migrateOldMessages() async {
+    final currentUser = ref.read(userProvider).value?.user;
+    if (currentUser == null) return;
+
+    final userId = currentUser.id.toString();
+
+    // Determine the other user ID
+    final otherUserId = userId == widget.sellerId
+        ? widget.receiverId
+        : widget.sellerId;
+
+    final chatId = _getChatId(userId, otherUserId);
+
+    try {
+      final snapshot = await _dbRef.child('chats/$chatId/messages').get();
+      if (snapshot.exists) {
+        final Map<dynamic, dynamic> messagesMap =
+        snapshot.value as Map<dynamic, dynamic>;
+
+        final updates = <String, dynamic>{};
+
+        messagesMap.forEach((key, value) {
+          if (value is Map<dynamic, dynamic>) {
+            final messageData = Map<String, dynamic>.from(value);
+
+            print("Key $key, Value $value");
+
+            // Skip system messages - they have different structure
+            if (key == 'system') {
+              // Delete system messages from database since they shouldn't be stored
+              updates['chats/$chatId/messages/$key'] = null;
+              return;
+            }
+
+            // Check if timestamp is missing or invalid
+            if (messageData['timestamp'] == null ||
+                messageData['timestamp'].toString().isEmpty) {
+
+              // Create a fallback timestamp (current time)
+              updates['chats/$chatId/messages/$key/timestamp'] =
+                  DateTime.now().toIso8601String();
+            }
+          }
+        });
+
+        if (updates.isNotEmpty) {
+          await _dbRef.update(updates);
+          print('Migrated ${updates.length} messages with missing timestamps');
+        }
+      }
+    } catch (e) {
+      print('Error migrating messages: $e');
+    }
+  }
+
+  Future<void> _migrateReadByFields() async {
+    final currentUser = ref.read(userProvider).value?.user;
+    if (currentUser == null) return;
+
+    final userId = currentUser.id.toString();
+
+    // Determine the other user ID
+    final otherUserId = userId == widget.sellerId
+        ? widget.receiverId
+        : widget.sellerId;
+
+    final chatId = _getChatId(userId, otherUserId);
+
+    try {
+      final snapshot = await _dbRef.child('chats/$chatId/messages').get();
+      if (snapshot.exists) {
+        final Map<dynamic, dynamic> messagesMap =
+        snapshot.value as Map<dynamic, dynamic>;
+
+        final updates = <String, dynamic>{};
+
+        messagesMap.forEach((key, value) {
+          if (value is Map<dynamic, dynamic>) {
+            final messageData = Map<String, dynamic>.from(value);
+
+            // Check if readBy is a List instead of a Map
+            if (messageData['readBy'] is List) {
+              final List<dynamic> readByList = messageData['readBy'] as List<dynamic>;
+
+              // Convert List format to Map format
+              final Map<String, bool> readByMap = {};
+              for (int i = 0; i < readByList.length; i++) {
+                if (readByList[i] != null) {
+                  readByMap[i.toString()] = readByList[i]?.toString() == 'true';
+                }
+              }
+
+              // Add to updates
+              updates['chats/$chatId/messages/$key/readBy'] = readByMap;
+            }
+          }
+        });
+
+        if (updates.isNotEmpty) {
+          await _dbRef.update(updates);
+          print('Migrated ${updates.length} messages with incorrect readBy format');
+        }
+      }
+    } catch (e) {
+      print('Error migrating readBy fields: $e');
+    }
+  }
+
   @override
   void initState() {
     super.initState();
     _setupRealtimeListener();
     _loadInitialMessages();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _markMessagesAsRead();
+      _migrateOldMessages();
+      _migrateReadByFields();
+    });
   }
 
   @override
@@ -141,7 +341,17 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
     }
   }
   void _setupRealtimeListener() {
-    final chatId = _getChatId(widget.user.id.toString(), widget.sellerId);
+    final currentUser = ref.read(userProvider).value?.user;
+    if (currentUser == null) return;
+
+    final userId = currentUser.id.toString();
+
+    // Determine the other user ID
+    final otherUserId = userId == widget.sellerId
+        ? widget.receiverId
+        : widget.sellerId;
+
+    final chatId = _getChatId(userId, otherUserId);
 
     _messageSubscription = _dbRef
         .child('chats/$chatId/messages')
@@ -155,7 +365,31 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
         final List<Message> messages = [];
 
         messagesMap.forEach((key, value) {
-          messages.add(Message.fromMap(value, key));
+          try {
+            // Add detailed error logging
+            print('Processing message with key: $key');
+            print('Message data: $value');
+
+            messages.add(Message.fromMap(value, key.toString()));
+          } catch (e, stackTrace) {
+            print('Error parsing message with key $key: $e');
+            print('Stack trace: $stackTrace');
+            print('Problematic message data: $value');
+
+            // Create a fallback message instead of crashing
+            messages.add(Message(
+              id: key.toString(),
+              text: 'Error loading message',
+              senderId: 'system',
+              senderName: 'System',
+              customerName: 'System',
+              receiverName: 'System',
+              serviceName: 'System',
+              receiverId: userId,
+              timestamp: DateTime.now(),
+              isSystem: true,
+            ));
+          }
         });
 
         // Sort by timestamp
@@ -165,9 +399,12 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
           _messages = messages;
           _isLoading = false;
         });
+        _markMessagesAsRead();
         WidgetsBinding.instance.addPostFrameCallback((_) {
           _scrollToBottom();
         });
+      } else {
+        setState(() => _isLoading = false);
       }
     }, onError: (error) {
       print('Error in message stream: $error');
@@ -176,17 +413,10 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
   }
 
   Future<void> _loadInitialMessages() async {
-    // Add system message
+    // REMOVE THIS: Don't add system message to _messages list
+    // We'll handle system message display in the UI instead
     setState(() {
-      _messages.insert(0, Message(
-        id: 'system',
-        text: "Do not mark this job as completed if your job has not been completed",
-        senderId: 'system',
-        senderName: 'System',
-        receiverId: widget.user.id.toString(),
-        timestamp: DateTime.now(),
-        isSystem: true,
-      ));
+      _isLoading = false;
     });
   }
 
@@ -238,8 +468,18 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
   Future<void> _sendMessage(String text) async {
     if (text.isEmpty && _pendingFiles.isEmpty) return;
 
-    final user = widget.user;
-    final chatId = _getChatId(user.id.toString(), widget.sellerId);
+    final currentUser = ref.read(userProvider).value?.user;
+    if (currentUser == null) return;
+
+    final userId = currentUser.id.toString();
+
+    // Determine the receiver ID - if current user is seller, receiver is the other user
+    // If current user is buyer, receiver is the seller
+    final receiverId = userId == widget.sellerId
+        ? widget.receiverId  // Current user is seller, so receiver is the other user
+        : widget.sellerId;   // Current user is buyer, so receiver is the seller
+
+    final chatId = _getChatId(userId, receiverId);
     final messageRef = _dbRef.child('chats/$chatId/messages').push();
 
     // Process files first
@@ -248,12 +488,19 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
       fileData = await _processFiles(_pendingFiles);
     }
 
+    final customerName = userId == widget.sellerId
+        ? widget.sellerName // Current user is seller, so customer is the sender
+        : widget.senderName;
+
     final message = Message(
       id: messageRef.key!,
       text: text,
-      senderId: user.id.toString(),
-      senderName: user.firstName,
-      receiverId: widget.sellerId,
+      senderId: userId,
+      senderName: "${currentUser.firstName} ${currentUser.lastName}".trim(),
+      receiverName: userId == widget.sellerId ? widget.senderName : widget.sellerName,
+      serviceName: widget.sellerService,
+      customerName: customerName,
+      receiverId: receiverId,  // Use the calculated receiverId
       timestamp: DateTime.now(),
       files: fileData,
     );
@@ -287,7 +534,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
   String _formatTime(DateTime timestamp) {
     final hour = timestamp.hour % 12 == 0 ? 12 : timestamp.hour % 12;
     final period = timestamp.hour >= 12 ? 'PM' : 'AM';
-    return '${hour}:${timestamp.minute.toString().padLeft(2, '0')} $period';
+    return '$hour:${timestamp.minute.toString().padLeft(2, '0')} $period';
   }
 
   void _handleAttachment(BuildContext context) {
@@ -343,6 +590,14 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final currentUser = ref.watch(userProvider).value?.user;
+    if (currentUser == null) {
+      return const Scaffold(body: Center(child: Text('User not found')));
+    }
+
+    final currentUserId = currentUser.id.toString();
+    final shouldShowSystemMessage = _messages.isEmpty && !_isLoading;
+
     return Scaffold(
       backgroundColor: const Color(0xFF050110),
       appBar: AppBar(
@@ -370,13 +625,37 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
               padding: const EdgeInsets.all(8),
               itemCount: _messages.length,
               itemBuilder: (context, index) {
-                final message = _messages[index];
+                if (shouldShowSystemMessage && index == 0) {
+                  return _SystemMessage(
+                    message: Message(
+                      id: 'system',
+                      text: "Do not mark this job as completed if your job has not been completed",
+                      senderId: 'system',
+                      senderName: 'System',
+                      serviceName: 'System',
+                      customerName: 'System',
+                      receiverName: 'System',
+                      receiverId: '',
+                      timestamp: DateTime.now(),
+                      isSystem: true,
+                    ),
+                  );
+                }
+
+                // Adjust index for real messages
+                final messageIndex = shouldShowSystemMessage ? index - 1 : index;
+                final message = _messages[messageIndex];
+
                 if (message.isSystem) {
                   return _SystemMessage(message: message);
                 }
+
+
+                final isMe = message.senderId == currentUserId;
+
                 return _ChatBubble(
                   message: message,
-                  isMe: message.senderId == widget.user.id.toString(),
+                  isMe: isMe,
                   formatTime: _formatTime,
                 );
               },

@@ -4,15 +4,15 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
-import 'package:soundhive2/lib/dashboard_provider/getAccountBalanceProvider.dart';
-import 'package:soundhive2/screens/non_creator/wallet/activate_wallet.dart';
+import 'package:soundhive2/screens/non_creator/wallet/transaction_history.dart';
 import 'package:soundhive2/utils/app_colors.dart';
 import 'package:soundhive2/utils/utils.dart';
 
 import '../../../components/success.dart';
-import '../../../lib/dashboard_provider/add_money_provider.dart';
-import '../../../lib/dashboard_provider/apiresponseprovider.dart';
-import '../../../lib/dashboard_provider/user_provider.dart';
+import 'package:soundhive2/lib/dashboard_provider/add_money_provider.dart';
+import 'package:soundhive2/lib/dashboard_provider/apiresponseprovider.dart';
+import 'package:soundhive2/lib/dashboard_provider/getTransactionHistory.dart';
+import 'package:soundhive2/lib/dashboard_provider/user_provider.dart';
 import '../../../model/add_money_model.dart';
 import '../../../model/apiresponse_model.dart';
 import '../../../model/user_model.dart';
@@ -192,7 +192,17 @@ class _WalletScreenState extends ConsumerState<WalletScreen> {
   }
 
   @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      ref.read(getTransactionHistoryPlaceProvider.notifier).getTransactionHistory();
+    });
+
+  }
+
+  @override
   Widget build(BuildContext context) {
+    final serviceState = ref.watch(getTransactionHistoryPlaceProvider);
     return Scaffold(
       backgroundColor: AppColors.BACKGROUNDCOLOR,
       body: Padding(
@@ -201,7 +211,7 @@ class _WalletScreenState extends ConsumerState<WalletScreen> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             // Title
-            Text(
+            const Text(
               'Wallet',
               style: TextStyle(
                 fontSize: 24,
@@ -209,7 +219,7 @@ class _WalletScreenState extends ConsumerState<WalletScreen> {
                 color: Colors.white,
               ),
             ),
-            SizedBox(height: 20,),
+           const SizedBox(height: 20,),
             // Wallet Balance Card
             Container(
               width: double.infinity,
@@ -310,19 +320,65 @@ class _WalletScreenState extends ConsumerState<WalletScreen> {
                 generateAccount();
               }
             ),
-            const Spacer(),
-            // No Transactions Placeholder
-            const Column(
-              crossAxisAlignment: CrossAxisAlignment.center,
-              children: [
-                Icon(Icons.receipt_long, color: Colors.white24, size: 40),
-                SizedBox(height: 12),
-                Text(
-                  'No transaction done yet',
-                  style: TextStyle(color: Colors.white38),
-                ),
-              ],
+            Container(
+              alignment: Alignment.topLeft,
+              child: const Text(
+                'Recent Transactions',
+                style: TextStyle(fontSize: 18, fontWeight: FontWeight.w400, color: Colors.white),
+              ),
             ),
+            const SizedBox(height: 10),
+            // No Transactions Placeholder
+            serviceState.when(
+              data: (serviceResponse) {
+                final allServices = serviceResponse.data.data;
+                if (allServices.isEmpty) {
+                  return const Expanded(
+                    child: Center(
+                      child: Text(
+                        'No Transaction History',
+                        style: TextStyle(color: Colors.white),
+                      ),
+                    ),
+                  );
+                }
+
+                return Expanded(
+                  child: Container(
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF1A191E),
+                      borderRadius: BorderRadius.circular(20),
+                    ),
+                    child: ListView.builder(
+                      padding: const EdgeInsets.all(8),
+                      itemCount: allServices.length,
+                      itemBuilder: (context, index) {
+                        return TransactionCard(transaction: allServices[index]);
+                      },
+                    ),
+                  ),
+                );
+              },
+              loading: () => const Expanded(
+                child: Center(child: CircularProgressIndicator()),
+              ),
+              error: (error, _) => Expanded(
+                child: Center(
+                  child: Text('Error: $error', style: const TextStyle(color: Colors.white)),
+                ),
+              ),
+            ),
+            // const Column(
+            //   crossAxisAlignment: CrossAxisAlignment.center,
+            //   children: [
+            //     Icon(Icons.receipt_long, color: Colors.white24, size: 40),
+            //     SizedBox(height: 12),
+            //     Text(
+            //       'No transaction done yet',
+            //       style: TextStyle(color: Colors.white38),
+            //     ),
+            //   ],
+            // ),
             const SizedBox(height: 40),
           ],
         ),

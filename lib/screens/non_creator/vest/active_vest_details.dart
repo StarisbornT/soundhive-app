@@ -140,7 +140,7 @@ class _VestDetailsScreenState extends ConsumerState<ActiveVestDetailsScreen> wit
                 _buildInfoCard("Amount", Utils.formatCurrency(investment.amount)),
                 _buildInfoCard("Maturity date", investment.maturityDate),
                 _buildInfoCard("Interest", "${investment.vest?.roi}%"),
-                _buildInfoCard("Expected repayment", Utils.formatCurrency(investment.expectedRepayment)),
+                _buildInfoCard("Expected Return", Utils.formatCurrency(investment.expectedRepayment)),
                 _buildInfoCard("Status", investment.vest!.status, valueColor: Colors.green),
 
                 // Additional statistics from API
@@ -306,6 +306,7 @@ class _VestDetailsScreenState extends ConsumerState<ActiveVestDetailsScreen> wit
                 color: valueColor,
                 fontSize: 14,
                 fontWeight: FontWeight.bold,
+                 fontFamily: 'Roboto',
               ),
             ),
           ],
@@ -321,7 +322,7 @@ class _VestDetailsScreenState extends ConsumerState<ActiveVestDetailsScreen> wit
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
           Text(label, style: const TextStyle(color: Colors.white70)),
-          Text(value, style: TextStyle(color: valueColor ?? Colors.white)),
+          Text(value, style: TextStyle(color: valueColor ?? Colors.white,  fontFamily: 'Roboto',)),
         ],
       ),
     );
@@ -342,6 +343,7 @@ class _VestDetailsScreenState extends ConsumerState<ActiveVestDetailsScreen> wit
             style: TextStyle(
               color: isGreen ? Colors.greenAccent : Colors.white,
               fontWeight: FontWeight.bold,
+              fontFamily: 'Roboto'
             ),
           ),
         ],

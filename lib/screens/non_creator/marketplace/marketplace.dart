@@ -278,10 +278,14 @@ class _MarketplaceState extends ConsumerState<Marketplace>
   Widget buildMyBookingsUI() {
     final investmentsState = ref.watch(getActiveInvestmentProvider);
     final investments = ref.read(getActiveInvestmentProvider.notifier).allServices;
+    final isLastPage = ref.read(getActiveInvestmentProvider.notifier).isLastPage;
+    final isLoadingMore = ref.read(getActiveInvestmentProvider.notifier).isLoadingMore;
 
     return investmentsState.when(
       loading: () => _buildShimmerBookingsList(),
-      error: (e, _) => Center(child: Text("Error: $e", style: const TextStyle(color: Colors.white))),
+      error: (e, _) => Center(
+        child: Text("Error: $e", style: const TextStyle(color: Colors.white)),
+      ),
       data: (_) {
         if (investments.isEmpty) {
           return const Center(
@@ -289,96 +293,105 @@ class _MarketplaceState extends ConsumerState<Marketplace>
           );
         }
 
-        return ListView.builder(
-          controller: _bookingsScrollController,
-          padding: const EdgeInsets.symmetric(horizontal: 16),
-          shrinkWrap: true,
-          physics: const AlwaysScrollableScrollPhysics(),
-          itemCount: investments.length + (ref.read(getActiveInvestmentProvider.notifier).isLastPage ? 0 : 1),
-          itemBuilder: (context, index) {
-            if (index == investments.length) {
-              return _buildLoadingIndicator();
-            }
+        return Stack(
+          children: [
+            ListView.builder(
+              controller: _bookingsScrollController,
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              shrinkWrap: true,
+              physics: const AlwaysScrollableScrollPhysics(),
+              itemCount: investments.length,
+              itemBuilder: (context, index) {
+                final investment = investments[index];
+                final service = investment.service;
 
-            final investment = investments[index];
-            final service = investment.service;
-
-            return GestureDetector(
-              onTap: () {
-                if(investment.status == "PENDING"){
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => MarkAsCompletedScreen(
-                        services: investment,
-                        user: widget.user.user!,
-                      ),
-                    ),
-                  );
-                }else {
-                  return;
-                }
-              },
-              child: Card(
-                color: Colors.transparent,
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                margin: const EdgeInsets.symmetric(vertical: 8),
-                child: ListTile(
-                  leading: service?.serviceImage != null
-                      ? ClipRRect(
-                    borderRadius: BorderRadius.circular(8),
-                    child: Image.network(
-                      service!.serviceImage,
-                      width: 100,
-                      height: 78,
-                      fit: BoxFit.cover,
-                      errorBuilder: (_, __, ___) => const Icon(Icons.image, color: Colors.white),
-                    ),
-                  )
-                      : const CircleAvatar(
-                    backgroundColor: AppColors.BUTTONCOLOR,
-                    child: Icon(Icons.work, color: Colors.white),
-                  ),
-                  title: Text(
-                    service?.serviceName ?? "Booking #${investment.id}",
-                    style: const TextStyle(color: Colors.white, fontSize: 14),
-                  ),
-                  subtitle: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        "Booked on ${DateFormat('dd/MM/yyyy').format(DateTime.parse(investment.createdAt))}",
-                        style: const TextStyle(color: Colors.white54, fontSize: 12),
-                      ),
-                      const SizedBox(height: 10),
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                        decoration: BoxDecoration(
-                          color: investment.status == "PENDING"
-                              ? const Color.fromRGBO(255, 193, 7, 0.1)
-                              : const Color.fromRGBO(76, 175, 80, 0.1),
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        child: Text(
-                          investment.status == "PENDING" ? 'Ongoing' : 'Completed',
-                          style: TextStyle(
-                            color: investment.status == "PENDING"
-                                ? const Color(0xFFFFC107)
-                                : const Color(0xFF4CAF50),
-                            fontSize: 10,
+                return GestureDetector(
+                  onTap: () {
+                    if (investment.status == "PENDING") {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => MarkAsCompletedScreen(
+                            services: investment,
+                            user: widget.user.user!,
                           ),
                         ),
+                      );
+                    }
+                  },
+                  child: Card(
+                    color: Colors.transparent,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    margin: const EdgeInsets.symmetric(vertical: 8),
+                    child: ListTile(
+                      leading: service?.serviceImage != null
+                          ? ClipRRect(
+                        borderRadius: BorderRadius.circular(8),
+                        child: Image.network(
+                          service!.serviceImage,
+                          width: 100,
+                          height: 78,
+                          fit: BoxFit.cover,
+                          errorBuilder: (_, __, ___) =>
+                          const Icon(Icons.image, color: Colors.white),
+                        ),
+                      )
+                          : const CircleAvatar(
+                        backgroundColor: AppColors.BUTTONCOLOR,
+                        child: Icon(Icons.work, color: Colors.white),
                       ),
-                    ],
+                      title: Text(
+                        service?.serviceName ?? "Booking #${investment.id}",
+                        style: const TextStyle(color: Colors.white, fontSize: 14),
+                      ),
+                      subtitle: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            "Booked on ${DateFormat('dd/MM/yyyy').format(DateTime.parse(investment.createdAt))}",
+                            style: const TextStyle(color: Colors.white54, fontSize: 12),
+                          ),
+                          const SizedBox(height: 10),
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                            decoration: BoxDecoration(
+                              color: investment.status == "PENDING"
+                                  ? const Color.fromRGBO(255, 193, 7, 0.1)
+                                  : const Color.fromRGBO(76, 175, 80, 0.1),
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            child: Text(
+                              investment.status == "PENDING" ? 'Ongoing' : 'Completed',
+                              style: TextStyle(
+                                color: investment.status == "PENDING"
+                                    ? const Color(0xFFFFC107)
+                                    : const Color(0xFF4CAF50),
+                                fontSize: 10,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
                   ),
-                ),
+                );
+              },
+            ),
+            if (!isLastPage && isLoadingMore)
+              Positioned(
+                bottom: 10,
+                left: 0,
+                right: 0,
+                child: Center(child: _buildLoadingIndicator()),
               ),
-            );
-          },
+          ],
         );
       },
     );
   }
+
 
   Widget _buildShimmerBookingsList() {
     return ListView.builder(

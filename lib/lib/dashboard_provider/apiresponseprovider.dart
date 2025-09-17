@@ -132,14 +132,14 @@ class ApiResponseProvider extends StateNotifier<AsyncValue<void>> {
   }
   Future<ApiResponseModel> cancelDispute({
     required BuildContext context,
-    required int bookingId,
+    required int disputeId,
     required Map<dynamic, dynamic> payload
   }) async {
     state = const AsyncValue.loading();
     try {
       LoaderService.showLoader(context);
       final response = await _dio.post(
-        '/dispute/close/$bookingId',
+        '/dispute/close/$disputeId',
         data: jsonEncode(payload),
       );
 

@@ -16,6 +16,7 @@ import 'package:soundhive2/lib/navigator_provider.dart';
 import '../../../model/apiresponse_model.dart';
 import '../../../model/user_model.dart';
 import '../../../utils/alert_helper.dart';
+import '../../../utils/app_colors.dart';
 
 class MarkAsCompletedScreen extends ConsumerStatefulWidget {
   final ActiveInvestment services;
@@ -40,6 +41,7 @@ class _ServiceOrderSuccessScreenState extends ConsumerState<MarkAsCompletedScree
   @override
   Widget build(BuildContext context) {
     final services = widget.services;
+    print("Services $services");
     final disputeState = ref.watch(getCurrentUserDisputeProvider);
     return PopScope(
       canPop: false,
@@ -85,10 +87,41 @@ class _ServiceOrderSuccessScreenState extends ConsumerState<MarkAsCompletedScree
                   children: [
                     Row(
                       children: [
-                       const CircleAvatar(
-                          radius: 22,
-                          backgroundImage:  AssetImage("images/logo.png")
+                        services.service?.user?.image != null
+                            ? Container(
+                          width: 30,
+                          height: 30,
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            image: DecorationImage(
+                              image: NetworkImage(services.service?.user?.image ?? ''),
+                              fit: BoxFit.cover,
+                            ),
+                          ),
+                        )
+                            : Container(
+                          width: 30,
+                          height: 30,
+                          decoration: const BoxDecoration(
+                            shape: BoxShape.circle,
+                            color: AppColors.BUTTONCOLOR,
+                          ),
+                          alignment: Alignment.center,
+                          child: Text(
+                            services.service!.user!.firstName.isNotEmpty
+                                ? services.service!.user!.firstName[0].toUpperCase()
+                                : "?",
+                            style: const TextStyle(
+                              fontSize: 10,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.white,
+                            ),
+                          ),
                         ),
+                       // const CircleAvatar(
+                       //    radius: 22,
+                       //    backgroundImage:  AssetImage("images/logo.png")
+                       //  ),
 
                         const SizedBox(width: 10),
                         Expanded(
@@ -120,9 +153,10 @@ class _ServiceOrderSuccessScreenState extends ConsumerState<MarkAsCompletedScree
                                   onPressed: () {
                                     Navigator.push(context,  MaterialPageRoute(
                                       builder: (context) => ChatScreen(
-                                        sellerId: widget.services.userId,
+                                        sellerId: widget.services.service!.user!.id.toString(),
                                         sellerName: "${widget.services.service?.user?.firstName} ${widget.services.service?.user?.lastName}",
-                                        user: widget.user,
+                                        receiverId: widget.user.id.toString(),
+                                        senderName: "${widget.user.firstName} ${widget.user.lastName}",
                                         sellerService: widget.services.service!.serviceName,
                                       ),
                                     ),);
@@ -196,58 +230,77 @@ class _ServiceOrderSuccessScreenState extends ConsumerState<MarkAsCompletedScree
               disputeState.when(
                 data: (dispute)  {
                   if(dispute.data != null) {
-                    return  Row(
-                      children: [
-                        Expanded(
-                          child: OutlinedButton(
-                            onPressed: () {
-                              Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (context) =>  CancelRequest(bookingId: widget.services.id,),
-                                ),
-                              );
-                            },
-                            style: OutlinedButton.styleFrom(
-                              foregroundColor: Colors.white,
-                              side: const BorderSide(color: Colors.white24),
-                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
-                            ),
-                            child: const Text("Cancel request"),
-                          ),
-                        ),
-                        const SizedBox(width: 12),
-
-                        Expanded(
-                          child: OutlinedButton(
-                            onPressed: () {
-                              Navigator.push(context,  MaterialPageRoute(
-                                builder: (context) => DisputeChatScreen(
-                                  sellerId: widget.services.userId,
-                                  sellerName: "${widget.services.service?.user?.firstName} ${widget.services.service?.user?.lastName}",
-                                  user: widget.user,
-                                  disputeId: dispute.data!.id.toString(),
-                                ),
-                              ),);
-                            },
-                            style: OutlinedButton.styleFrom(
-                              foregroundColor: Colors.white,
-                              side: const BorderSide(color: Colors.white24),
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(30),
+                    if(dispute.data?.status != "CLOSED") {
+                      return  Row(
+                        children: [
+                          Expanded(
+                            child: OutlinedButton(
+                              onPressed: () {
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (context) =>  CancelRequest(disputeId: dispute.data!.id,),
+                                  ),
+                                );
+                              },
+                              style: OutlinedButton.styleFrom(
+                                foregroundColor: Colors.white,
+                                side: const BorderSide(color: Colors.white24),
+                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
                               ),
+                              child: const Text("Cancel request"),
                             ),
-                            child: const Text("View Dispute"),
                           ),
+                          const SizedBox(width: 12),
+
+                          Expanded(
+                            child: OutlinedButton(
+                              onPressed: () {
+                                Navigator.push(context,  MaterialPageRoute(
+                                  builder: (context) => DisputeChatScreen(
+                                    sellerId: widget.services.service!.user!.id.toString(),
+                                    sellerName: "${widget.services.service?.user?.firstName} ${widget.services.service?.user?.lastName}",
+                                    userId: widget.user.id.toString(),
+                                    senderName: "${widget.user.firstName} ${widget.user.lastName}",
+                                    disputeId: dispute.data!.id.toString(),
+                                  ),
+                                ),);
+                              },
+                              style: OutlinedButton.styleFrom(
+                                foregroundColor: Colors.white,
+                                side: const BorderSide(color: Colors.white24),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(30),
+                                ),
+                              ),
+                              child: const Text("View Dispute"),
+                            ),
+                          ),
+                        ],
+                      );
+                    }else {
+                      return SizedBox(
+                        width: double.infinity,
+                        child: OutlinedButton(
+                          onPressed: () {
+                            dispute.data?.status != "CLOSED" ?   disputeBottomSheet(context) : null;
+                          },
+                          style: OutlinedButton.styleFrom(
+                            foregroundColor: Colors.white,
+                            side: const BorderSide(color: Colors.white24),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
+                          ),
+                          child: Text(dispute.data?.status != "CLOSED" ? "Initiate dispute" : "Dispute has been closed"),
                         ),
-                      ],
-                    );
+                      );
+                    }
+
                   }else {
                     return SizedBox(
                       width: double.infinity,
                       child: OutlinedButton(
                         onPressed: () {
-                       dispute.data?.status != "CLOSED" ?   disputeBottomSheet(context) : null;
+                          dispute.data?.status != "CLOSED" ?   disputeBottomSheet(context) : null;
                         },
                         style: OutlinedButton.styleFrom(
                           foregroundColor: Colors.white,
@@ -258,6 +311,7 @@ class _ServiceOrderSuccessScreenState extends ConsumerState<MarkAsCompletedScree
                       ),
                     );
                   }
+                  return const SizedBox.shrink();
                 },  error: (err, stack) => Text(
                 "Error: $err",
                 style: const TextStyle(color: Colors.red),
@@ -416,8 +470,8 @@ class _ServiceOrderSuccessScreenState extends ConsumerState<MarkAsCompletedScree
           context,
           MaterialPageRoute(
             builder: (context) => Success(
-              title: 'Your service marked as completed',
-              subtitle: 'You service has successfully marked as completed',
+              title: 'Dispute Initiated Successfully',
+              subtitle: 'You have successfully initiated dispute',
               onButtonPressed: () {
                 Navigator.pushNamed(context, NonCreatorDashboard.id);
               },
