@@ -144,6 +144,9 @@ class PortfolioUploadSection extends StatefulWidget {
   final ValueNotifier<File?> audioFileNotifier;
   final TextEditingController linkController;
   final ValueNotifier<List<String>> selectedFormatsNotifier;
+  final String? existingCoverUrl;
+  final String? existingImageUrl;
+  final String? existingAudioUrl;
 
   const PortfolioUploadSection({
     super.key,
@@ -153,6 +156,9 @@ class PortfolioUploadSection extends StatefulWidget {
     required this.audioFileNotifier,
     required this.linkController,
     required this.selectedFormatsNotifier,
+    this.existingCoverUrl,
+    this.existingImageUrl,
+    this.existingAudioUrl,
   });
 
   @override
@@ -166,6 +172,31 @@ class _PortfolioUploadSectionState extends State<PortfolioUploadSection> {
     {'label': 'Audio', 'value': 'audio'},
   ];
 
+  @override
+  void initState() {
+    super.initState();
+    // Initialize selected formats based on existing data
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _initializeSelectedFormats();
+    });
+  }
+
+  void _initializeSelectedFormats() {
+    final selectedFormats = <String>[];
+
+    if (widget.existingImageUrl != null && widget.existingImageUrl!.isNotEmpty) {
+      selectedFormats.add('image');
+    }
+    if (widget.existingAudioUrl != null && widget.existingAudioUrl!.isNotEmpty) {
+      selectedFormats.add('audio');
+    }
+    if (widget.linkController.text.isNotEmpty) {
+      selectedFormats.add('link');
+    }
+
+    widget.selectedFormatsNotifier.value = selectedFormats;
+  }
+
   Future<void> _pickAudioFile() async {
     FilePickerResult? result = await FilePicker.platform.pickFiles(
       type: FileType.audio,
@@ -177,6 +208,9 @@ class _PortfolioUploadSectionState extends State<PortfolioUploadSection> {
       widget.audioFileNotifier.value = File(file.path!);
     }
   }
+
+
+
 
   @override
   Widget build(BuildContext context) {
@@ -197,18 +231,21 @@ class _PortfolioUploadSectionState extends State<PortfolioUploadSection> {
           DashedBorderBox(
             child: Column(
               children: [
+
                 ImagePickerComponent(
                   labelText: 'Cover Image',
                   imageNotifier: widget.coverImageNotifier,
                   hintText: "Upload Image",
+                  initialImageUrl: widget.existingCoverUrl,
                   validator: (value) {
-                    if (value == null) {
-                      return ' image is required';
+                    if (value == null && (widget.existingCoverUrl == null || widget.existingCoverUrl!.isEmpty)) {
+                      return 'Cover image is required';
                     }
                     return null;
                   },
                 ),
                 const SizedBox(height: 10),
+
                 ValueListenableBuilder<List<String>>(
                   valueListenable: widget.selectedFormatsNotifier,
                   builder: (context, selectedFormats, _) {
@@ -238,24 +275,35 @@ class _PortfolioUploadSectionState extends State<PortfolioUploadSection> {
                           },
                         ),
                         const SizedBox(height: 10),
+
+                        // Audio Section with existing preview
                         if (selectedFormats.contains('audio'))
-                          ValueListenableBuilder<File?>(
-                            valueListenable: widget.audioFileNotifier,
-                            builder: (context, audioFile, _) {
-                              return FileUploadField(
-                                label: 'Audio file',
-                                uploadText: audioFile != null
-                                    ? 'Audio Selected'
-                                    : 'Upload Audio',
-                                supportedFileTypes: 'Supported file types: mp3',
-                                maxFileSize: 'Max file size: 10MB',
-                                uploadIcon: Icons.upload_file_outlined,
-                                onTap: _pickAudioFile,
-                                fileName: audioFile?.path.split('/').last,
-                              );
-                            },
+                          Column(
+                            children: [
+
+                              ValueListenableBuilder<File?>(
+                                valueListenable: widget.audioFileNotifier,
+                                builder: (context, audioFile, _) {
+                                  return FileUploadField(
+                                    label: 'Audio file',
+                                    uploadText: audioFile != null
+                                        ? 'Audio Selected'
+                                        : widget.existingAudioUrl != null
+                                        ? 'Existing Audio (click to replace)'
+                                        : 'Upload Audio',
+                                    supportedFileTypes: 'Supported file types: mp3',
+                                    maxFileSize: 'Max file size: 10MB',
+                                    uploadIcon: Icons.upload_file_outlined,
+                                    onTap: _pickAudioFile,
+                                    fileName: audioFile?.path.split('/').last,
+                                  );
+                                },
+                              ),
+                            ],
                           ),
                         if (selectedFormats.contains('audio')) const SizedBox(height: 10),
+
+                        // Link Section
                         if (selectedFormats.contains('link'))
                           LabeledTextField(
                             label: 'Link',
@@ -263,17 +311,25 @@ class _PortfolioUploadSectionState extends State<PortfolioUploadSection> {
                             hintText: 'Enter Link',
                           ),
                         if (selectedFormats.contains('link')) const SizedBox(height: 10),
+
+                        // Image Section with existing preview
                         if (selectedFormats.contains('image'))
-                          ImagePickerComponent(
-                            labelText: 'Image File',
-                            imageNotifier: widget.imageFileNotifier,
-                            hintText: "Upload Image",
-                            validator: (value) {
-                              if (value == null) {
-                                return ' image is required';
-                              }
-                              return null;
-                            },
+                          Column(
+                            children: [
+
+                              ImagePickerComponent(
+                                labelText: 'Image File',
+                                imageNotifier: widget.imageFileNotifier,
+                                hintText: "Upload Image",
+                                initialImageUrl: widget.existingImageUrl,
+                                validator: (value) {
+                                  if (value == null && (widget.existingImageUrl == null || widget.existingImageUrl!.isEmpty)) {
+                                    return 'Image file is required';
+                                  }
+                                  return null;
+                                },
+                              ),
+                            ],
                           ),
                       ],
                     );
@@ -285,6 +341,13 @@ class _PortfolioUploadSectionState extends State<PortfolioUploadSection> {
         ],
       ),
     );
+  }
+}
+
+// Extension for string capitalization
+extension StringExtension on String {
+  String capitalize() {
+    return "${this[0].toUpperCase()}${substring(1).toLowerCase()}";
   }
 }
 
@@ -1071,7 +1134,7 @@ class _PaymentMethodSelectorState extends ConsumerState<PaymentMethodSelector> {
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
             Text(
-              "Flutterwave - ${widget.user.wallet?.balance}",
+              "Wallet - ${widget.user.wallet?.balance}",
               style: TextStyle(
                 color: _selectedMethod == null ? Colors.grey : Colors.white,
               ),
@@ -1127,6 +1190,104 @@ class _PaymentMethodSelectorState extends ConsumerState<PaymentMethodSelector> {
           ],
         ),
       ),
+    );
+  }
+}
+
+class ConfirmBottomSheet {
+  static Future<void> show({
+    required BuildContext context,
+    required String message,
+    String cancelText = "Cancel",
+    String confirmText = "Delete",
+    Color confirmColor = Colors.redAccent,
+    required VoidCallback onConfirm,
+    VoidCallback? onCancel,
+  }) {
+    return showModalBottomSheet(
+      context: context,
+      backgroundColor: const Color(0xFF1A191E),
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (ctx) {
+        return Padding(
+          padding: const EdgeInsets.all(24.0),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              // Icon at the top
+              Container(
+                height: 70,
+                width: 70,
+                decoration: const BoxDecoration(
+                  color: Colors.black,
+                  shape: BoxShape.circle,
+                ),
+                child: const Center(
+                  child: Icon(Icons.error_outline, color: Colors.white, size: 36),
+                ),
+              ),
+              const SizedBox(height: 20),
+
+              // Message
+              Text(
+                message,
+                textAlign: TextAlign.center,
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 22,
+                ),
+              ),
+              const SizedBox(height: 28),
+
+              // Buttons
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                children: [
+                  // Cancel Button
+                  Expanded(
+                    child: OutlinedButton(
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: Colors.white,
+                        side: const BorderSide(color: Colors.white24),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(100),
+                        ),
+                        padding: const EdgeInsets.symmetric(vertical: 14),
+                      ),
+                      onPressed: () {
+                        Navigator.pop(ctx);
+                        if (onCancel != null) onCancel();
+                      },
+                      child: Text(cancelText),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+
+                  // Confirm Button
+                  Expanded(
+                    child: ElevatedButton(
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: confirmColor,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(100),
+                        ),
+                        padding: const EdgeInsets.symmetric(vertical: 14),
+                      ),
+                      onPressed: () {
+                        Navigator.pop(ctx);
+                        onConfirm();
+                      },
+                      child: Text(confirmText, style: const TextStyle(color: Colors.white),),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        );
+      },
     );
   }
 }

@@ -11,13 +11,13 @@ class ImagePickerComponent extends StatefulWidget {
   final String? hintText;
 
   const ImagePickerComponent({
-    Key? key,
+    super.key,
     required this.labelText,
     required this.imageNotifier,
     this.validator,
     this.initialImageUrl,
     this.hintText
-  }) : super(key: key);
+  });
 
   @override
   State<ImagePickerComponent> createState() => _ImagePickerComponentState();

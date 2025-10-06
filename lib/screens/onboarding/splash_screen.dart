@@ -48,25 +48,11 @@ class _SplashScreenScreenState extends State<SplashScreen>
           crossAxisAlignment: CrossAxisAlignment.center,
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            const Expanded(child: SizedBox()), // Pushes the logo to the center
             FadeTransition(
               opacity: _animation,
               child: Image.asset(
                 'images/logo.png',
-                height: 100, // Adjust size accordingly
-              ),
-            ),
-            const Expanded(child: SizedBox()), // Keeps the logo in the center
-            const Padding(
-              padding: EdgeInsets.only(bottom: 40),
-              child: Text(
-                'Soundhive',
-                style: TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.w400,
-                  fontFamily: 'Nohemi',
-                  color: Colors.white,
-                ),
+                width: 200,
               ),
             ),
           ],

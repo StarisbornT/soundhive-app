@@ -4,6 +4,7 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
 import 'package:shimmer/shimmer.dart';
 import 'package:soundhive2/components/label_text.dart';
@@ -179,11 +180,6 @@ class _MarketplaceState extends ConsumerState<Marketplace>
     });
   }
 
-  // Optimized filter logic - single pass through the list
-  List<MarketOrder> _applyFilters(List<MarketOrder> services) {
-    return services;
-  }
-
   @override
   Widget build(BuildContext context) {
     ref.listenManual<AsyncValue<void>>(getMarketplaceServiceProvider, (_, state) {
@@ -326,11 +322,11 @@ class _MarketplaceState extends ConsumerState<Marketplace>
                     ),
                     margin: const EdgeInsets.symmetric(vertical: 8),
                     child: ListTile(
-                      leading: service?.serviceImage != null
+                      leading: service?.coverImage != null
                           ? ClipRRect(
                         borderRadius: BorderRadius.circular(8),
                         child: Image.network(
-                          service!.serviceImage,
+                          service!.coverImage,
                           width: 100,
                           height: 78,
                           fit: BoxFit.cover,
@@ -1075,7 +1071,7 @@ class _MarketplaceState extends ConsumerState<Marketplace>
       child: _buildServiceCard(
         context,
         title: item.serviceName,
-        price: '₦${item.rate}',
+        price: ref.formatUserCurrency(item.convertedRate),
         name: "${item.user?.firstName} ${item.user?.lastName}",
         rating: 4.5,
         clients: '20k clients',
@@ -1105,7 +1101,7 @@ class _MarketplaceState extends ConsumerState<Marketplace>
             child: _buildServiceCard(
               context,
               title: item.serviceName,
-              price: '₦${item.rate}',
+              price: ref.formatUserCurrency(item.convertedRate),
               name: "${item.user?.firstName ?? ''} ${item.user?.lastName ?? ''}",
               rating: 4.5,
               clients: '20k clients',
@@ -1181,11 +1177,13 @@ class _MarketplaceState extends ConsumerState<Marketplace>
                 const SizedBox(height: 4),
                 Text(
                   price,
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 14,
-                    fontWeight: FontWeight.w500,
-                    fontFamily: 'Roboto',
+                  style: GoogleFonts.notoSans(
+                    textStyle: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 14,
+                      fontWeight: FontWeight.w500,
+                      fontFamily: 'Roboto',
+                    )
                   ),
                 ),
                 const SizedBox(height: 4),

@@ -22,7 +22,6 @@ import 'marketplace/marketplace.dart';
 class NonCreatorDashboard extends ConsumerWidget {
   static const String id = '/non-creator-dashboard';
 
-  // A GlobalKey to control the ScaffoldState and open the drawer
   final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
 
   NonCreatorDashboard({super.key});
@@ -150,8 +149,8 @@ class NonCreatorDashboard extends ConsumerWidget {
                               radius: 30,
                               backgroundColor: AppColors.BUTTONCOLOR,
                               child: Text(
-                                (user?.firstName?.isNotEmpty == true)
-                                    ? "${user?.firstName![0]}${user?.lastName?[0]}"
+                                (user?.firstName.isNotEmpty == true)
+                                    ? "${user?.firstName[0]}${user?.lastName[0]}"
                                     : '?',
                                 style: const TextStyle(
                                   color: Colors.white,
@@ -235,7 +234,7 @@ class NonCreatorDashboard extends ConsumerWidget {
                         padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
                         child: Container(
                           decoration: BoxDecoration(
-                            color: Colors.deepPurple.withOpacity(0.6),
+                            color: AppColors.PRIMARYCOLOR,
                             borderRadius: BorderRadius.circular(12),
                           ),
                           child: ListTile(

@@ -3,11 +3,10 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:soundhive2/model/market_orders_service_model.dart';
 import 'package:soundhive2/screens/non_creator/non_creator.dart';
+import 'package:soundhive2/utils/app_colors.dart';
 import '../../../components/rounded_button.dart';
-import '../../../lib/navigator_provider.dart';
 import '../../../model/user_model.dart';
 import '../../../utils/utils.dart';
-import '../../non_creator/marketplace/mark_as_completed.dart';
 
 class MarketplaceReceiptScreen extends ConsumerStatefulWidget {
   final MarketOrder service;
@@ -76,7 +75,7 @@ class _AssetScreenState extends ConsumerState<MarketplaceReceiptScreen> {
                       height: 20,
                     ),
                     Utils.confirmRow(
-                        'Price', Utils.formatCurrency(service.rate)),
+                        'Price',  ref.formatUserCurrency(widget.service.convertedRate)),
                     const SizedBox(
                       height: 20,
                     ),
@@ -99,10 +98,10 @@ class _AssetScreenState extends ConsumerState<MarketplaceReceiptScreen> {
                   ],
                 ),
               ),
-              SizedBox(height: 330,),
+              const SizedBox(height: 330,),
               RoundedButton(
                   title: 'Continue',
-                  color: const Color(0xFF4D3490),
+                  color: AppColors.PRIMARYCOLOR,
                   borderWidth: 0,
                   borderRadius: 25.0,
                   onPressed: () {

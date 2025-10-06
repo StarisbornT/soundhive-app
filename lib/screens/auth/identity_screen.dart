@@ -4,6 +4,7 @@ import 'package:soundhive2/screens/auth/create_account.dart';
 import 'package:soundhive2/utils/app_colors.dart';
 
 import '../../components/rounded_button.dart';
+import '../../utils/utils.dart';
 
 class IdentityScreen extends StatefulWidget {
   final FlutterSecureStorage storage;
@@ -33,25 +34,10 @@ class _IdentityScreenState extends State<IdentityScreen> {
         child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 36),
           child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
+            crossAxisAlignment: CrossAxisAlignment.center,
             children: [
               // Logo
-              Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Image.asset('images/logo.png', height: 28),
-                  const SizedBox(width: 3),
-                  const Text(
-                    'Soundhive',
-                    style: TextStyle(
-                      fontFamily: 'Nohemi',
-                      fontSize: 24,
-                      fontWeight: FontWeight.w400,
-                      color: Colors.white,
-                    ),
-                  ),
-                ],
-              ),
+             Utils.logo(),
               const SizedBox(height: 40),
               const Text(
                 "What best describes you?",
@@ -122,7 +108,7 @@ class _IdentityScreenState extends State<IdentityScreen> {
                   decoration: BoxDecoration(
                     border: Border.all(
                       color: selectedIdentity == "not_creator"
-                          ? Color(0xFF2C2C2C)
+                          ? const Color(0xFF2C2C2C)
                           : Colors.white24,
                     ),
                     borderRadius: BorderRadius.circular(8),
@@ -173,7 +159,7 @@ class _IdentityScreenState extends State<IdentityScreen> {
                   print("Selected: $selectedIdentity");
                   Navigator.pushNamed(context, CreateAccount.id);
                 } : null,
-                color: selectedIdentity != null ? AppColors.BUTTONCOLOR : AppColors.INACTIVEBUTTONCOLOR,
+                color: selectedIdentity != null ? AppColors.PRIMARYCOLOR : AppColors.INACTIVEBUTTONCOLOR,
                 borderWidth: 0,
               ),
             ],

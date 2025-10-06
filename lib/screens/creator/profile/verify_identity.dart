@@ -314,7 +314,7 @@ class _VerifyIdentityScreenState extends ConsumerState<VerifyIdentity> {
             children: [
               // Scrollable form
               SingleChildScrollView(
-                padding: const EdgeInsets.fromLTRB(20, 10, 20, 100), // Add space for button
+                padding: const EdgeInsets.fromLTRB(20, 10, 20, 100),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
@@ -423,7 +423,7 @@ class _VerifyIdentityScreenState extends ConsumerState<VerifyIdentity> {
                   onPressed: () {
                    _submitForm();
                   },
-                  color: AppColors.BUTTONCOLOR,
+                  color: AppColors.PRIMARYCOLOR,
                 ),
               ),
             ],

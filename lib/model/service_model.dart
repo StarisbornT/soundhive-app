@@ -113,6 +113,7 @@ class ServiceItem {
   final String status;
   final String createdAt;
   final String updatedAt;
+  final String? serviceDescription;
 
   ServiceItem({
     required this.id,
@@ -128,6 +129,7 @@ class ServiceItem {
     required this.status,
     required this.createdAt,
     required this.updatedAt,
+    this.serviceDescription
   });
 
   factory ServiceItem.fromMap(Map<String, dynamic> map) {
@@ -145,6 +147,7 @@ class ServiceItem {
       status: map['status'] ?? '',
       createdAt: map['created_at'] ?? '',
       updatedAt: map['updated_at'] ?? '',
+      serviceDescription: map['service_description'] ?? '',
     );
   }
 }

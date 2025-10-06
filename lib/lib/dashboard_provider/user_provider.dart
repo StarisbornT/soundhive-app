@@ -59,7 +59,25 @@ class UserNotifier extends StateNotifier<AsyncValue<MemberCreatorResponse>> {
         );
 
         _ref.read(authStateProvider.notifier).clearToken();
-      } else {
+      }
+      if (dioError.response?.statusCode == 401) {
+        // Handle 401 Unauthorized error
+        print("Unauthorized access - redirecting to login");
+
+        // Clear the auth token
+        await _storage.delete(key: 'auth_token');
+
+        // Clear the user state
+        state = const AsyncValue.loading();
+
+        // Redirect to login screen
+        LoaderService.navigatorKey.currentState?.pushNamedAndRemoveUntil(
+          Login.id,
+              (route) => false,
+        );
+
+        _ref.read(authStateProvider.notifier).clearToken();
+      }else {
         // Handle other Dio errors
         print("Failed to load profile: $dioError");
         state = AsyncValue.error(dioError, stackTrace);

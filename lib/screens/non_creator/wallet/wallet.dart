@@ -103,16 +103,15 @@ class _WalletScreenState extends ConsumerState<WalletScreen> {
               }),
             ],
             style: const TextStyle(color: Colors.black),
-            decoration: const InputDecoration(
+            decoration: InputDecoration(
               prefix: Text(
-                '₦ ',
-                style: TextStyle(
-                  fontFamily: 'Roboto',
+                '${ref.userCurrency} ',
+                style: const TextStyle(
                   color: Colors.black,
                 ),
               ),
               hintText: "Enter amount to fund",
-              hintStyle: TextStyle(color: Colors.black54),
+              hintStyle: const TextStyle(color: Colors.black54),
             ),
           ),
           actions: [
@@ -157,6 +156,7 @@ class _WalletScreenState extends ConsumerState<WalletScreen> {
         if (result == 'success') {
           if (mounted) {
             await ref.read(userProvider.notifier).loadUserProfile();
+            await ref.read(getTransactionHistoryPlaceProvider.notifier).getTransactionHistory();
             Navigator.push(
               context,
               MaterialPageRoute(
@@ -250,14 +250,12 @@ class _WalletScreenState extends ConsumerState<WalletScreen> {
                 ),
               )
                   : Text(
-                Utils.formatCurrency(widget.user.wallet?.balance),
-                style: GoogleFonts.roboto(
-                    textStyle: const TextStyle(
+                ref.formatUserCurrency(widget.user.wallet?.balance),
+                style:const TextStyle(
                       color: Colors.white,
                       fontSize: 24,
                       fontWeight: FontWeight.w400,
                     )
-                ),
               ),
               if(widget.user.wallet != null)
               Row(
@@ -368,17 +366,6 @@ class _WalletScreenState extends ConsumerState<WalletScreen> {
                 ),
               ),
             ),
-            // const Column(
-            //   crossAxisAlignment: CrossAxisAlignment.center,
-            //   children: [
-            //     Icon(Icons.receipt_long, color: Colors.white24, size: 40),
-            //     SizedBox(height: 12),
-            //     Text(
-            //       'No transaction done yet',
-            //       style: TextStyle(color: Colors.white38),
-            //     ),
-            //   ],
-            // ),
             const SizedBox(height: 40),
           ],
         ),

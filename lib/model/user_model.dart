@@ -47,6 +47,7 @@ class User {
   final String? landmarks;
   final String? additionalInfo1;
   final String? bvnReference;
+  final bool? acceptedTerms;
   final String createdAt;
   final String updatedAt;
   final Creator? creator;
@@ -72,6 +73,7 @@ class User {
     this.middleName,
     this.nameOnCard,
     this.lgaOfOrigin,
+    this.acceptedTerms,
     this.stateOfOrigin,
     this.lgaOfCapture,
     this.stateOfCapture,
@@ -111,6 +113,7 @@ class User {
       bvn: json['bvn'],
       nin: json['nin'],
       gender: json['gender'],
+      acceptedTerms: json['accepted_terms'],
       surname: json['surname'],
       faceImage: json['face_image'],
       middleName: json['middle_name'],
@@ -160,6 +163,7 @@ class Creator {
   final String? instagram;
   final String createdAt;
   final String updatedAt;
+  final String? baseCurrency;
 
   Creator({
     required this.id,
@@ -179,6 +183,7 @@ class Creator {
     this.instagram,
     required this.createdAt,
     required this.updatedAt,
+    this.baseCurrency
   });
 
   factory Creator.fromJson(Map<String, dynamic> json) {
@@ -200,6 +205,7 @@ class Creator {
       instagram: json['instagram'],
       createdAt: json['created_at'] ?? '',
       updatedAt: json['updated_at'] ?? '',
+      baseCurrency: json['base_currency'] ?? '',
     );
   }
 }
@@ -212,6 +218,9 @@ class Wallet {
   final String? balance;
   final String createdAt;
   final String updatedAt;
+  final String escrowBalance;
+  final String amountEarned;
+  final String currency;
   Wallet({
     required this.id,
     required this.userId,
@@ -220,6 +229,9 @@ class Wallet {
     this.balance,
     required this.createdAt,
     required this.updatedAt,
+    required this.amountEarned,
+    required this.currency,
+    required this.escrowBalance
 });
 
   factory Wallet.fromJson(Map<String, dynamic> json) {
@@ -231,6 +243,9 @@ class Wallet {
       balance: json['balance'],
       createdAt: json['created_at'] ?? '',
       updatedAt: json['updated_at'] ?? '',
+      escrowBalance: json['escrow_balance'] ?? '',
+      amountEarned: json['amount_earned'] ?? '',
+      currency: json['currency'] ?? '',
     );
   }
 }

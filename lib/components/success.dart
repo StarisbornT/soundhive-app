@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:soundhive2/components/rounded_button.dart';
+import 'package:soundhive2/utils/app_colors.dart';
 
 class Success extends StatelessWidget {
   final String title;
@@ -54,7 +55,7 @@ class Success extends StatelessWidget {
                 padding: const EdgeInsets.all(10),
                 child: RoundedButton(
                   title: 'Continue',
-                  color: Color(0xFF4D3490),
+                  color: AppColors.PRIMARYCOLOR,
                   borderRadius: 100,
                   borderWidth: 0,
                   onPressed: () {

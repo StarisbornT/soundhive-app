@@ -3,27 +3,24 @@ import 'dart:io';
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:intl/intl.dart';
 import 'package:logger/logger.dart';
-import 'package:soundhive2/components/image_picker.dart';
 import 'package:soundhive2/components/label_text.dart';
 import 'package:soundhive2/components/rounded_button.dart';
 import 'package:soundhive2/model/category_model.dart';
 import 'package:soundhive2/utils/app_colors.dart';
 
 import '../../../components/success.dart';
-import '../../../components/widgets.dart';
-import '../../../lib/dashboard_provider/apiresponseprovider.dart';
-import '../../../lib/dashboard_provider/categoryProvider.dart';
-import '../../../lib/dashboard_provider/user_provider.dart';
+import 'package:soundhive2/lib/dashboard_provider/apiresponseprovider.dart';
+import 'package:soundhive2/lib/dashboard_provider/user_provider.dart';
 import '../../../model/apiresponse_model.dart';
+import '../../../model/user_model.dart';
 import '../../../services/loader_service.dart';
 import '../../../utils/alert_helper.dart';
 import '../creator_dashboard.dart';
-import '../creator_home.dart';
 
 class CreativeFormScreen extends ConsumerStatefulWidget {
-  const CreativeFormScreen({super.key});
+  final User user;
+  const CreativeFormScreen({super.key, required this.user});
 
   @override
   _CreativeFormScreenState createState() => _CreativeFormScreenState();
@@ -42,7 +39,6 @@ class PortfolioData {
   final TextEditingController linkController = TextEditingController();
   final ValueNotifier<List<String>> selectedFormats = ValueNotifier([]);
 
-  // URLs for uploaded media
   String? coverUrl;
   String? imageUrl;
   String? audioUrl;
@@ -71,6 +67,7 @@ class _CreativeFormScreenState extends ConsumerState<CreativeFormScreen> {
   final TextEditingController jobTitleController = TextEditingController();
   final TextEditingController bioController = TextEditingController();
   final TextEditingController locationController = TextEditingController();
+  TextEditingController currencyController = TextEditingController();
 
   // Social media controllers
   final TextEditingController linkedInController = TextEditingController();
@@ -81,9 +78,17 @@ class _CreativeFormScreenState extends ConsumerState<CreativeFormScreen> {
   bool _isSubmitting = false;
   final Logger _logger = Logger();
 
+  late List<Map<String, String>> currencies;
+
+  String? selectedCurrency;
+
   @override
   void initState() {
     super.initState();
+    currencies = [
+      {'label': widget.user.wallet!.currency, 'value': widget.user.wallet!.currency},
+      {'label': 'USD', 'value': 'USD'},
+    ];
     WidgetsBinding.instance.addPostFrameCallback((_) async {
 
       setState(() {
@@ -141,7 +146,7 @@ class _CreativeFormScreenState extends ConsumerState<CreativeFormScreen> {
       LoaderService.hideLoader(context);
 
       // 5. Navigate to success screen first
-      final user = await ref.read(userProvider.notifier).loadUserProfile();
+     await ref.read(userProvider.notifier).loadUserProfile();
       await Navigator.pushReplacement(
         context,
         MaterialPageRoute(
@@ -276,6 +281,7 @@ class _CreativeFormScreenState extends ConsumerState<CreativeFormScreen> {
       "job_title": jobTitleController.text,
       "bio": bioController.text,
       "location": locationController.text,
+      "base_currency": selectedCurrency,
       "linkedin": linkedInController.text.isNotEmpty ? linkedInController.text : null,
       "x": xController.text.isNotEmpty ? xController.text : null,
       "instagram": instagramController.text.isNotEmpty ? instagramController.text : null,
@@ -347,6 +353,10 @@ class _CreativeFormScreenState extends ConsumerState<CreativeFormScreen> {
         }
         if (bioController.text.isEmpty) {
           _showError("Bio description is required");
+          return false;
+        }
+        if (selectedCurrency == null && selectedCurrency!.isEmpty) {
+          _showError("Currency is required");
           return false;
         }
         if (locationController.text.isEmpty) {
@@ -434,18 +444,27 @@ class _CreativeFormScreenState extends ConsumerState<CreativeFormScreen> {
           hintText: "Job Title",
           maxLines: 4,
         ),
-        const SizedBox(height: 16),
+        const SizedBox(height: 8),
         LabeledTextField(
           label: 'Bio Description',
           controller: bioController,
           hintText: "Bio Description",
           maxLines: 4,
         ),
-        const SizedBox(height: 16),
+        const SizedBox(height: 8),
         LabeledTextField(
           label: 'Where are you based?',
           controller: locationController,
           hintText: "Where are you based?"
+        ),
+        LabeledSelectField(
+          label: "Base Currency",
+          controller: currencyController,
+          items: currencies,
+          hintText: 'Select an Option',
+          onChanged: (value) {
+            selectedCurrency  = value;
+          },
         ),
       ],
     );

@@ -108,7 +108,7 @@ class CreatorDashboard extends ConsumerWidget {
                   _scaffoldKey.currentState?.openDrawer();
                 },
                 child: CircleAvatar(
-                  backgroundColor: AppColors.BUTTONCOLOR,
+                  backgroundColor: AppColors.PRIMARYCOLOR,
                   child: Text(
                     (user?.firstName.isNotEmpty == true) ? user!.firstName[0] : '',
                     style: const TextStyle(color: Colors.white),
@@ -148,7 +148,7 @@ class CreatorDashboard extends ConsumerWidget {
                           children: [
                             CircleAvatar(
                               radius: 30,
-                              backgroundColor: AppColors.BUTTONCOLOR,
+                              backgroundColor: AppColors.PRIMARYCOLOR,
                               child: Text(
                                 (user?.firstName.isNotEmpty == true)
                                     ? "${user?.firstName[0]}${user?.lastName[0]}"
@@ -239,7 +239,7 @@ class CreatorDashboard extends ConsumerWidget {
                         padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
                         child: Container(
                           decoration: BoxDecoration(
-                            color: Colors.deepPurple.withOpacity(0.6),
+                            color: AppColors.PRIMARYCOLOR,
                             borderRadius: BorderRadius.circular(12),
                           ),
                           child: ListTile(

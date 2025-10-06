@@ -3,11 +3,14 @@ import 'dart:convert';
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import 'package:soundhive2/screens/auth/terms_and_condition.dart';
 import 'package:soundhive2/screens/auth/update_profile1.dart';
 import 'package:soundhive2/lib/interceptor.dart';
 import 'package:soundhive2/lib/provider.dart';
+import 'package:soundhive2/utils/utils.dart';
 import '../../services/loader_service.dart';
 import '../../utils/alert_helper.dart';
+import '../../utils/app_colors.dart';
 import '../dashboard/dashboard.dart';
 import 'forgot_password.dart';
 import 'otp_screen.dart';
@@ -73,6 +76,7 @@ class _LoginScreenState extends State<Login> {
       }
 
       else {
+
         showCustomAlert(
           context: context,
           isSuccess: false,
@@ -83,11 +87,18 @@ class _LoginScreenState extends State<Login> {
     }
     catch(error) {
       LoaderService.hideLoader(context);
-      if (error is DioError) {
+      if (error is DioException) {
         if (error.response?.statusCode == 400) {
 
           await widget.storage.write(key: 'email', value: emailController.text);
           Navigator.pushNamed(context, OtpScreen.id);
+          return;
+        }
+        if (error.response?.statusCode == 403) {
+          final responseData = error.response?.data;
+
+          await widget.storage.write(key: 'auth_token', value: responseData['token']);
+          Navigator.pushNamed(context, TermsAndCondition.id);
           return;
         }
         String errorMessage = "Failed, Please check input";
@@ -129,22 +140,7 @@ class _LoginScreenState extends State<Login> {
             children: [
               const SizedBox(height: 80),
               // Logo
-              Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Image.asset('images/logo.png', height: 28),
-                  const SizedBox(width: 3),
-                  const Text(
-                    'oundhive',
-                    style: TextStyle(
-                      fontFamily: 'Nohemi',
-                      fontSize: 24,
-                      fontWeight: FontWeight.w400,
-                      color: Colors.white,
-                    ),
-                  ),
-                ],
-              ),
+             Utils.logo(),
               const SizedBox(height: 24),
               // Title
               const Text(
@@ -180,7 +176,7 @@ class _LoginScreenState extends State<Login> {
               ),
               const SizedBox(height: 16),
 
-              _buildButton('Login', Color(0xFF4D3490)),
+              _buildButton('Login', AppColors.PRIMARYCOLOR),
               const SizedBox(height: 24),
               // OR Divider
               const Row(
@@ -211,7 +207,7 @@ class _LoginScreenState extends State<Login> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(label, style: TextStyle(color: Colors.white)),
+        Text(label, style: const TextStyle(color: Colors.white)),
         const SizedBox(height: 8),
         TextField(
           obscureText: isPassword ? _isObscured : false,
@@ -220,7 +216,7 @@ class _LoginScreenState extends State<Login> {
             filled: true,
             fillColor: Colors.white10,
             hintText: hint,
-            hintStyle: TextStyle(color: Colors.white54),
+            hintStyle: const TextStyle(color: Colors.white54),
             border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
             suffixIcon: isPassword
                 ? IconButton(
@@ -236,7 +232,7 @@ class _LoginScreenState extends State<Login> {
             )
                 : null,
           ),
-          style: TextStyle(color: Colors.white),
+          style: const TextStyle(color: Colors.white),
         ),
       ],
     );

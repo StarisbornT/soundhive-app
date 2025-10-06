@@ -4,9 +4,9 @@ import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:soundhive2/components/success.dart';
-import 'package:soundhive2/screens/dashboard/dashboard.dart';
-
+import 'package:soundhive2/utils/app_colors.dart';
 import '../../services/loader_service.dart';
 import '../../utils/alert_helper.dart';
 import '../creator/creator_dashboard.dart';
@@ -30,6 +30,7 @@ class _UpdateProfileState extends State<UpdateProfile1> {
   final TextEditingController lastNameController = TextEditingController();
   final TextEditingController dobController = TextEditingController(); // Date of Birth Controller
   final TextEditingController phoneController = TextEditingController();
+  final TextEditingController addressController = TextEditingController();
   List<String> selectedInterests = []; // Added to track interests
   String pin = '';
   String? identity;
@@ -74,6 +75,7 @@ class _UpdateProfileState extends State<UpdateProfile1> {
         "last_name": lastNameController.text,
         "dob": dobController.text,
         "phone_number": phoneController.text,
+        "location": addressController.text,
       };
       final options = Options(headers: {'Accept': 'application/json'});
       final response = await widget.dio.post(
@@ -205,6 +207,7 @@ class _UpdateProfileState extends State<UpdateProfile1> {
     lastNameController.dispose();
     dobController.dispose();
     phoneController.dispose();
+    addressController.dispose();
     _pageController.dispose();
     super.dispose();
   }
@@ -213,29 +216,14 @@ class _UpdateProfileState extends State<UpdateProfile1> {
   Widget build(BuildContext context) {
     print("Update $identity");
     return Scaffold(
-      backgroundColor: const Color(0xFF0C051F),
+      backgroundColor: AppColors.BACKGROUNDCOLOR,
       body: Column(
         children: [
           Padding(
             padding: const EdgeInsets.only(top: 50.0), // Adjust as needed
             child: Column(
               children: [
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Image.asset('images/logo.png', height: 30),
-                    const SizedBox(width: 8),
-                    const Text(
-                      'Soundhive',
-                      style: TextStyle(
-                        fontFamily: 'Nohemi',
-                        fontSize: 24,
-                        fontWeight: FontWeight.w400,
-                        color: Colors.white,
-                      ),
-                    ),
-                  ],
-                ),
+                Image.asset('images/logo.png', width: 200),
                 const Divider(color: Color(0xFF2C2C2C),),
 
               ],
@@ -258,6 +246,7 @@ class _UpdateProfileState extends State<UpdateProfile1> {
                   lastNameController: lastNameController,
                   dobController: dobController,
                   phoneController: phoneController,
+                  addressController: addressController,
                 ),
                 // InterestsStep(
                 //     onNext: _nextPage,
@@ -284,6 +273,7 @@ class UserDetailsStep extends StatelessWidget {
   final VoidCallback onNext;
   final TextEditingController firstNameController;
   final TextEditingController lastNameController;
+  final TextEditingController addressController;
   final TextEditingController dobController;
   final TextEditingController phoneController;
 
@@ -294,6 +284,7 @@ class UserDetailsStep extends StatelessWidget {
     required this.lastNameController,
     required this.dobController,
     required this.phoneController,
+    required this.addressController
   });
 
   @override
@@ -305,13 +296,8 @@ class UserDetailsStep extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             const Text(
-              "Can you tell us more about yourself?",
+              "We want to know more about you.",
               style: TextStyle(color: Colors.white, fontSize: 20),
-            ),
-            const SizedBox(height: 10),
-            const Text(
-              "We want to know more about you",
-              style: TextStyle(color: Colors.grey),
             ),
             const SizedBox(height: 20),
             _buildTextField('First Name', 'Enter your First Name', firstNameController, context),
@@ -320,7 +306,11 @@ class UserDetailsStep extends StatelessWidget {
             const SizedBox(height: 10),
             _buildTextField('Date Of Birth', 'Enter your Date of Birth', dobController, context, isDate: true),
             const SizedBox(height: 10),
-            _buildTextField('Phone Number', 'Enter your Phone Number', phoneController, context, isPhone: true),
+            PhoneNumberField(
+              controller: phoneController,
+            ),
+            const SizedBox(height: 10),
+            _buildTextField('Address', 'Enter Address', addressController, context),
             const SizedBox(height: 20),
             Center(
               child: SizedBox(
@@ -329,7 +319,7 @@ class UserDetailsStep extends StatelessWidget {
                 child: ElevatedButton(
                   onPressed: onNext,
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF5B3C98),
+                    backgroundColor: AppColors.PRIMARYCOLOR,
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(25),
                     ),
@@ -545,9 +535,9 @@ class _PinSetupStepState extends State<PinSetupStep> {
             const SizedBox(height: 20),
             Container(
               width: 155,
-              padding: EdgeInsets.all(7.0),
+              padding: const EdgeInsets.all(7.0),
               decoration: BoxDecoration(
-                color: Color(0xFF1A191E),
+                color: const Color(0xFF1A191E),
                 borderRadius: BorderRadius.circular(10)
               ),
               child: Row(
@@ -606,7 +596,7 @@ class NumericKeyboard extends StatelessWidget {
                     margin: const EdgeInsets.all(10),
                     width: 60,
                     height: 60,
-                    decoration: BoxDecoration(
+                    decoration: const BoxDecoration(
                       shape: BoxShape.circle,
                       color: Color(0xFF1A191E),
                     ),
@@ -624,5 +614,212 @@ class NumericKeyboard extends StatelessWidget {
         ],
       ),
     );
+  }
+}
+
+class PhoneNumberField extends StatefulWidget {
+  final TextEditingController controller;
+  final void Function(String)? onChanged;
+  final String? errorText;
+
+  const PhoneNumberField({
+    super.key,
+    required this.controller,
+    this.onChanged,
+    this.errorText,
+  });
+
+  @override
+  State<PhoneNumberField> createState() => _PhoneNumberFieldState();
+}
+
+class _PhoneNumberFieldState extends State<PhoneNumberField> {
+  List<Map<String, dynamic>> countries = [];
+  String selectedDialCode = '+234';
+  String selectedFlagUrl = 'https://flagcdn.com/w40/ng.png';
+
+  @override
+  void initState() {
+    super.initState();
+    fetchCountries();
+  }
+
+  final dio = Dio(BaseOptions(
+    connectTimeout: const Duration(seconds: 10),
+    receiveTimeout: const Duration(seconds: 10),
+  ));
+
+  Future<void> fetchCountries() async {
+    const url = 'https://restcountries.com/v3.1/all?fields=name,idd,cca2,flags';
+
+    try {
+      final response = await dio.get(
+        url,
+        options: Options(
+          headers: {'User-Agent': 'YourAppName/1.0'},
+          validateStatus: (status) => status! < 500,
+        ),
+      );
+
+      print('API Status: ${response.statusCode}');
+
+      if (response.statusCode == 200) {
+        final List data = response.data;
+
+        setState(() {
+          countries = data.where((c) => c['idd'] != null).map((country) {
+            final idd = country['idd'] as Map<String, dynamic>;
+            final root = idd['root']?.toString() ?? '';
+
+            // FIX: Handle empty suffixes list
+            final suffixesList = idd['suffixes'] as List<dynamic>?;
+            String suffix = '';
+            if (suffixesList != null && suffixesList.isNotEmpty) {
+              suffix = suffixesList[0]?.toString() ?? '';
+            }
+
+            final dialCode = '$root$suffix';
+
+            // FIX: Use reliable flag source with fallback
+            final cca2 = (country['cca2'] ?? '').toString().toLowerCase();
+            final flagUrl = (country['flags']?['png'] != null)
+                ? country['flags']['png']
+                : 'https://flagcdn.com/w40/$cca2.png';
+
+            return {
+              'name': country['name']['common'] ?? 'Unknown',
+              'flag': flagUrl,
+              'dial_code': dialCode,
+            };
+          }).where((item) => item['dial_code']!.isNotEmpty).toList();
+        });
+
+        print('Fetched ${countries.length} countries');
+      } else {
+        print('FAILED: ${response.statusCode} - ${response.data}');
+      }
+    } on DioException catch (e) {
+      print('DIO ERROR: ${e.type} - ${e.message}');
+    } catch (e, stack) {
+      print('GENERAL ERROR: $e\n$stack');
+    }
+  }
+
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+      Text(
+        'Phone Number',
+        style: GoogleFonts.manrope(
+          fontSize: 14,
+          fontWeight: FontWeight.w600,
+          color: AppColors.GREYCOLOR,
+        ),
+      ),
+      const SizedBox(height: 6),
+      Container(
+        height: 56,
+        decoration: BoxDecoration(
+          border:  Border.all(color: widget.errorText != null ? const Color.fromRGBO(219, 33, 33, 0.76) : const Color(0xFF2C2C2C)),
+          borderRadius: BorderRadius.circular(8),
+        ),
+        child: Row(
+          children: [
+            GestureDetector(
+              onTap: () => _showCountryPicker(context),
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 10),
+                child: Row(
+                  children: [
+                    ClipOval(
+                      child: Image.network(
+                        selectedFlagUrl,
+                        width: 24,
+                        height: 24,
+                        fit: BoxFit.cover,
+                      ),
+                    ),
+
+
+                    const SizedBox(width: 6),
+                    Text(selectedDialCode,
+                      style: GoogleFonts.inter(
+                          textStyle: const TextStyle(
+                              fontSize: 14,
+                              color: Color(0xFF7C7C88),
+                              fontWeight: FontWeight.w500
+                          )
+                      ),
+                    ),
+                    // const Icon(Icons.arrow_drop_down),
+                  ],
+                ),
+              ),
+            ),
+
+            Expanded(
+              child: TextField(
+                controller: widget.controller,
+                keyboardType: TextInputType.phone,
+                inputFormatters: [
+                  LengthLimitingTextInputFormatter(11),
+                  FilteringTextInputFormatter.digitsOnly,
+                ],
+                decoration: const InputDecoration(
+                  hintText: '',
+                  filled: true,
+                  fillColor: Colors.white10,
+                  hintStyle:  TextStyle(color: Colors.white54),
+                  border: InputBorder.none,
+                  contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                ),
+                onChanged: widget.onChanged,
+                style: const TextStyle(color: Colors.white),
+              ),
+            ),
+          ],
+        ),
+      ),
+      widget.errorText != null ?
+      Text(
+        widget.errorText ?? '',
+        style: const TextStyle(
+            color: Color.fromRGBO(219, 33, 33, 0.76),
+            fontSize: 12
+        ),
+      ): Text(''),
+      // const SizedBox(height: 16),
+    ]);
+  }
+
+  void _showCountryPicker(BuildContext context) {
+    if (countries.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('No countries available. Retrying...'))
+      );
+      fetchCountries(); // Retry
+      return;
+    }
+    showModalBottomSheet(
+      context: context,
+      builder: (_) => ListView.builder(
+        itemCount: countries.length,
+        itemBuilder: (_, i) => ListTile(
+          leading: Image.network(countries[i]['flag']!, width: 24, errorBuilder:
+              (_, __, ___) => Icon(Icons.flag)),
+          title: Text(countries[i]['name']!),
+          subtitle: Text(countries[i]['dial_code']!),
+          onTap: () => _selectCountry(countries[i]),
+        ),
+      ),
+    );
+  }
+  void _selectCountry(Map<String, dynamic> country) {
+    setState(() {
+      selectedDialCode = country['dial_code']!;
+      selectedFlagUrl = country['flag']!;
+    });
+    Navigator.pop(context);
   }
 }

@@ -4,11 +4,12 @@ import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:pin_code_fields/pin_code_fields.dart';
-import 'package:soundhive2/screens/auth/update_profile1.dart';
+import 'package:soundhive2/utils/app_colors.dart';
 import '../../services/fcm_service.dart';
 import '../../services/loader_service.dart';
 import '../../utils/alert_helper.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'terms_and_condition.dart';
 
 class OtpScreen extends ConsumerStatefulWidget {
 
@@ -26,6 +27,9 @@ class _OtpScreenState extends ConsumerState<OtpScreen> with WidgetsBindingObserv
   final FocusNode _otpFocusNode = FocusNode();
   late Dio dio;
   String? email;
+  bool canResend = false;
+  int resendCountdown = 120;
+  Timer? _resendTimer;
   Future<void> loadData() async {
     try {
       final storedEmail = await widget.storage.read(key: 'email');
@@ -56,7 +60,9 @@ class _OtpScreenState extends ConsumerState<OtpScreen> with WidgetsBindingObserv
   void initState() {
     super.initState();
     _otpFocusNode.addListener(_onFocusChange);
+
     WidgetsBinding.instance.addObserver(this);
+    _startResendCountdown();
     loadData();
 
     // Add this to handle app coming back from background
@@ -85,6 +91,7 @@ class _OtpScreenState extends ConsumerState<OtpScreen> with WidgetsBindingObserv
   @override
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
+    _resendTimer?.cancel();
     _otpController.dispose();
     _otpFocusNode.removeListener(_onFocusChange);
     _otpFocusNode.dispose();
@@ -99,6 +106,96 @@ class _OtpScreenState extends ConsumerState<OtpScreen> with WidgetsBindingObserv
           loadData();
         }
       });
+    }
+  }
+
+  void _startResendCountdown() {
+    canResend = false;
+    resendCountdown = 120;
+
+    _resendTimer?.cancel(); // in case it's already running
+    _resendTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
+      if (!mounted) return;
+      setState(() {
+        if (resendCountdown > 0) {
+          resendCountdown--;
+        } else {
+          canResend = true;
+          _resendTimer?.cancel();
+        }
+      });
+    });
+  }
+
+  Future<void> resendOtp() async {
+    try {
+      LoaderService.showLoader(context);
+      Map<String, String> payload = {
+        "email": email ?? '',
+      };
+      final options = Options(headers: {'Accept': 'application/json'});
+      final response = await widget.dio.post(
+          '/auth/verify/resend',
+          data: jsonEncode(payload),
+          options: options
+      );
+      if (!mounted) return;
+      LoaderService.hideLoader(context);
+      if (response.statusCode == 200) {
+        _startResendCountdown();
+        showCustomAlert(
+          context: context,
+          isSuccess: true,
+          title: 'Success',
+          message: 'Otp Sent successfully',
+        );
+      }
+      else {
+        showCustomAlert(
+          context: context,
+          isSuccess: false,
+          title: 'Error',
+          message: 'Email OTP not verified',
+        );
+      }
+    }on TimeoutException {
+      if (!mounted) return;
+      LoaderService.hideLoader(context);
+      showCustomAlert(
+        context: context,
+        isSuccess: false,
+        title: 'Timeout',
+        message: 'Request timed out. Please try again.',
+      );
+    }
+    catch(error) {
+      LoaderService.hideLoader(context);
+      if (error is DioError) {
+        String errorMessage = "Login Failed, Please check input";
+
+        if (error.response != null && error.response!.data != null) {
+          Map<String, dynamic> responseData = error.response!.data;
+          if (responseData.containsKey('message')) {
+            errorMessage = responseData['message'];
+          } else if (responseData.containsKey('errors')) {
+            Map<String, dynamic> errors = responseData['errors'];
+            List<String> errorMessages = [];
+            errors.forEach((key, value) {
+              if (value is List && value.isNotEmpty) {
+                errorMessages.addAll(value.map((error) => "$key: $error"));
+              }
+            });
+            errorMessage = errorMessages.join("\n");
+          }
+        }
+        showCustomAlert(
+          context: context,
+          isSuccess: false,
+          title: 'Error',
+          message: errorMessage,
+        );
+        return;
+      }
     }
   }
 
@@ -125,8 +222,7 @@ class _OtpScreenState extends ConsumerState<OtpScreen> with WidgetsBindingObserv
         await fcmService.registerFcmToken(email!);
 
         await widget.storage.write(key: 'auth_token', value: responseData['token']);
-        await widget.storage.write(key: 'role', value: responseData['data']['role']);
-        Navigator.pushNamed(context, UpdateProfile1.id);
+        Navigator.pushNamed(context, TermsAndCondition.id);
       }
       else {
         showCustomAlert(
@@ -185,31 +281,10 @@ class _OtpScreenState extends ConsumerState<OtpScreen> with WidgetsBindingObserv
           child: Padding(
             padding: const EdgeInsets.symmetric(horizontal: 24.0),
             child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+              crossAxisAlignment: CrossAxisAlignment.center,
               children: [
                 const SizedBox(height: 60),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Image.asset('images/logo.png', height: 28),
-                    const SizedBox(width: 8),
-                    const Text(
-                      'Soundhive',
-                      style: TextStyle(
-                        fontFamily: 'Nohemi',
-                        fontSize: 24,
-                        fontWeight: FontWeight.w400,
-                        color: Colors.white,
-                      ),
-                    ),
-                  ],
-                ),
-                const Divider(color: Color(0xFF2C2C2C),),
-                const SizedBox(height: 32),
-                GestureDetector(
-                  onTap: () => Navigator.pop(context),
-                  child: const Icon(Icons.arrow_back_ios_new, color: Color(0xFFB0AEB8), size: 24),
-                ),
+                Image.asset('images/logo.png', width: 200),
                 const SizedBox(height: 24),
                 // OTP Verification Title
                 const Center(
@@ -230,7 +305,7 @@ class _OtpScreenState extends ConsumerState<OtpScreen> with WidgetsBindingObserv
                   child: Text(
                     'We just sent an OTP to ${maskEmail(email)},\nkindly enter it below',
                     textAlign: TextAlign.center,
-                    style: TextStyle(
+                    style: const TextStyle(
                       fontSize: 14,
                       fontWeight: FontWeight.w400,
                       color: Color(0xFFB0AEB8),
@@ -268,6 +343,29 @@ class _OtpScreenState extends ConsumerState<OtpScreen> with WidgetsBindingObserv
                     beforeTextPaste: (text) => true,
                   ),
                 ),
+                const SizedBox(height: 10,),
+                Center(
+                  child: GestureDetector(
+                    onTap: canResend
+                        ? () {
+                      print('Clicked resend!');
+                      resendOtp();
+                    }
+                        : null,
+                    child: Text(
+                      canResend
+                          ? 'Resend OTP'
+                          : 'Resend OTP in ${resendCountdown}s',
+                      style: TextStyle(
+                        color: canResend
+                            ? const Color(0xFFD6A4FF)
+                            : Colors.grey,
+                        fontSize: 14,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ),
+                ),
                 const SizedBox(height: 32),
 
                 // Verify OTP Button
@@ -280,7 +378,7 @@ class _OtpScreenState extends ConsumerState<OtpScreen> with WidgetsBindingObserv
                         verify();
                       },
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFF5B3C98),
+                        backgroundColor: AppColors.PRIMARYCOLOR,
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(25),
                         ),

@@ -85,21 +85,21 @@ class _SetupScreenState extends ConsumerState<SetupScreen> {
                   'Unlock your ability to Invest in verifiable and quality entertainment projects or artists, as well as share in their success.',
                 status: widget.user.user?.creator == null
                     ? 'Not submitted'
-                    : (widget.user.user!.creator!.jobTitle!.isEmpty
+                    : (widget.user.user!.creator!.jobTitle == null
                     ? 'Not submitted'
                     : 'Under Review'),
 
                 statusColor: widget.user.user?.creator == null
                     ? Colors.red
-                    : (widget.user.user!.creator!.jobTitle!.isNotEmpty
+                    : (widget.user.user!.creator!.jobTitle != null
                     ? Colors.amber
                     : Colors.red),
                 onTap: () {
                     if(widget.user.user?.creator != null) {
-                      if (widget.user.user!.creator!.jobTitle!.isEmpty) {
+                      if (widget.user.user!.creator!.jobTitle == null) {
                         Navigator.push(
                           context,
-                          MaterialPageRoute(builder: (_) => const CreativeFormScreen()),
+                          MaterialPageRoute(builder: (_) => CreativeFormScreen(user: widget.user.user!,)),
                         );
                       }
 

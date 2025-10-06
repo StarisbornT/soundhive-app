@@ -2,6 +2,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:soundhive2/screens/auth/create_account.dart';
+import 'package:soundhive2/utils/app_colors.dart';
 
 import '../auth/identity_screen.dart';
 import '../auth/login.dart';
@@ -21,24 +22,19 @@ class _OnboardScreenState extends State<Onboard> {
 
   final List<Map<String, String>> slides = [
     {
-      'title': 'Get paid for listening to your Favourite Artists',
-      'subtitle': 'Get access to a list of inspiring songs from artists you love and get paid for it',
+      'title': 'One platform, endless possibilities.',
+      'subtitle': 'Connect, create, invest, and earn, all in one place.',
       'image': 'images/intro1.png',
     },
     {
-      'title': 'Sing your heart out with Soundhive',
-      'subtitle': 'With Soundhive you get to unleash your inner rockstar talent',
+      'title': 'Find creators or become one',
+      'subtitle': 'Discover top talent, book services, or showcase your skills to a global audience.',
       'image': 'images/intro2.png',
     },
     {
-      'title': 'Invest in specially curated projects and artists',
-      'subtitle': 'Get the chance to invest in upcoming talents as well as events, and earn high returns',
+      'title': 'Stream, invest, and pay with ease.',
+      'subtitle': 'Enjoy music & content on SoundHive, invest through Cre8Vest, and power your activity with Cre8Pay.',
       'image': 'images/intro3.png',
-    },
-    {
-      'title': 'Buy and Sell your services and digital assets',
-      'subtitle': 'Make extra income by selling your services and assets on Soundhive',
-      'image': 'images/intro4.png',
     },
   ];
 
@@ -100,7 +96,7 @@ class _OnboardScreenState extends State<Onboard> {
                     right: 0,
                     top: MediaQuery.of(context).size.height * 0.4, // Start fading from title area
                     child: Container(
-                      decoration: BoxDecoration(
+                      decoration: const BoxDecoration(
                         gradient: LinearGradient(
                           begin: Alignment.bottomCenter,   // Fades downward
                           end: Alignment.topCenter,
@@ -132,7 +128,7 @@ class _OnboardScreenState extends State<Onboard> {
                     margin: const EdgeInsets.symmetric(horizontal: 4),
                     height: 4,
                     decoration: BoxDecoration(
-                      color: index <= _currentPage ? Color(0xFF4D3490) : Colors.white.withOpacity(0.3),
+                      color: index <= _currentPage ? AppColors.PRIMARYCOLOR : Colors.white.withOpacity(0.3),
                       borderRadius: BorderRadius.circular(4),
                     ),
                   ),
@@ -147,22 +143,7 @@ class _OnboardScreenState extends State<Onboard> {
             left: 0,
             right: 0,
             child: Center(
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Image.asset('images/logo.png', height: 24),
-                  const SizedBox(width: 3),
-                  const Text(
-                    'oundhive',
-                    style: TextStyle(
-                      fontSize: 24,
-                      fontFamily: 'Nohemi',
-                      fontWeight: FontWeight.w400,
-                      color: Colors.white,
-                    ),
-                  ),
-                ],
-              ),
+              child: Image.asset('images/logo.png', width: 200),
             ),
           ),
 
@@ -215,7 +196,7 @@ class _OnboardScreenState extends State<Onboard> {
             width: double.infinity,
             padding: const EdgeInsets.symmetric(vertical: 16),
             decoration: BoxDecoration(
-              color: const Color(0xFF6A49F9),
+              color: AppColors.PRIMARYCOLOR,
               borderRadius: BorderRadius.circular(30),
             ),
             child: const Center(

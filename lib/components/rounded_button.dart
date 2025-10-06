@@ -15,7 +15,7 @@ class RoundedButton extends StatelessWidget {
   final Color textColor;
   final Icon? icon;
 
-  RoundedButton({
+  const RoundedButton({super.key,
     required this.title,
     required this.onPressed,
     this.isBusy = false,
@@ -32,7 +32,7 @@ class RoundedButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: EdgeInsets.symmetric(vertical: 1.0),
+      padding: const EdgeInsets.symmetric(vertical: 1.0),
       child: Container(
         decoration: BoxDecoration(
           color: color,

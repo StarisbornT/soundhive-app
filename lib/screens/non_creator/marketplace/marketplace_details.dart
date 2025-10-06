@@ -71,6 +71,7 @@ class _MarketplaceDetailsScreenState extends ConsumerState<MarketplaceDetails>  
     ? Image.network(
     widget.service.coverImage,
     height: 200,
+      width: double.infinity,
     fit: BoxFit.cover,
     errorBuilder: (context, error, stackTrace) =>
     Utils.buildImagePlaceholder(),
@@ -88,7 +89,7 @@ class _MarketplaceDetailsScreenState extends ConsumerState<MarketplaceDetails>  
         ),
         const SizedBox(height: 8),
         Text(
-          Utils.formatCurrency(widget.service.rate),
+          ref.formatUserCurrency(widget.service.convertedRate),
           style: const TextStyle(
             color: Colors.white, fontSize: 24, fontWeight: FontWeight.w500, fontFamily: 'Roboto'
           ),
@@ -145,6 +146,18 @@ class _MarketplaceDetailsScreenState extends ConsumerState<MarketplaceDetails>  
           ],
         ),
         const SizedBox(height: 16),
+        const Text(
+          "Description",
+          style: TextStyle(
+            color: Colors.white, fontSize: 16, fontWeight: FontWeight.w400,
+          ),
+        ),
+        const SizedBox(height: 8),
+        Text(
+          widget.service.serviceDescription ?? '',
+          style: const TextStyle(color: Colors.grey, fontSize: 14),
+        ),
+        const SizedBox(height: 16),
          Text(
           "About ${widget.service.user?.firstName} ${widget.service.user?.lastName}",
           style: const TextStyle(
@@ -177,7 +190,7 @@ class _MarketplaceDetailsScreenState extends ConsumerState<MarketplaceDetails>  
                 });
               }
             },
-            color:const Color(0xFF4D3490),
+            color: AppColors.PRIMARYCOLOR,
             borderWidth: 0,
             borderRadius: 25.0,
           ),
@@ -214,7 +227,7 @@ class _MarketplaceDetailsScreenState extends ConsumerState<MarketplaceDetails>  
         ),
         const SizedBox(height: 430,),
         RoundedButton(title: 'Continue',
-          color: const Color(0xFF4D3490),
+          color: AppColors.PRIMARYCOLOR,
           borderWidth: 0,
           borderRadius: 25.0,
           onPressed: () {

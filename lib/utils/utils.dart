@@ -1,24 +1,66 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 
+import 'package:soundhive2/lib/dashboard_provider/user_provider.dart';
 import '../model/user_model.dart';
-import '../screens/creator/profile/setup_screen.dart';
 import 'app_colors.dart';
 
+extension UserCurrencyExtension on WidgetRef {
+
+
+
+  String get userCurrency {
+    final userState = read(userProvider);
+    return userState.value?.user?.wallet?.currency ?? "USD";
+  }
+  String get creatorBaseCurrency {
+    final userState = read(userProvider);
+    return userState.value?.user?.creator?.baseCurrency ?? "USD";
+  }
+
+  String formatUserCurrency(dynamic amount) {
+    final currencyCode = userCurrency;
+    return Utils.formatCurrency(amount, currencyCode: currencyCode);
+  }
+  String formatCreatorCurrency(dynamic amount) {
+    final currencyCode = creatorBaseCurrency;
+    return Utils.formatCurrency(amount, currencyCode: currencyCode);
+  }
+
+  String get userCurrencySymbol {
+    final currencyCode = userCurrency;
+    return Utils.getCurrencySymbol(currencyCode);
+  }
+  String get creatorCurrencySymbol {
+    final currencyCode = creatorBaseCurrency;
+    return Utils.getCurrencySymbol(currencyCode);
+  }
+}
+
 class Utils {
-  static String formatCurrency(dynamic amount) {
+  static String formatCurrency(dynamic amount, {String? currencyCode}) {
+    currencyCode ??= "USD";
+
+    final double numericAmount = double.tryParse(amount.toString()) ?? 0.0;
+
     final formatter = NumberFormat.currency(
-      locale: 'en_NG',
-      symbol: '\u20A6', // Use Unicode escape
+      locale: "en_US",
+      symbol: "",
       decimalDigits: 2,
+      name: currencyCode,
     );
 
-    // Ensure amount is a number before formatting
-    double numericAmount = double.tryParse(amount.toString()) ?? 0.0;
-
-    return formatter.format(numericAmount);
+    return "$currencyCode ${formatter.format(numericAmount)}";
   }
+
+  static String getCurrencySymbol(String? currencyCode) {
+    currencyCode ??= "USD";
+    return currencyCode;
+  }
+
+
   static Widget menuButton(String text, bool selected, {VoidCallback? onTap}) {
     return GestureDetector(
       onTap: onTap,
@@ -26,7 +68,7 @@ class Utils {
         width: 96,
         padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
         decoration: BoxDecoration(
-          color: selected ? AppColors.BUTTONCOLOR : AppColors.DARKGREY,
+          color: selected ? AppColors.PRIMARYCOLOR : AppColors.DARKGREY,
           borderRadius: BorderRadius.circular(20),
         ),
         child: Text(
@@ -38,6 +80,10 @@ class Utils {
         )),
       ),
     );
+  }
+
+  static Widget logo() {
+    return  Image.asset('images/logo.png', width: 200);
   }
 
   static Widget reviewCard(

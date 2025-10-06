@@ -7,8 +7,8 @@ import 'package:soundhive2/screens/auth/otp_screen.dart';
 
 import 'package:soundhive2/lib/interceptor.dart';
 import 'package:soundhive2/lib/provider.dart';
-import '../../services/loader_service.dart';
 import '../../utils/alert_helper.dart';
+import '../../utils/app_colors.dart';
 
 class CreateAccount extends StatefulWidget {
   final FlutterSecureStorage storage;
@@ -61,7 +61,6 @@ class _CreateAccountScreenState extends State<CreateAccount> {
       setState(() {
         isLoading = true;
       });
-      // LoaderService.showLoader(context);
       Map<String, String> payload = {
         "email": emailController.text,
         "password": passwordController.text,
@@ -75,7 +74,6 @@ class _CreateAccountScreenState extends State<CreateAccount> {
       );
       print(response);
       if (response.statusCode == 200) {
-        // LoaderService.hideLoader(context);
         setState(() {
           isLoading = false;
         });
@@ -99,7 +97,6 @@ class _CreateAccountScreenState extends State<CreateAccount> {
       setState(() {
         isLoading = false;
       });
-      // LoaderService.hideLoader(context);
       if (error is DioError) {
         String errorMessage = "Failed, Please check input";
 
@@ -145,7 +142,7 @@ class _CreateAccountScreenState extends State<CreateAccount> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFF0C051F),
+      backgroundColor: AppColors.BACKGROUNDCOLOR,
       body: SingleChildScrollView(
         child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 10),
@@ -153,23 +150,7 @@ class _CreateAccountScreenState extends State<CreateAccount> {
             crossAxisAlignment: CrossAxisAlignment.center,
             children: [
               const SizedBox(height: 80),
-              // Logo
-              Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Image.asset('images/logo.png', height: 28),
-                  const SizedBox(width: 10),
-                  const Text(
-                    'Soundhive',
-                    style: TextStyle(
-                      fontFamily: 'Nohemi',
-                      fontSize: 24,
-                      fontWeight: FontWeight.w400,
-                      color: Colors.white,
-                    ),
-                  ),
-                ],
-              ),
+              Image.asset('images/logo.png', width: 200),
               const SizedBox(height: 24),
               // Title
               const Text(
@@ -192,7 +173,7 @@ class _CreateAccountScreenState extends State<CreateAccount> {
               _buildPasswordIndicators(),
               const SizedBox(height: 32),
               // Continue Button
-              _buildButton(isLoading ? 'Loading' : 'Continue', const Color(0xFF4D3490)),
+              _buildButton(isLoading ? 'Loading' : 'Continue', AppColors.PRIMARYCOLOR),
               const SizedBox(height: 24),
               // OR Divider
               const Row(
@@ -223,7 +204,7 @@ class _CreateAccountScreenState extends State<CreateAccount> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(label, style: TextStyle(color: Colors.white)),
+        Text(label, style: const TextStyle(color: Colors.white)),
         const SizedBox(height: 8),
         TextField(
           obscureText: isPassword ? _isObscured : false,
@@ -232,7 +213,7 @@ class _CreateAccountScreenState extends State<CreateAccount> {
             filled: true,
             fillColor: Colors.white10,
             hintText: hint,
-            hintStyle: TextStyle(color: Colors.white54),
+            hintStyle: const TextStyle(color: Colors.white54),
             border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
             suffixIcon: isPassword
                 ? IconButton(
@@ -248,7 +229,7 @@ class _CreateAccountScreenState extends State<CreateAccount> {
             )
                 : null,
           ),
-          style: TextStyle(color: Colors.white),
+          style: const TextStyle(color: Colors.white),
         ),
       ],
     );
@@ -267,7 +248,7 @@ class _CreateAccountScreenState extends State<CreateAccount> {
 
           ],
         ),
-        SizedBox(height: 10,),
+        const SizedBox(height: 10,),
         Row(
           mainAxisAlignment: MainAxisAlignment.start,
           children: [
@@ -284,7 +265,7 @@ class _CreateAccountScreenState extends State<CreateAccount> {
       children: [
         Icon(isValid ? Icons.check_circle : Icons.circle_outlined, color: isValid ? Colors.green : Colors.grey, size: 16),
         const SizedBox(width: 4),
-        Text(label, style: TextStyle(color: Colors.white70, fontSize: 12)),
+        Text(label, style: const TextStyle(color: Colors.white70, fontSize: 12)),
       ],
     );
   }
@@ -302,7 +283,7 @@ class _CreateAccountScreenState extends State<CreateAccount> {
         child:  Center(
           child: Text(
             text,
-            style: TextStyle(
+            style: const TextStyle(
                 fontSize: 16, fontWeight: FontWeight.bold, color: Colors.white),
           ),
         ),
@@ -315,7 +296,7 @@ class _CreateAccountScreenState extends State<CreateAccount> {
       onTap: () {},
       child: Container(
         width: double.infinity,
-        padding: EdgeInsets.symmetric(vertical: 14),
+        padding: const EdgeInsets.symmetric(vertical: 14),
         decoration: BoxDecoration(
           border: Border.all(color: Colors.white),
           borderRadius: BorderRadius.circular(30),

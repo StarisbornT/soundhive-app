@@ -91,6 +91,10 @@ class MarketOrder {
   final String status;
   final String createdAt;
   final String updatedAt;
+  final String currency;
+  final String serviceDescription;
+  final dynamic convertedRate;
+  final String convertedCurrency;
   final User? user;
 
   MarketOrder({
@@ -107,6 +111,10 @@ class MarketOrder {
     required this.status,
     required this.createdAt,
     required this.updatedAt,
+    required this.currency,
+    required this.serviceDescription,
+    required this.convertedRate,
+    required this.convertedCurrency,
     this.user,
   });
 
@@ -125,6 +133,10 @@ class MarketOrder {
       status: map['status'] ?? '',
       createdAt: map['created_at'] ?? '',
       updatedAt: map['updated_at'] ?? '',
+      currency: map['currency'] ?? '',
+      serviceDescription: map['service_description'] ?? '',
+      convertedCurrency: map['converted_currency'] ?? '',
+      convertedRate: map['converted_rate'] ?? '',
       user: map['user'] != null ? User.fromJson(map['user']) : null,
     );
   }

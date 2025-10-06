@@ -6,6 +6,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:logger/logger.dart';
 import 'package:soundhive2/model/category_model.dart';
+import 'package:soundhive2/model/service_model.dart';
 import 'package:soundhive2/screens/creator/services/services.dart';
 
 import '../../../components/label_text.dart';
@@ -19,27 +20,29 @@ import '../../../lib/dashboard_provider/serviceProvider.dart';
 import '../../../lib/dashboard_provider/sub_category_provider.dart';
 import '../../../lib/dashboard_provider/user_provider.dart';
 import '../../../model/apiresponse_model.dart';
+import '../../../model/sub_categories.dart';
 import '../../../services/loader_service.dart';
 import '../../../utils/alert_helper.dart';
 import '../../../utils/app_colors.dart';
 import '../profile/creative_form_screen.dart';
 
-class AddNewServiceScreen extends ConsumerStatefulWidget {
-  const AddNewServiceScreen({super.key});
+class EditServiceScreen extends ConsumerStatefulWidget {
+  final ServiceItem service;
+  const EditServiceScreen({super.key, required this.service});
 
   @override
-  _AddNewServiceScreenState createState() => _AddNewServiceScreenState();
+  _EditServiceScreenState createState() => _EditServiceScreenState();
 }
 
-class _AddNewServiceScreenState extends ConsumerState<AddNewServiceScreen> {
+class _EditServiceScreenState extends ConsumerState<EditServiceScreen> {
   List<Category> services = [];
   Category? selectedService;
   String? selectedCategoryId;
   String? selectedSubCategoryId;
 
   final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
-  final TextEditingController rateController = TextEditingController(); // Single rate controller
-  final PortfolioData portfolioData = PortfolioData(); // Single portfolio data
+  final TextEditingController rateController = TextEditingController();
+  final PortfolioData portfolioData = PortfolioData();
   final TextEditingController serviceNameController = TextEditingController();
   final TextEditingController serviceDescriptionController = TextEditingController();
   final TextEditingController categoryController = TextEditingController();
@@ -48,14 +51,79 @@ class _AddNewServiceScreenState extends ConsumerState<AddNewServiceScreen> {
   @override
   void initState() {
     super.initState();
+    _prefillFormData();
     WidgetsBinding.instance.addPostFrameCallback((_) async {
       await ref.read(categoryProvider.notifier).getCategory();
       final fetched = ref.read(categoryProvider).value?.data.data;
       setState(() {
         services = fetched!;
       });
+      // Set category and subcategory after services are loaded
+      _setCategoryAndSubcategory();
     });
   }
+
+  void _prefillFormData() {
+    // Prefill all form fields with existing service data
+    final service = widget.service;
+
+    serviceNameController.text = service.serviceName;
+    serviceDescriptionController.text = service.serviceDescription ?? '';
+    rateController.text = service.rate;
+
+    // Prefill portfolio data
+    portfolioData.coverUrl = service.coverImage;
+    portfolioData.imageUrl = service.serviceImage;
+    portfolioData.audioUrl = service.serviceAudio ?? '';
+    portfolioData.linkController.text = service.link ?? '';
+
+    // Determine selected formats based on existing data
+    final selectedFormats = <String>[];
+    if (service.serviceImage.isNotEmpty) {
+      selectedFormats.add('image');
+    }
+    if (service.serviceAudio != null && service.serviceAudio!.isNotEmpty) {
+      selectedFormats.add('audio');
+    }
+    if (service.link != null && service.link!.isNotEmpty) {
+      selectedFormats.add('link');
+    }
+    portfolioData.selectedFormats.value = selectedFormats;
+
+    // Set category IDs for backend submission
+    selectedCategoryId = service.categoryId.toString();
+    selectedSubCategoryId = service.subCategoryId.toString();
+  }
+
+  void _setCategoryAndSubcategory() {
+    final service = widget.service;
+
+    // Find and set category name
+    final category = services.firstWhere(
+          (cat) => cat.id.toString() == service.categoryId,
+      orElse: () => Category(id: 0, name: '', createdAt: '', updatedAt: ''),
+    );
+    if (category.id != 0) {
+      categoryController.text = category.name;
+      selectedCategoryId = category.id.toString();
+
+      // Load subcategories for this category
+      ref.read(subcategoryProvider.notifier).getSubCategory(int.parse(service.categoryId));
+
+      // Set subcategory after a delay to ensure subcategories are loaded
+      Future.delayed(const Duration(milliseconds: 500), () {
+        final subcategories = ref.read(subcategoryProvider).value?.data ?? [];
+        final subcategory = subcategories.firstWhere(
+              (sub) => sub.id.toString() == service.subCategoryId,
+          orElse: () => SubCategory(id: 0, name: '', createdAt: '', updatedAt: ''),
+        );
+        if (subcategory.id != 0) {
+          subcategoryController.text = subcategory.name;
+          selectedSubCategoryId = subcategory.id.toString();
+        }
+            });
+    }
+    }
 
   int _currentStep = 0;
   void _nextStep() {
@@ -87,7 +155,7 @@ class _AddNewServiceScreenState extends ConsumerState<AddNewServiceScreen> {
 
       case 2: // Portfolio Step
       // Validate cover image
-        if (portfolioData.coverNotifier.value == null) {
+        if (portfolioData.coverNotifier.value == null && portfolioData.coverUrl == null) {
           _showError("Cover image is required");
           return false;
         }
@@ -100,11 +168,11 @@ class _AddNewServiceScreenState extends ConsumerState<AddNewServiceScreen> {
 
         // Validate each selected format
         for (final format in portfolioData.selectedFormats.value) {
-          if (format == 'image' && portfolioData.imageNotifier.value == null) {
+          if (format == 'image' && portfolioData.imageNotifier.value == null && portfolioData.imageUrl == null) {
             _showError("Image file is required");
             return false;
           }
-          if (format == 'audio' && portfolioData.audioNotifier.value == null) {
+          if (format == 'audio' && portfolioData.audioNotifier.value == null && portfolioData.audioUrl == null) {
             _showError("Audio file is required");
             return false;
           }
@@ -162,7 +230,7 @@ class _AddNewServiceScreenState extends ConsumerState<AddNewServiceScreen> {
     try {
       LoaderService.showLoader(context);
 
-      // Upload media files
+      // Upload media files if new files are selected
       await _uploadServiceMedia(portfolioData);
 
       // Submit to backend
@@ -172,14 +240,21 @@ class _AddNewServiceScreenState extends ConsumerState<AddNewServiceScreen> {
 
       LoaderService.hideLoader(context);
       final user = await ref.read(userProvider.notifier).loadUserProfile();
+
+      // Refresh statistics and services
       await ref.read(getCreatorServiceStatistics.notifier).getStats();
-      ref.watch(serviceProvider('published'));
+
+      // Refresh all service tabs by invalidating their providers
+      ref.invalidate(serviceProvider('published'));
+      ref.invalidate(serviceProvider('pending'));
+      ref.invalidate(serviceProvider('rejected'));
+
       await Navigator.pushReplacement(
         context,
         MaterialPageRoute(
           builder: (context) => Success(
-            title: 'Your new service has been submitted for review',
-            subtitle: 'We will review it and get back to you shortly.',
+            title: 'Your service has been updated successfully',
+            subtitle: 'The changes have been saved and submitted for review if necessary.',
             onButtonPressed: () {
               Navigator.pushReplacement(
                 context,
@@ -225,12 +300,11 @@ class _AddNewServiceScreenState extends ConsumerState<AddNewServiceScreen> {
         LoaderService.hideLoader(context);
         _isSubmitting = false;
       }
-
     }
   }
 
   Future<void> _uploadServiceMedia(PortfolioData data) async {
-    // Upload cover image
+    // Upload cover image only if a new one is selected
     if (data.coverNotifier.value != null) {
       data.coverUrl = await _uploadFileToCloudinary(
         file: data.coverNotifier.value!,
@@ -239,7 +313,7 @@ class _AddNewServiceScreenState extends ConsumerState<AddNewServiceScreen> {
       );
     }
 
-    // Upload other media based on selected formats
+    // Upload other media based on selected formats only if new files are selected
     for (final format in data.selectedFormats.value) {
       if (format == 'image' && data.imageNotifier.value != null) {
         data.imageUrl = await _uploadFileToCloudinary(
@@ -291,9 +365,9 @@ class _AddNewServiceScreenState extends ConsumerState<AddNewServiceScreen> {
     // Set values based on what formats were selected
     for (final format in portfolioFormats) {
       if (format == 'image') {
-        portfolioImage = portfolioData.imageUrl;
+        portfolioImage = portfolioData.imageUrl ?? widget.service.serviceImage;
       } else if (format == 'audio') {
-        portfolioAudio = portfolioData.audioUrl;
+        portfolioAudio = portfolioData.audioUrl ?? widget.service.serviceAudio;
       } else if (format == 'link') {
         portfolioLink = portfolioData.linkController.text;
       }
@@ -305,15 +379,16 @@ class _AddNewServiceScreenState extends ConsumerState<AddNewServiceScreen> {
       "service_name": serviceNameController.text,
       "service_description": serviceDescriptionController.text,
       "rate": rateController.text,
-      "cover_image": portfolioData.coverUrl,
+      "cover_image": portfolioData.coverUrl ?? widget.service.coverImage,
       "service_image": portfolioImage ?? '',
       "service_audio": portfolioAudio ?? '',
       "link": portfolioLink ?? '',
     };
 
     try {
-      final response = await ref.read(apiresponseProvider.notifier).createService(
-        payload: payload,
+      final response = await ref.read(apiresponseProvider.notifier).updateService(
+        serviceId: widget.service.id,
+        payload: payload, context: context,
       );
 
       if (!response.status) {
@@ -430,7 +505,6 @@ class _AddNewServiceScreenState extends ConsumerState<AddNewServiceScreen> {
             selectedSubCategoryId = value;
           },
         ),
-
       ],
     );
   }
@@ -465,6 +539,10 @@ class _AddNewServiceScreenState extends ConsumerState<AddNewServiceScreen> {
           audioFileNotifier: portfolioData.audioNotifier,
           linkController: portfolioData.linkController,
           selectedFormatsNotifier: portfolioData.selectedFormats,
+          // Pass existing URLs for display
+          existingCoverUrl: portfolioData.coverUrl,
+          existingImageUrl: portfolioData.imageUrl,
+          existingAudioUrl: portfolioData.audioUrl,
         ),
       ],
     );
@@ -524,7 +602,7 @@ class _AddNewServiceScreenState extends ConsumerState<AddNewServiceScreen> {
                 const Align(
                   alignment: Alignment.centerLeft,
                   child: Text(
-                    'Add a new service',
+                    'Edit service', // Changed from 'Add a new service'
                     style: TextStyle(
                       fontSize: 24,
                       color: Colors.white,
@@ -540,7 +618,7 @@ class _AddNewServiceScreenState extends ConsumerState<AddNewServiceScreen> {
                 ),
                 const SizedBox(height: 10),
                 RoundedButton(
-                  title: _currentStep == 2 ? 'Submit' : 'Continue',
+                  title: _currentStep == 2 ? 'Update Service' : 'Continue', // Changed button text
                   onPressed: _handleContinue,
                   color: AppColors.BUTTONCOLOR,
                 ),

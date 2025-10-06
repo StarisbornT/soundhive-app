@@ -122,16 +122,16 @@ class _TransactionHistoryScreenState extends ConsumerState<TransactionHistory>{
 
 }
 
-class TransactionCard extends StatelessWidget {
+class TransactionCard extends ConsumerWidget {
   final Transaction transaction;
 
-  const TransactionCard({Key? key, required this.transaction}) : super(key: key);
+  const TransactionCard({super.key, required this.transaction});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     return ListTile(
       leading: CircleAvatar(
-        backgroundColor: Color.fromRGBO(188, 174, 226, 0.3),
+        backgroundColor: const Color.fromRGBO(188, 174, 226, 0.3),
         child: Icon(
           transaction.type == "DEBIT" ? FontAwesomeIcons.arrowDown : FontAwesomeIcons.arrowUp,
           color: Colors.white,
@@ -159,14 +159,11 @@ class TransactionCard extends StatelessWidget {
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
           Text(
-            Utils.formatCurrency(transaction.amount),
-            style:  GoogleFonts.roboto(
-              textStyle: const TextStyle(
-                color: Colors.white,
-                fontSize: 16,
-                fontWeight: FontWeight.bold,
-                fontFamily: 'Roboto',
-              )
+           "${ref.userCurrency} ${transaction.amount}",
+            style: const TextStyle(
+              color: Colors.white,
+              fontSize: 16,
+              fontWeight: FontWeight.bold,
             ),
           ),
           Text(

@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:soundhive2/utils/utils.dart';
 import '../utils/app_colors.dart';
 
 class LabeledTextField extends StatelessWidget {
@@ -537,7 +539,7 @@ class LabeledMultiSelectField extends StatelessWidget {
 }
 
 
-class CurrencyInputField extends StatefulWidget {
+class CurrencyInputField extends ConsumerStatefulWidget {
   final String label;
   final String? hintText;
   final String suffixText;
@@ -556,10 +558,10 @@ class CurrencyInputField extends StatefulWidget {
   });
 
   @override
-  State<CurrencyInputField> createState() => _CurrencyInputFieldState();
+  ConsumerState<CurrencyInputField> createState() => _CurrencyInputFieldState();
 }
 
-class _CurrencyInputFieldState extends State<CurrencyInputField> {
+class _CurrencyInputFieldState extends ConsumerState<CurrencyInputField> {
   late TextEditingController _internalController;
 
   @override
@@ -618,12 +620,6 @@ class _CurrencyInputFieldState extends State<CurrencyInputField> {
       );
     }
 
-    // Remove this block — it prevents deletion
-    // if (_internalController.text.isEmpty || _internalController.text == '0') {
-    //   _internalController.text = '0.00';
-    // }
-
-    // Call the user-provided onChanged callback
     if (widget.onChanged != null) {
       widget.onChanged!(_internalController.text);
     }
@@ -649,19 +645,17 @@ class _CurrencyInputFieldState extends State<CurrencyInputField> {
           controller: _internalController,
           keyboardType: TextInputType.number,
           inputFormatters: [
-            FilteringTextInputFormatter.allow(RegExp(r'^\d*\.?\d{0,2}')), // Allow digits and at most two decimal places
+            FilteringTextInputFormatter.allow(RegExp(r'^\d*\.?\d{0,2}')),
           ],
           validator: widget.validator,
           decoration: InputDecoration(
             hintText: widget.hintText,
-            hintStyle: const TextStyle(color: Color(0xFF7C7C88)), // Adjust hint color for dark background
-            prefixText: '₦', // Naira symbol prefix
-            prefixStyle:  GoogleFonts.roboto(
-              textStyle: const TextStyle(
-                color: Color(0xFF7C7C88),
-                fontSize: 18,
-                fontWeight: FontWeight.w500,
-              )
+            hintStyle: const TextStyle(color: Color(0xFF7C7C88)),
+            prefix: Text(
+              '${ref.creatorCurrencySymbol} ',
+              style: const TextStyle(
+                color: Colors.white,
+              ),
             ),
             suffixText: widget.suffixText,
             suffixStyle: const TextStyle(
@@ -669,7 +663,7 @@ class _CurrencyInputFieldState extends State<CurrencyInputField> {
               fontSize: 16,
             ),
             filled: true,
-            fillColor: Colors.black, // Black background for the input field
+            fillColor: Colors.black,
             border: OutlineInputBorder(
               borderRadius: BorderRadius.circular(12.0), // Rounded corners
               borderSide: const BorderSide(color: Colors.white38), // Subtle border
