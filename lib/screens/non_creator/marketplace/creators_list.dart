@@ -1,15 +1,17 @@
 
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:soundhive2/screens/non_creator/marketplace/creator.dart';
 
+import 'package:soundhive2/lib/dashboard_provider/creatorProvider.dart';
 import '../../../model/creator_model.dart';
 import '../../../utils/app_colors.dart';
 import '../../../utils/utils.dart';
 
 class CreatorsList extends ConsumerStatefulWidget {
-  final List<CreatorData> creator;
-  const CreatorsList({Key? key, required this.creator}) : super(key: key);
+  const CreatorsList({Key? key}) : super(key: key);
 
   @override
   _CreatorsListState createState() => _CreatorsListState();
@@ -17,40 +19,58 @@ class CreatorsList extends ConsumerStatefulWidget {
 
 class _CreatorsListState extends ConsumerState<CreatorsList> {
   final TextEditingController _searchController = TextEditingController();
-  List<dynamic> _filteredCreators = []; // State variable for filtered list
+  Timer? _searchDebounce;
+  final ScrollController _scrollController = ScrollController();
 
   @override
   void initState() {
     super.initState();
-    _filteredCreators = widget.creator; // Initialize with all creators
+    // Load creators when widget initializes
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      ref.read(creatorProvider.notifier).getCreators();
+    });
 
-    _searchController.addListener(_filterCreators); // Listen to search
+    _searchController.addListener(_onSearchChanged);
+
+    // Setup infinite scroll
+    _scrollController.addListener(_onScroll);
   }
 
-  void _filterCreators() {
-    final query = _searchController.text.toLowerCase();
+  void _onSearchChanged() {
+    if (_searchDebounce?.isActive ?? false) _searchDebounce?.cancel();
 
-    setState(() {
-      _filteredCreators = widget.creator.where((c) {
-        final firstName = c.user?.firstName.toLowerCase() ?? '';
-        final lastName = c.user?.lastName.toLowerCase() ?? '';
-        final jobTitle = c.jobTitle.toLowerCase() ?? '';
-
-        return firstName.contains(query) ||
-            lastName.contains(query) ||
-            jobTitle.contains(query);
-      }).toList();
+    _searchDebounce = Timer(const Duration(milliseconds: 500), () {
+      final searchQuery = _searchController.text.trim();
+      if (searchQuery.isEmpty) {
+        // If search is cleared, load without search
+        ref.read(creatorProvider.notifier).getCreators(page: 1);
+      } else {
+        // Perform search
+        ref.read(creatorProvider.notifier).searchCreators(searchQuery);
+      }
     });
+  }
+
+  void _onScroll() {
+    if (_scrollController.position.pixels ==
+        _scrollController.position.maxScrollExtent) {
+      // Load more data when reaching the bottom
+      ref.read(creatorProvider.notifier).loadNextPage();
+    }
   }
 
   @override
   void dispose() {
     _searchController.dispose();
+    _searchDebounce?.cancel();
+    _scrollController.dispose();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
+    final creatorState = ref.watch(creatorProvider);
+
     return Scaffold(
       backgroundColor: AppColors.BACKGROUNDCOLOR,
       appBar: AppBar(
@@ -75,6 +95,7 @@ class _CreatorsListState extends ConsumerState<CreatorsList> {
               ),
             ),
             const SizedBox(height: 20),
+
             // Search Box
             Container(
               margin: const EdgeInsets.only(bottom: 16),
@@ -85,55 +106,138 @@ class _CreatorsListState extends ConsumerState<CreatorsList> {
               child: TextField(
                 controller: _searchController,
                 style: const TextStyle(color: Colors.white),
-                decoration: const InputDecoration(
-                  hintText: 'Search',
-                  hintStyle: TextStyle(color: Colors.white38),
-                  prefixIcon: Icon(Icons.search, color: Colors.white38),
+                decoration: InputDecoration(
+                  hintText: 'Search creators...',
+                  hintStyle: const TextStyle(color: Colors.white38),
+                  prefixIcon: const Icon(Icons.search, color: Colors.white38),
                   border: InputBorder.none,
-                  contentPadding: EdgeInsets.all(16),
+                  contentPadding: const EdgeInsets.all(16),
+                  suffixIcon: _searchController.text.isNotEmpty
+                      ? IconButton(
+                    icon: const Icon(Icons.clear, color: Colors.white38),
+                    onPressed: () {
+                      _searchController.clear();
+                      ref.read(creatorProvider.notifier).getCreators(page: 1);
+                    },
+                  )
+                      : null,
                 ),
               ),
             ),
 
             // Creator List
             Expanded(
-              child: _filteredCreators.isEmpty
-                  ? const Center(
-                child: Text(
-                  'No Creator found.',
-                  style: TextStyle(color: Colors.white60),
+              child: creatorState.when(
+                loading: () => const Center(
+                  child: CircularProgressIndicator(color: Colors.white),
                 ),
-              )
-                  : GridView.builder(
-                itemCount: _filteredCreators.length,
-                physics: const BouncingScrollPhysics(),
-                gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                  crossAxisCount: 3,
-                  childAspectRatio: 0.5,
-                  crossAxisSpacing: 12,
-                  mainAxisSpacing: 16,
+                error: (error, stack) => Center(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Text(
+                        'Failed to load creators',
+                        style: TextStyle(
+                          color: Colors.white60,
+                          fontSize: 16,
+                        ),
+                      ),
+                      const SizedBox(height: 10),
+                      ElevatedButton(
+                        onPressed: () {
+                          ref.read(creatorProvider.notifier).getCreators();
+                        },
+                        child: Text('Retry'),
+                      ),
+                    ],
+                  ),
                 ),
-                itemBuilder: (context, index) {
-                  final creators = _filteredCreators[index];
-                  return GestureDetector(
-                    onTap: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => CreatorProfile(
-                            creator: creators,
+                data: (creatorResponse) {
+                  final creators = creatorResponse.user?.data ?? [];
+
+                  if (creators.isEmpty) {
+                    return Center(
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(
+                            Icons.search_off,
+                            color: Colors.white38,
+                            size: 64,
                           ),
+                          const SizedBox(height: 16),
+                          Text(
+                            _searchController.text.isEmpty
+                                ? 'No creators found'
+                                : 'No creators found for "${_searchController.text}"',
+                            style: TextStyle(
+                              color: Colors.white60,
+                              fontSize: 16,
+                            ),
+                          ),
+                          if (_searchController.text.isNotEmpty) ...[
+                            const SizedBox(height: 10),
+                            TextButton(
+                              onPressed: () {
+                                _searchController.clear();
+                                ref.read(creatorProvider.notifier).getCreators(page: 1);
+                              },
+                              child: Text(
+                                'Clear search',
+                                style: TextStyle(color: Colors.blue),
+                              ),
+                            ),
+                          ],
+                        ],
+                      ),
+                    );
+                  }
+
+                  return GridView.builder(
+                    controller: _scrollController,
+                    itemCount: creators.length + 1, // +1 for loading indicator
+                    physics: const BouncingScrollPhysics(),
+                    gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                      crossAxisCount: 3,
+                      childAspectRatio: 0.5,
+                      crossAxisSpacing: 12,
+                      mainAxisSpacing: 16,
+                    ),
+                    itemBuilder: (context, index) {
+                      // Show loading indicator at the end
+                      if (index == creators.length) {
+                        final hasMorePages = creatorResponse.user?.nextPageUrl != null;
+                        if (hasMorePages) {
+                          return const Center(
+                            child: CircularProgressIndicator(color: Colors.white),
+                          );
+                        } else {
+                          return const SizedBox.shrink();
+                        }
+                      }
+
+                      final creator = creators[index];
+                      return GestureDetector(
+                        onTap: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => CreatorProfile(
+                                creator: creator,
+                              ),
+                            ),
+                          );
+                        },
+                        child: Utils.buildCreativeCard(
+                          context,
+                          name: '${creator.user?.firstName} ${creator.user?.lastName}',
+                          role: creator.jobTitle ?? '',
+                          rating: 4.8,
+                          profileImage: creator.user?.image ?? '',
+                          firstName: creator.user?.firstName ?? '',
                         ),
                       );
                     },
-                    child: Utils.buildCreativeCard(
-                      context,
-                      name: '${creators.user?.firstName} ${creators.user?.lastName}',
-                      role: creators.jobTitle ?? '',
-                      rating: 4.8,
-                      profileImage: creators.user?.image ?? '',
-                      firstName: creators.user!.firstName,
-                    ),
                   );
                 },
               ),

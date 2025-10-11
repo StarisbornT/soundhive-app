@@ -131,7 +131,7 @@ class _MarketplaceState extends ConsumerState<Marketplace>
       if (!mounted) return;
       await Future.microtask(() {
         if (mounted) {
-          ref.read(creatorProvider.notifier).getCreator();
+          ref.read(creatorProvider.notifier).getCreators();
         }
       });
 
@@ -1540,7 +1540,7 @@ class _CreativesSectionState extends State<CreativesSection> {
                     ? () => Navigator.push(
                   context,
                   MaterialPageRoute(
-                    builder: (context) => CreatorsList(creator: creators),
+                    builder: (context) => const CreatorsList(),
                   ),
                 )
                     : null,

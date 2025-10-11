@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:soundhive2/screens/creator/creator_dashboard.dart';
 import 'package:soundhive2/screens/non_creator/non_creator_profile.dart';
 import 'package:soundhive2/screens/non_creator/settings/settings.dart';
+import 'package:soundhive2/screens/non_creator/streaming/preference.dart';
 import 'package:soundhive2/screens/non_creator/streaming/streaming.dart';
 import 'package:soundhive2/screens/non_creator/vest/vest.dart';
 import 'package:soundhive2/screens/non_creator/wallet/transaction_history.dart';
@@ -197,15 +198,26 @@ class NonCreatorDashboard extends ConsumerWidget {
                           ),
                         );
                       }),
-                      _buildDrawerItem(icon: 'images/music.png', text: 'Streaming', onTap: () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (context) =>  const Streaming(),
-                          ),
-                        );
+                      _buildDrawerItem(icon: 'images/music.png', text: 'Cre8Hive- Stream Music', onTap: () {
+                        if(user?.interests == null) {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) =>  const PreferenceScreen(),
+                            ),
+                          );
+                        }else {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => const Streaming(
+                              ),
+                            ),
+                          );
+                        }
+
                       }),
-                      _buildDrawerItem(icon: 'images/soundhive.png', text: 'Soundhive Vest', onTap: () {
+                      _buildDrawerItem(icon: 'images/soundhive.png', text: 'Cre8Vest', onTap: () {
                         Navigator.pop(context);
                         ref.read(bottomNavigationProvider.notifier).state = 2;
                       }),

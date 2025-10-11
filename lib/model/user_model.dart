@@ -18,7 +18,6 @@ class User {
   final String phoneNumber;
   final String pin;
   final String? image;
-  final dynamic interest;
   final String role;
   final String email;
   final String? emailVerifiedAt;
@@ -52,6 +51,8 @@ class User {
   final String updatedAt;
   final Creator? creator;
   final Wallet? wallet;
+  final Artist? artist;
+  final List<dynamic>? interests;
 
   User({
     required this.id,
@@ -61,7 +62,6 @@ class User {
     required this.phoneNumber,
     required this.pin,
     this.image,
-    this.interest,
     required this.role,
     required this.email,
     this.emailVerifiedAt,
@@ -95,6 +95,8 @@ class User {
     required this.updatedAt,
     this.creator,
     this.wallet,
+    this.artist,
+    this.interests
   });
 
   factory User.fromJson(Map<String, dynamic> json) {
@@ -106,7 +108,6 @@ class User {
       phoneNumber: json['phone_number'] ?? '',
       pin: json['pin'] ?? '',
       image: json['image'],
-      interest: json['interest'],
       role: json['role'] ?? '',
       email: json['email'] ?? '',
       emailVerifiedAt: json['email_verified_at'],
@@ -138,8 +139,14 @@ class User {
       bvnReference: json['bvn_reference'],
       createdAt: json['created_at'] ?? '',
       updatedAt: json['updated_at'] ?? '',
+      interests: (json['interests'] is List)
+          ? json['interests']
+          : (json['interests'] is String && json['interests'].isNotEmpty)
+          ? [json['interests']]
+          : [],
       creator: json['creator'] != null ? Creator.fromJson(json['creator']) : null,
       wallet: json['wallet'] != null ? Wallet.fromJson(json['wallet']) : null,
+      artist: json['artist'] != null ? Artist.fromJson(json['artist']) : null,
     );
   }
 }
@@ -206,6 +213,41 @@ class Creator {
       createdAt: json['created_at'] ?? '',
       updatedAt: json['updated_at'] ?? '',
       baseCurrency: json['base_currency'] ?? '',
+    );
+  }
+}
+
+class Artist {
+  final int id;
+  final String userId;
+  final String? userName;
+  final String? profilePhoto;
+  final String? coverPhoto;
+  final bool? status;
+  final String createdAt;
+  final String updatedAt;
+
+  Artist({
+    required this.id,
+    required this.userId,
+    required this.userName,
+    required this.profilePhoto,
+    required this.coverPhoto,
+    required this.status,
+    required this.createdAt,
+    required this.updatedAt,
+  });
+
+  factory Artist.fromJson(Map<String, dynamic> json) {
+    return Artist(
+      id: json['id'] ?? 0,
+      userId: json['user_id'] ?? '',
+      userName: json['username'],
+      profilePhoto: json['profile_photo'],
+      coverPhoto: json['cover_photo'],
+      status: json['status'],
+      createdAt: json['created_at'] ?? '',
+      updatedAt: json['updated_at'] ?? '',
     );
   }
 }

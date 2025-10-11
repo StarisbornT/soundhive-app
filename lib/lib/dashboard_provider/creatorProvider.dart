@@ -16,16 +16,24 @@ class CreatorNotifier extends StateNotifier<AsyncValue<CreatorListResponse>> {
   final FlutterSecureStorage _storage;
   int _currentPage = 1;
   bool _isFetching = false;
+  String _currentSearch = '';
 
   CreatorNotifier(this._dio, this._storage) : super(const AsyncValue.loading());
 
-  Future<void> getCreator({int page = 1, bool append = false}) async {
-    if (_isFetching) return; // prevent double-calls
+  Future<void> getCreators({int page = 1, bool append = false, String search = ''}) async {
+    if (_isFetching) return;
     _isFetching = true;
 
     try {
+      // Build query parameters
+      final Map<String, dynamic> queryParams = {'page': page};
+      if (search.isNotEmpty) {
+        queryParams['search'] = search;
+      }
+
       final response = await _dio.get(
-        '/creators?page=$page',
+        '/creators',
+        queryParameters: queryParams,
         options: Options(headers: {
           'Accept': 'application/json',
           'Content-Type': 'application/json',
@@ -34,7 +42,7 @@ class CreatorNotifier extends StateNotifier<AsyncValue<CreatorListResponse>> {
 
       final newResponse = CreatorListResponse.fromMap(response.data);
 
-      if (append && state.hasValue) {
+      if (append && state.hasValue && search == _currentSearch) {
         final oldData = state.value!;
         final combined = CreatorListResponse(
           message: newResponse.message,
@@ -62,6 +70,7 @@ class CreatorNotifier extends StateNotifier<AsyncValue<CreatorListResponse>> {
       }
 
       _currentPage = newResponse.user?.currentPage ?? 1;
+      _currentSearch = search;
     } catch (error, stackTrace) {
       state = AsyncValue.error(error, stackTrace);
     } finally {
@@ -69,12 +78,22 @@ class CreatorNotifier extends StateNotifier<AsyncValue<CreatorListResponse>> {
     }
   }
 
+  Future<void> searchCreators(String searchQuery) async {
+    // Reset to first page when searching
+    await getCreators(page: 1, search: searchQuery);
+  }
+
   Future<void> loadNextPage() async {
     final nextPage = _currentPage + 1;
     if (state.hasValue &&
         nextPage <= (state.value?.user?.lastPage ?? 1)) {
-      await getCreator(page: nextPage, append: true);
+      await getCreators(page: nextPage, append: true, search: _currentSearch);
     }
+  }
+
+  void clearSearch() {
+    _currentSearch = '';
+    getCreators(page: 1);
   }
 }
 

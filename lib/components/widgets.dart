@@ -8,6 +8,7 @@ import 'package:image_picker/image_picker.dart';
 import 'package:soundhive2/components/rounded_button.dart';
 import '../lib/dashboard_provider/getAccountBalanceProvider.dart';
 import '../model/user_model.dart';
+import '../screens/creator/profile/setup_screen.dart';
 import '../screens/dashboard/transaction_history.dart';
 import '../screens/dashboard/withdraw.dart';
 import '../utils/app_colors.dart';
@@ -18,42 +19,42 @@ import 'package:intl/intl.dart';
 import 'image_picker.dart';
 import 'label_text.dart';
 
-class WalletCard extends StatelessWidget {
+class WalletCard extends ConsumerWidget {
   final String balance;
   final VoidCallback onAddFunds;
 
   const WalletCard({
-    Key? key,
+    super.key,
     required this.balance,
     required this.onAddFunds,
-  }) : super(key: key);
+  });
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     return Container(
-      padding: EdgeInsets.all(16),
+      padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Color(0xFF4D3490),
+        color: const Color(0xFF4D3490),
         borderRadius: BorderRadius.circular(12),
       ),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Text(
+          const Text(
             'Soundhive Vest wallet',
             style: TextStyle(color: Colors.white70, fontSize: 12),
           ),
-          SizedBox(height: 8),
+          const SizedBox(height: 8),
           Text(
-            Utils.formatCurrency(balance),
-            style: TextStyle(
+            ref.formatUserCurrency(balance),
+            style: const TextStyle(
               fontSize: 28,
               fontWeight: FontWeight.bold,
               fontFamily: 'Roboto',
               color: Colors.white,
             ),
           ),
-          SizedBox(height: 12),
+          const SizedBox(height: 12),
 
           // Buttons Row
           Row(
@@ -61,14 +62,14 @@ class WalletCard extends StatelessWidget {
             children: [
               ElevatedButton.icon(
                 onPressed: onAddFunds,
-                icon: Icon(Icons.add, color: Color(0xFF4D3490), size: 18),
-                label: Text(
+                icon: const Icon(Icons.add, color: Color(0xFF4D3490), size: 18),
+                label: const Text(
                   'Add funds',
                   style: TextStyle(color: Color(0xFF4D3490), fontSize: 14),
                 ),
                 style: ElevatedButton.styleFrom(
                   backgroundColor: Colors.white,
-                  padding: EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(20),
                   ),
@@ -84,14 +85,14 @@ class WalletCard extends StatelessWidget {
                     ),
                   );
                 },
-                icon: Icon(Icons.download, color: Colors.white, size: 18),
-                label: Text(
+                icon: const Icon(Icons.download, color: Colors.white, size: 18),
+                label: const Text(
                   'Withdraw',
                   style: TextStyle(color: Colors.white, fontSize: 14),
                 ),
                 style: OutlinedButton.styleFrom(
-                  padding: EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-                  side: BorderSide(color: Colors.white),
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                  side: const BorderSide(color: Colors.white),
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(20),
                   ),
@@ -99,7 +100,7 @@ class WalletCard extends StatelessWidget {
               ),
             ],
           ),
-          SizedBox(height: 12),
+          const SizedBox(height: 12),
 
           GestureDetector(
             onTap: () {
@@ -356,9 +357,11 @@ class FileUploadField extends StatelessWidget {
   final String uploadText;
   final String supportedFileTypes;
   final String maxFileSize;
-  final VoidCallback? onTap; // Callback when the upload area is tapped
-  final IconData uploadIcon; // Icon for the upload area
+  final VoidCallback? onTap;
+  final IconData uploadIcon;
   final String? fileName;
+  final bool isUploading;
+  final double progress;
 
   const FileUploadField({
     super.key,
@@ -368,7 +371,9 @@ class FileUploadField extends StatelessWidget {
     this.maxFileSize = 'Max file size: N/A',
     this.onTap,
     this.fileName,
-    this.uploadIcon = Icons.cloud_upload_outlined, // Default upload icon
+    this.uploadIcon = Icons.cloud_upload_outlined,
+    this.isUploading = false,
+    this.progress = 0.0,
   });
 
   @override
@@ -381,38 +386,33 @@ class FileUploadField extends StatelessWidget {
           style: const TextStyle(
             fontSize: 14,
             fontWeight: FontWeight.w400,
-            color: AppColors.WHITECOLOR,
+            color: Colors.white,
           ),
         ),
         const SizedBox(height: 8),
         GestureDetector(
-          onTap: onTap, // Call the provided onTap callback
+          onTap: isUploading ? null : onTap,
           child: Container(
-            width: double.infinity, // Full width
+            width: double.infinity,
             padding: const EdgeInsets.symmetric(vertical: 40, horizontal: 20),
             decoration: BoxDecoration(
-              color: Colors.black, // Black background for the upload area
-              borderRadius: BorderRadius.circular(12.0), // Rounded corners
-              border: Border.all(color: Colors.white38), // Subtle border
+              color: Colors.black,
+              borderRadius: BorderRadius.circular(12.0),
+              border: Border.all(color: Colors.white38),
             ),
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Icon(
-                  uploadIcon,
-                  size: 30,
-                  color: Colors.white, // White icon
-                ),
+                Icon(uploadIcon, size: 30, color: Colors.white),
                 const SizedBox(height: 16),
                 Text(
                   uploadText,
                   style: const TextStyle(
-                    color: Colors.white, // White text for upload prompt
+                    color: Colors.white,
                     fontSize: 14,
                     fontWeight: FontWeight.w300,
                   ),
                 ),
-                const SizedBox(height: 8),
                 if (fileName != null) ...[
                   const SizedBox(height: 8),
                   Text(
@@ -424,11 +424,30 @@ class FileUploadField extends StatelessWidget {
                     overflow: TextOverflow.ellipsis,
                   ),
                 ],
+                const SizedBox(height: 8),
+                if (isUploading) ...[
+                  const SizedBox(height: 8),
+                  LinearProgressIndicator(
+                    value: progress,
+                    color: Colors.greenAccent,
+                    backgroundColor: Colors.white24,
+                    minHeight: 6,
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    '${(progress * 100).toStringAsFixed(0)}% uploaded',
+                    style: const TextStyle(
+                      color: Colors.white70,
+                      fontSize: 12,
+                    ),
+                  ),
+                ],
+                const SizedBox(height: 8),
                 Text(
                   supportedFileTypes,
                   textAlign: TextAlign.center,
                   style: const TextStyle(
-                    color: Colors.white54, // Faded text for file types
+                    color: Colors.white54,
                     fontSize: 12,
                   ),
                 ),
@@ -436,7 +455,7 @@ class FileUploadField extends StatelessWidget {
                   maxFileSize,
                   textAlign: TextAlign.center,
                   style: const TextStyle(
-                    color: Colors.white54, // Faded text for file size
+                    color: Colors.white54,
                     fontSize: 12,
                   ),
                 ),
@@ -448,6 +467,7 @@ class FileUploadField extends StatelessWidget {
     );
   }
 }
+
 
 class CurrencyInputFormatter extends TextInputFormatter {
   final NumberFormat _formatter = NumberFormat.currency(
@@ -1292,5 +1312,33 @@ class ConfirmBottomSheet {
   }
 }
 
+
+class CreatorBanner extends StatelessWidget {
+  final MemberCreatorResponse user;
+
+  const CreatorBanner({super.key, required this.user});
+
+  bool get _shouldShowBanner {
+    final creator = user.user?.creator;
+    return creator == null || !(creator.active ?? false);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (!_shouldShowBanner) return const SizedBox.shrink();
+
+    return GestureDetector(
+      onTap: () {
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => SetupScreen(user: user),
+          ),
+        );
+      },
+      child: Image.asset('images/banner.png'),
+    );
+  }
+}
 
 

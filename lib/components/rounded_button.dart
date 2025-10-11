@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../utils/app_colors.dart';
+
 class RoundedButton extends StatelessWidget {
   final String title;
 
@@ -19,7 +21,7 @@ class RoundedButton extends StatelessWidget {
     required this.title,
     required this.onPressed,
     this.isBusy = false,
-    this.color,
+    this.color = AppColors.PRIMARYCOLOR,
     this.borderColor = Colors.black,
     this.borderWidth = 2.0,
     this.borderRadius = 100.0,

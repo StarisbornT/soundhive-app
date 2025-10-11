@@ -1,6 +1,8 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter/material.dart';
 import 'package:soundhive2/lib/dashboard_provider/user_provider.dart';
+import 'package:soundhive2/screens/creator/artist_arena/aritst_arena.dart';
+import 'package:soundhive2/screens/creator/artist_arena/artist_profile_screen.dart';
 import 'package:soundhive2/screens/creator/chat_screen/chats.dart';
 import 'package:soundhive2/screens/creator/profile/profile_screen.dart';
 import 'package:soundhive2/screens/creator/services/services.dart';
@@ -203,12 +205,22 @@ class CreatorDashboard extends ConsumerWidget {
                         );
                       }),
                       _buildDrawerItem(icon: 'images/artist.png', text: 'Artist Arena', onTap: () {
-                        // Navigator.push(
-                        //   context,
-                        //   MaterialPageRoute(
-                        //     builder: (context) =>  const SoundhiveVest(),
-                        //   ),
-                        // );
+                        if(user?.artist != null) {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) =>  ArtistProfileScreen(user: userData),
+                            ),
+                          );
+                        }else {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) =>  ArtistArena(user: userData),
+                            ),
+                          );
+                        }
+
                       }),
                       _buildDrawerItem(icon: 'images/artist.png', text: 'Chats', onTap: () {
                         Navigator.push(
