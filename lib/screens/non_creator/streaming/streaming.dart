@@ -2,12 +2,17 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:soundhive2/model/artist_song_model.dart';
 import 'package:soundhive2/screens/non_creator/streaming/play_music.dart';
+import 'package:soundhive2/screens/non_creator/streaming/song_helper.dart';
 
-import '../../../components/widgets.dart';
+import '../../../components/label_text.dart';
+import '../../../components/rounded_button.dart';
 import 'package:soundhive2/lib/dashboard_provider/getAllSongsProvider.dart';
 import 'package:soundhive2/lib/dashboard_provider/user_provider.dart';
-import '../../../lib/audio_player_provider.dart';
+import 'package:soundhive2/lib/audio_player_provider.dart';
+import 'package:soundhive2/lib/dashboard_provider/getPlayListProvider.dart';
+import '../../../model/playlist_model.dart';
 import '../../../utils/app_colors.dart';
+import 'artist_profile.dart';
 
 class Track {
   final String title;
@@ -27,11 +32,13 @@ class Streaming extends ConsumerStatefulWidget {
   const Streaming({super.key});
 
   @override
-  _StreamingState createState() => _StreamingState();
+  ConsumerState<Streaming> createState() => _StreamingState();
 }
 
 class _StreamingState extends ConsumerState<Streaming> {
   final TextEditingController _searchController = TextEditingController();
+  final TextEditingController _playlistTitleController = TextEditingController();
+  final TextEditingController _renameController = TextEditingController();
   String? selectedType;
 
   @override
@@ -39,16 +46,18 @@ class _StreamingState extends ConsumerState<Streaming> {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) async {
       await ref.read(getAllSongsProvider.notifier).getAllSongs();
+      await ref.read(getPlaylistProvider.notifier).getPlaylists();
     });
   }
+
   List<String> types = [
     "Gospel", "Metal", "Rock", "Hip-Pop", "Reggae",
     "Country", "Classical", "Jazz", "Blues"
   ];
+
   Widget _buildSearchAndFilter() {
     return Row(
       children: [
-        // 🔍 Search box
         Expanded(
           child: Container(
             height: 48,
@@ -85,10 +94,7 @@ class _StreamingState extends ConsumerState<Streaming> {
             ),
           ),
         ),
-
         const SizedBox(width: 10.0),
-
-        // 🎚️ Filter button
         Container(
           decoration: BoxDecoration(
             color: AppColors.BACKGROUNDCOLOR,
@@ -107,6 +113,7 @@ class _StreamingState extends ConsumerState<Streaming> {
       ],
     );
   }
+
   void _showTypeFilterBottomSheet() {
     showModalBottomSheet(
       context: context,
@@ -162,7 +169,7 @@ class _StreamingState extends ConsumerState<Streaming> {
       },
     );
   }
-  // Widget for a single track list item
+
   Widget _buildTrackItem(SongItem song) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 12.0),
@@ -174,7 +181,7 @@ class _StreamingState extends ConsumerState<Streaming> {
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(8.0),
             image: DecorationImage(
-              image: NetworkImage(song.coverPhoto), // ✅ Use song cover
+              image: NetworkImage(song.coverPhoto),
               fit: BoxFit.cover,
             ),
           ),
@@ -187,7 +194,7 @@ class _StreamingState extends ConsumerState<Streaming> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              song.artist?.userName ?? "Unknown Artist",
+              "${song.artist?.userName ?? "Unknown Artist"} - ${song.artist?.followers} followers",
               style: const TextStyle(color: AppColors.TEXT_SECONDARY, fontSize: 12),
             ),
             Text(
@@ -196,8 +203,10 @@ class _StreamingState extends ConsumerState<Streaming> {
             ),
           ],
         ),
-        trailing: const Icon(Icons.more_vert, color: AppColors.TEXT_SECONDARY),
-        // In the _buildTrackItem method, update the onTap:
+        trailing: IconButton(
+          icon: const Icon(Icons.more_vert, color: AppColors.TEXT_SECONDARY),
+          onPressed: () => _showSongOptions(song),
+        ),
         onTap: () {
           final songsState = ref.read(getAllSongsProvider);
           List<SongItem>? playlist;
@@ -215,7 +224,7 @@ class _StreamingState extends ConsumerState<Streaming> {
             MaterialPageRoute(
               builder: (context) => PlayMusic(
                 song: song,
-                playlist: playlist, // Pass the entire playlist
+                playlist: playlist,
               ),
             ),
           );
@@ -223,14 +232,169 @@ class _StreamingState extends ConsumerState<Streaming> {
       ),
     );
   }
-  // Widget for the persistent mini player at the bottom
-  // In Streaming screen - _buildMiniPlayer method
-  // In the Streaming screen - _buildMiniPlayer method
+
+  void _showSongOptions(SongItem song) {
+    SharedBottomSheets.showSongOptions(
+      context: context,
+      song: song,
+      ref: ref,
+      onAddToPlaylist: () => _showAddToPlaylist(song),
+      onArtistProfile: () => _navigateToArtistProfile(song),
+    );
+  }
+
+  void _showAddToPlaylist(SongItem song) {
+    SharedBottomSheets.showAddToPlaylist(
+      context: context,
+      song: song,
+      ref: ref,
+      onCreatePlaylist: () => _showCreatePlaylistBottomSheet(),
+      onPlaylistTap: (playlist, songToAdd) => _onPlaylistTap(playlist, songToAdd),
+      onPlaylistRename: (playlist) => _onPlaylistRename(playlist),
+      onPlaylistDelete: (playlist) => _onPlaylistDelete(playlist),
+    );
+  }
+
+  void _onPlaylistTap(Playlist playlist, SongItem songToAdd) {
+    Navigator.pop(context);
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text('Added ${songToAdd.title} to ${playlist.title}'),
+      ),
+    );
+  }
+
+  void _onPlaylistRename(Playlist playlist) {
+    Navigator.pop(context);
+    SharedBottomSheets.showRenamePlaylist(
+      context: context,
+      playlist: playlist,
+      renameController: _renameController,
+      onRename: () => _renamePlaylist(playlist.id),
+    );
+  }
+
+  void _onPlaylistDelete(Playlist playlist) {
+    Navigator.pop(context);
+    SharedBottomSheets.showDeletePlaylistConfirmation(
+      context: context,
+      playlist: playlist,
+      onDelete: () => _deletePlaylist(playlist.id),
+    );
+  }
+
+  void _renamePlaylist(int playlistId) async {
+    try {
+      final playlistService = ref.read(playlistServiceProvider);
+      final response = await playlistService.renamePlaylist(
+        context: context,
+        playlistId: playlistId,
+        title: _renameController.text,
+      );
+
+      if (response.status) {
+        Navigator.pop(context);
+        _renameController.clear();
+        playlistService.refreshPlaylists();
+      }
+    } catch (error) {
+      ErrorHandler.showErrorAlert(context: context, error: error);
+    }
+  }
+
+  void _deletePlaylist(int playlistId) async {
+    try {
+      final playlistService = ref.read(playlistServiceProvider);
+      final response = await playlistService.deletePlaylist(
+        context: context,
+        playlistId: playlistId,
+      );
+
+      if (response.status) {
+        Navigator.pop(context);
+        playlistService.refreshPlaylists();
+      }
+    } catch (error) {
+      ErrorHandler.showErrorAlert(context: context, error: error);
+    }
+  }
+
+  void _navigateToArtistProfile(SongItem song) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => ArtistProfile(
+          artistId: int.parse(song.artistId),
+        ),
+      ),
+    );
+  }
+
+  void _showCreatePlaylistBottomSheet() {
+    BottomSheetHelper.showCommonBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      builder: (context) => _buildCreatePlaylistContent(),
+    );
+  }
+
+  Widget _buildCreatePlaylistContent() {
+    return BottomSheetHelper.buildBottomSheetWrapper(
+      context: context,
+      padding: EdgeInsets.only(
+        left: 12,
+        right: 12,
+        top: 12,
+        bottom: MediaQuery.of(context).viewInsets.bottom,
+      ),
+      child: SingleChildScrollView(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            BottomSheetHelper.buildBottomSheetHeader(
+              title: "Create new playlist",
+              onClose: () => Navigator.pop(context),
+            ),
+            const SizedBox(height: 20),
+            LabeledTextField(
+              label: 'Title of Playlist',
+              controller: _playlistTitleController,
+            ),
+            const SizedBox(height: 16),
+            RoundedButton(
+              title: 'Save playlist',
+              onPressed: _createPlaylist,
+              color: AppColors.PRIMARYCOLOR,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _createPlaylist() async {
+    try {
+      final playlistService = ref.read(playlistServiceProvider);
+      final response = await playlistService.createPlaylist(
+        context: context,
+        title: _playlistTitleController.text,
+      );
+
+      if (response.status) {
+        Navigator.pop(context);
+        _playlistTitleController.clear();
+        playlistService.refreshPlaylists();
+      }
+    } catch (error) {
+      ErrorHandler.showErrorAlert(context: context, error: error);
+    }
+  }
+
   Widget _buildMiniPlayer() {
     final audioState = ref.watch(audioPlayerProvider);
     final currentSong = audioState.currentSong;
 
-    // Don't show mini player if no song is playing
     if (currentSong == null) {
       return const SizedBox.shrink();
     }
@@ -254,7 +418,6 @@ class _StreamingState extends ConsumerState<Streaming> {
         padding: const EdgeInsets.symmetric(horizontal: 10.0),
         child: Row(
           children: [
-            // Album Art with proper error handling
             Container(
               width: 50,
               height: 50,
@@ -284,8 +447,6 @@ class _StreamingState extends ConsumerState<Streaming> {
                 ),
               ),
             ),
-
-            // Title and Artist
             Expanded(
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
@@ -304,8 +465,6 @@ class _StreamingState extends ConsumerState<Streaming> {
                 ],
               ),
             ),
-
-            // Play/Pause button
             IconButton(
               icon: Icon(
                 audioState.isPlaying ? Icons.pause : Icons.play_arrow,
@@ -342,10 +501,9 @@ class _StreamingState extends ConsumerState<Streaming> {
 
           return Column(
             children: tracks.map((song) {
-              return _buildTrackItem(song); // ✅ Pass the actual song model
+              return _buildTrackItem(song);
             }).toList(),
           );
-
         },
         loading: () => const Center(child: CircularProgressIndicator()),
         error: (e, _) => Center(child: Text('Error: $e', style: const TextStyle(color: Colors.red))),
@@ -379,16 +537,11 @@ class _StreamingState extends ConsumerState<Streaming> {
                   color: Colors.white,
                 ),
               ),
-              // 1. Verification Banner
-              CreatorBanner(user: user.value!,),
-
               const SizedBox(height: 10,),
-
-              // 2. Search and Filter
+              Image.asset('images/music_banner.png'),
+              const SizedBox(height: 10,),
               _buildSearchAndFilter(),
               const SizedBox(height: 10,),
-
-              // 3. Discover Header
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
@@ -402,12 +555,7 @@ class _StreamingState extends ConsumerState<Streaming> {
                   ),
                   OutlinedButton(
                     onPressed: () {
-                      // Navigator.push(
-                      //   context,
-                      //   MaterialPageRoute(
-                      //     builder: (context) => Categories(user: widget.user),
-                      //   ),
-                      // )
+                      // Navigate to categories if needed
                     },
                     style: OutlinedButton.styleFrom(
                       side: const BorderSide(color: Color(0xFF2C2C2C)),
@@ -423,17 +571,21 @@ class _StreamingState extends ConsumerState<Streaming> {
                 ],
               ),
               const SizedBox(height: 10.0),
-
-              // 4. Track List
               buildDiscoverSection(),
-
               const SizedBox(height: 70.0),
             ],
           ),
         ),
       ),
-      // 5. Mini Player (using bottomNavigationBar for persistence)
       bottomNavigationBar: _buildMiniPlayer(),
     );
+  }
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    _playlistTitleController.dispose();
+    _renameController.dispose();
+    super.dispose();
   }
 }

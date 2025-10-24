@@ -149,7 +149,11 @@ class NonCreatorDashboard extends ConsumerWidget {
                             CircleAvatar(
                               radius: 30,
                               backgroundColor: AppColors.BUTTONCOLOR,
-                              child: Text(
+                              backgroundImage: (user?.image != null)
+                                  ? NetworkImage(user!.image!)
+                                  : null,
+                              child:(user?.image == null)
+                                  ?  Text(
                                 (user?.firstName.isNotEmpty == true)
                                     ? "${user?.firstName[0]}${user?.lastName[0]}"
                                     : '?',
@@ -158,7 +162,7 @@ class NonCreatorDashboard extends ConsumerWidget {
                                   fontSize: 30,
                                   fontWeight: FontWeight.bold,
                                 ),
-                              ),
+                              ): null,
                             ),
                             const SizedBox(height: 10),
                             Text(
@@ -186,7 +190,7 @@ class NonCreatorDashboard extends ConsumerWidget {
                           ],
                         ),
                       ),
-                      _buildDrawerItem(icon: 'images/soundhive.png', text: 'MarketPlace', onTap: () {
+                      _buildDrawerItem(icon: 'images/shop.png', text: 'Cre8Hive - Marketplace', onTap: () {
                         Navigator.pop(context);
                         ref.read(bottomNavigationProvider.notifier).state = 0;
                       }),
@@ -217,11 +221,11 @@ class NonCreatorDashboard extends ConsumerWidget {
                         }
 
                       }),
-                      _buildDrawerItem(icon: 'images/soundhive.png', text: 'Cre8Vest', onTap: () {
+                      _buildDrawerItem(icon: 'images/investment.png', text: 'Cre8Vest', onTap: () {
                         Navigator.pop(context);
                         ref.read(bottomNavigationProvider.notifier).state = 2;
                       }),
-                      _buildDrawerItem(icon: 'images/wallet.png', text: 'Wallet', onTap: () {
+                      _buildDrawerItem(icon: 'images/wallet.png', text: 'Cre8pay - Wallet', onTap: () {
                         Navigator.pop(context);
                         ref.read(bottomNavigationProvider.notifier).state = 1;
                       }),

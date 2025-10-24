@@ -476,7 +476,7 @@ class _MarketplaceState extends ConsumerState<Marketplace>
                 onPressed: () => Navigator.push(
                   context,
                   MaterialPageRoute(
-                    builder: (context) => Categories(user: widget.user),
+                    builder: (context) => const Categories(),
                   ),
                 ),
                 style: OutlinedButton.styleFrom(
@@ -486,7 +486,7 @@ class _MarketplaceState extends ConsumerState<Marketplace>
                   ),
                 ),
                 child: const Text(
-                  'View categories',
+                  'Explore Hives',
                   style: TextStyle(color: Color(0xFFB0B0B6), fontSize: 12),
                 ),
               ),
@@ -564,7 +564,7 @@ class _MarketplaceState extends ConsumerState<Marketplace>
                 onPressed: () => Navigator.push(
                   context,
                   MaterialPageRoute(
-                    builder: (context) => Categories(user: widget.user),
+                    builder: (context) => const Categories(),
                   ),
                 ),
                 style: OutlinedButton.styleFrom(
@@ -574,7 +574,7 @@ class _MarketplaceState extends ConsumerState<Marketplace>
                   ),
                 ),
                 child: const Text(
-                  'View categories',
+                  'Explore Hives',
                   style: TextStyle(color: Color(0xFFB0B0B6), fontSize: 12),
                 ),
               ),

@@ -24,6 +24,7 @@ class AddMoneyNotifier extends StateNotifier<AsyncValue<void>> {
   Future<AddMoneyModel> addMoney({
     required BuildContext context,
     required double amount,
+    required String currency
   }) async {
     state = const AsyncValue.loading();
     try {
@@ -32,6 +33,7 @@ class AddMoneyNotifier extends StateNotifier<AsyncValue<void>> {
         '/payment',
         data: jsonEncode({
           'amount': amount,
+          'currency': currency
         }),
       );
       if (response.statusCode == 200) {

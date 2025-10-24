@@ -149,16 +149,15 @@ class _SoundhiveVestScreenState extends ConsumerState<SoundhiveVestScreen> with 
               }),
             ],
             style: const TextStyle(color: Colors.black),
-            decoration: const InputDecoration(
+            decoration: InputDecoration(
               prefix: Text(
-                '₦ ',
-                style: TextStyle(
-                  fontFamily: 'Roboto',
+                '${ref.userCurrency} ',
+                style: const TextStyle(
                   color: Colors.black,
                 ),
               ),
               hintText: "Enter amount to fund",
-              hintStyle: TextStyle(color: Colors.black54),
+              hintStyle: const TextStyle(color: Colors.black54),
             ),
           ),
           actions: [
@@ -191,6 +190,7 @@ class _SoundhiveVestScreenState extends ConsumerState<SoundhiveVestScreen> with 
       final response = await ref.read(addMoneyProvider.notifier).addMoney(
         context: context,
         amount: double.parse(cleanAmount), // safe parse
+        currency: ''
       );
       if (response.url != null) {
         if (!mounted) return;
@@ -266,7 +266,8 @@ class _SoundhiveVestScreenState extends ConsumerState<SoundhiveVestScreen> with 
                       balance: user?.wallet!.balance ?? '',
                       onAddFunds: () {
                         _showAmountInputModal();
-                      }
+                      },
+                    user: widget.user,
                   ),
                 const SizedBox(height: 20),
                 // Tabs
@@ -699,7 +700,7 @@ class _SoundhiveVestScreenState extends ConsumerState<SoundhiveVestScreen> with 
                 ),
                 const SizedBox(height: 5),
                 Text(
-                  'Min of ${Utils.formatCurrency(investment.minimumAmount)}',
+                  'Min of ${ref.formatUserCurrency(investment.convertedMinimumAmount)}',
                   style: const TextStyle(color: Colors.white70, fontSize: 14, fontFamily: 'Roboto'),
                 ),
                 const SizedBox(height: 5),
@@ -784,7 +785,7 @@ class _SoundhiveVestScreenState extends ConsumerState<SoundhiveVestScreen> with 
                 ),
                 const SizedBox(height: 5),
                 Text(
-                  'Invested ${Utils.formatCurrency(investment.amount)}',
+                  'Invested ${ref.formatUserCurrency(investment.amount)}',
                   style: const TextStyle(
                     color: Colors.white70,
                     fontSize: 14,

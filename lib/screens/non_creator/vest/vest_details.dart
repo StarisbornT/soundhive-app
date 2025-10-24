@@ -67,7 +67,7 @@ class _VestDetailsScreenState extends ConsumerState<VestDetailsScreen>  {
       final months = int.tryParse(durationMonths) ?? 0;
 
       if (roiPercent == 0 || months == 0) {
-        return Utils.formatCurrency(amount.toString());
+        return ref.formatUserCurrency(amount.toString());
       }
 
       // Calculate total interest (simple interest calculation)
@@ -76,9 +76,9 @@ class _VestDetailsScreenState extends ConsumerState<VestDetailsScreen>  {
       // Calculate total repayment (principal + interest)
       final totalRepayment = amount + totalInterest;
 
-      return Utils.formatCurrency(totalRepayment.toString());
+      return ref.formatUserCurrency(totalRepayment.toString());
     } catch (e) {
-      return Utils.formatCurrency(amount.toString());
+      return ref.formatUserCurrency(amount.toString());
     }
   }
 
@@ -198,7 +198,7 @@ class _VestDetailsScreenState extends ConsumerState<VestDetailsScreen>  {
         ),
         const SizedBox(height: 8),
         Text(
-          'Min of ${Utils.formatCurrency(widget.investment.minimumAmount) }',
+          'Min of ${ref.formatUserCurrency(widget.investment.convertedMinimumAmount) }',
           style: const TextStyle(
             color: Colors.white, fontSize: 24, fontWeight: FontWeight.w500, fontFamily: 'Roboto',
           ),
@@ -303,14 +303,14 @@ class _VestDetailsScreenState extends ConsumerState<VestDetailsScreen>  {
               hintStyle: TextStyle(color: Colors.white54, fontFamily: 'Roboto', ),
               border: OutlineInputBorder(),
             ),
-              inputFormatters: [CurrencyInputFormatter()],
+              // inputFormatters: [CurrencyInputFormatter()],
             validator: (value) {
               if (value == null || value.isEmpty) return 'Please enter amount';
               final amount = double.tryParse(value.replaceAll(RegExp(r'[₦,]'), ''));
               if (amount == null) return 'Invalid amount';
-              final minAmount = double.tryParse(widget.investment.minimumAmount) ?? 0.0;
+              final minAmount = widget.investment.convertedMinimumAmount;
               if (amount < minAmount) {
-                return 'Minimum investment is ${Utils.formatCurrency(widget.investment.minimumAmount)}';
+                return 'Minimum investment is ${ref.formatUserCurrency(widget.investment.convertedMinimumAmount)}';
               }
               return null;
             },
@@ -390,7 +390,7 @@ class _VestDetailsScreenState extends ConsumerState<VestDetailsScreen>  {
                                     const SizedBox(width: 8),
                                     Expanded(
                                       child: Text(
-                                        'Soundhive Vest - ${Utils.formatCurrency(widget.user.wallet?.balance)}',
+                                        'Soundhive Vest - ${ref.formatUserCurrency(widget.user.wallet?.balance)}',
                                         style: GoogleFonts.roboto(
                                           textStyle: const TextStyle(color: Colors.white)
                                         ),
@@ -455,7 +455,7 @@ class _VestDetailsScreenState extends ConsumerState<VestDetailsScreen>  {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               confirmRow('Item', widget.investment.investmentName),
-              confirmRow('Amount', Utils.formatCurrency(_investmentAmount!)),
+              confirmRow('Amount', ref.formatUserCurrency(_investmentAmount!)),
               confirmRow('Maturity Date', _calculateMaturityDate(widget.investment.createdAt, widget.investment.duration)),
               confirmRow('Interest', widget.investment.roi),
               confirmRow('Expected Return', _calculateExpectedRepayment(_investmentAmount!, widget.investment.roi, widget.investment.duration)),
@@ -508,7 +508,7 @@ class _VestDetailsScreenState extends ConsumerState<VestDetailsScreen>  {
     );
     final cleanExpectedRepayment = expectedRepayment
         .toString()
-        .replaceAll(RegExp(r'[₦,]'), '');
+        .replaceAll(RegExp(r'[NGN,]'), '');
     try {
       final response =  await ref.read(apiresponseProvider.notifier).joinInvestment(
         context: context,

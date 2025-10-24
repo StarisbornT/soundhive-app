@@ -224,6 +224,7 @@ class Artist {
   final String? profilePhoto;
   final String? coverPhoto;
   final bool? status;
+  final String followers;
   final String createdAt;
   final String updatedAt;
 
@@ -234,6 +235,7 @@ class Artist {
     required this.profilePhoto,
     required this.coverPhoto,
     required this.status,
+    required this.followers,
     required this.createdAt,
     required this.updatedAt,
   });
@@ -245,6 +247,7 @@ class Artist {
       userName: json['username'],
       profilePhoto: json['profile_photo'],
       coverPhoto: json['cover_photo'],
+      followers: json['followers'],
       status: json['status'],
       createdAt: json['created_at'] ?? '',
       updatedAt: json['updated_at'] ?? '',
@@ -263,6 +266,8 @@ class Wallet {
   final String escrowBalance;
   final String amountEarned;
   final String currency;
+  final String dollarBalance;
+  final bool hasActivatedDollarWallet;
   Wallet({
     required this.id,
     required this.userId,
@@ -273,7 +278,9 @@ class Wallet {
     required this.updatedAt,
     required this.amountEarned,
     required this.currency,
-    required this.escrowBalance
+    required this.escrowBalance,
+    required this.dollarBalance,
+    required this.hasActivatedDollarWallet
 });
 
   factory Wallet.fromJson(Map<String, dynamic> json) {
@@ -288,6 +295,8 @@ class Wallet {
       escrowBalance: json['escrow_balance'] ?? '',
       amountEarned: json['amount_earned'] ?? '',
       currency: json['currency'] ?? '',
+      dollarBalance: json['dollar_balance'] ?? '',
+      hasActivatedDollarWallet: json['has_activated_dollar_wallet'] ?? '',
     );
   }
 }

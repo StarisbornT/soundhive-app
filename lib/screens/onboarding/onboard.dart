@@ -87,7 +87,7 @@ class _OnboardScreenState extends State<Onboard> {
                 children: [
                   Image.asset(
                     slides[index]['image']!,
-                    fit: BoxFit.cover,
+                    // fit: BoxFit.cover,
                   ),
                   // Gradient Fade before buttons
                   Positioned(
@@ -101,9 +101,9 @@ class _OnboardScreenState extends State<Onboard> {
                           begin: Alignment.bottomCenter,   // Fades downward
                           end: Alignment.topCenter,
                           colors: [
-                            const Color(0xFF0C051F),  // Solid at the title area
-                            const Color(0xFF0C051F),  // Gradually transitions
-                            const Color(0x03000000),  // Fully fades at the bottom
+                            Color(0xFF0C051F),  // Solid at the title area
+                            Color(0xFF0C051F),  // Gradually transitions
+                            Color(0x03000000),  // Fully fades at the bottom
                           ],
                         ),
                       ),

@@ -67,7 +67,7 @@ class SongStats {
 }
 
 class Performance {
-  final String plays;
+  final dynamic plays;
   final String followers;
 
   Performance({

@@ -24,6 +24,10 @@ extension UserCurrencyExtension on WidgetRef {
     final currencyCode = userCurrency;
     return Utils.formatCurrency(amount, currencyCode: currencyCode);
   }
+  String formatUserDollarCurrency(dynamic amount) {
+    const currencyCode = "USD";
+    return Utils.formatCurrency(amount, currencyCode: currencyCode);
+  }
   String formatCreatorCurrency(dynamic amount) {
     final currencyCode = creatorBaseCurrency;
     return Utils.formatCurrency(amount, currencyCode: currencyCode);

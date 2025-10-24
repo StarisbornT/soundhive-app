@@ -44,7 +44,7 @@ class ApiResponseProvider extends StateNotifier<AsyncValue<void>> {
       }
     } catch (error, stackTrace) {
       state = AsyncValue.error(error, stackTrace);
-      rethrow; // Let the caller handle the error
+      rethrow;
     } finally {
       LoaderService.hideLoader(context);
     }
@@ -89,6 +89,81 @@ class ApiResponseProvider extends StateNotifier<AsyncValue<void>> {
       final response = await _dio.post(
         '/service/payment',
         data: jsonEncode(payload),
+      );
+
+      if (response.statusCode == 200) {
+        state = const AsyncValue.data(null);
+        return ApiResponseModel.fromJson(response.data);
+      } else {
+        throw Exception(response.data['message'] ?? 'Something went wrong');
+      }
+    } catch (error, stackTrace) {
+      state = AsyncValue.error(error, stackTrace);
+      rethrow;
+    } finally {
+      LoaderService.hideLoader(context);
+    }
+  }
+  Future<ApiResponseModel> createPlaylist({
+    required BuildContext context,
+    required Map<dynamic, dynamic> payload
+  }) async {
+    state = const AsyncValue.loading();
+    try {
+      LoaderService.showLoader(context);
+      final response = await _dio.post(
+        '/playlists',
+        data: jsonEncode(payload),
+      );
+
+      if (response.statusCode == 201) {
+        state = const AsyncValue.data(null);
+        return ApiResponseModel.fromJson(response.data);
+      } else {
+        throw Exception(response.data['message'] ?? 'Something went wrong');
+      }
+    } catch (error, stackTrace) {
+      state = AsyncValue.error(error, stackTrace);
+      rethrow; // Let the caller handle the error
+    } finally {
+      LoaderService.hideLoader(context);
+    }
+  }
+  Future<ApiResponseModel> renamePlaylist({
+    required BuildContext context,
+    required int playlistId,
+    required Map<dynamic, dynamic> payload
+  }) async {
+    state = const AsyncValue.loading();
+    try {
+      LoaderService.showLoader(context);
+      final response = await _dio.put(
+        '/playlists/$playlistId',
+        data: jsonEncode(payload),
+      );
+
+      if (response.statusCode == 200) {
+        state = const AsyncValue.data(null);
+        return ApiResponseModel.fromJson(response.data);
+      } else {
+        throw Exception(response.data['message'] ?? 'Something went wrong');
+      }
+    } catch (error, stackTrace) {
+      state = AsyncValue.error(error, stackTrace);
+      rethrow; // Let the caller handle the error
+    } finally {
+      LoaderService.hideLoader(context);
+    }
+  }
+  Future<ApiResponseModel> deletePlaylist({
+    required BuildContext context,
+    required int playlistId,
+  }) async {
+    state = const AsyncValue.loading();
+    try {
+      LoaderService.showLoader(context);
+      final response = await _dio.delete(
+        '/playlists/$playlistId',
       );
 
       if (response.statusCode == 200) {
@@ -713,6 +788,30 @@ class ApiResponseProvider extends StateNotifier<AsyncValue<void>> {
       final response = await _dio.post(
           '/update/image',
           data: formData
+      );
+
+      if (response.statusCode == 200) {
+        state = const AsyncValue.data(null);
+        return ApiResponseModel.fromJson(response.data);
+      } else {
+        throw Exception(response.data['message'] ?? 'Something went wrong');
+      }
+    } catch (error, stackTrace) {
+      state = AsyncValue.error(error, stackTrace);
+      rethrow;
+    } finally {
+      LoaderService.hideLoader(context);
+    }
+  }
+
+  Future<ApiResponseModel> activateDollarWallet({
+    required BuildContext context,
+  }) async {
+    state = const AsyncValue.loading();
+    try {
+      LoaderService.showLoader(context);
+      final response = await _dio.post(
+          '/activate/dollar/account',
       );
 
       if (response.statusCode == 200) {

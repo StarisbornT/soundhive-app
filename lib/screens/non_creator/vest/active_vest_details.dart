@@ -77,7 +77,7 @@ class _VestDetailsScreenState extends ConsumerState<ActiveVestDetailsScreen> wit
                         children: [
                           const Text("Capital", style: TextStyle(color: Colors.white70)),
                           Text(
-                            Utils.formatCurrency(investment.amount),
+                            ref.formatUserCurrency(investment.amount),
                             style: const TextStyle(
                               color: Colors.white,
                               fontSize: 18,
@@ -137,18 +137,18 @@ class _VestDetailsScreenState extends ConsumerState<ActiveVestDetailsScreen> wit
             child: Column(
               children: [
                 _buildInfoCard("Project", investment.vest!.investmentName),
-                _buildInfoCard("Amount", Utils.formatCurrency(investment.amount)),
+                _buildInfoCard("Amount", ref.formatUserCurrency(investment.amount)),
                 _buildInfoCard("Maturity date", investment.maturityDate),
                 _buildInfoCard("Interest", "${investment.vest?.roi}%"),
-                _buildInfoCard("Expected Return", Utils.formatCurrency(investment.expectedRepayment)),
+                _buildInfoCard("Expected Return", ref.formatUserCurrency(investment.expectedRepayment)),
                 _buildInfoCard("Status", investment.vest!.status, valueColor: Colors.green),
 
                 // Additional statistics from API
                 statisticsState.when(
                   data: (stats) => Column(
                     children: [
-                      _buildInfoCard("ROI so far", Utils.formatCurrency(stats.data.performanceMetrics.roiSoFar)),
-                      _buildInfoCard("Current value", Utils.formatCurrency(stats.data.performanceMetrics.currentValue)),
+                      _buildInfoCard("ROI so far", ref.formatUserCurrency(stats.data.performanceMetrics.roiSoFar)),
+                      _buildInfoCard("Current value", ref.formatUserCurrency(stats.data.performanceMetrics.currentValue)),
                       _buildInfoCard("Progress", "${stats.data.performanceMetrics.progressPercentage.toStringAsFixed(1)}%"),
                       _buildInfoCard("Time to maturity", stats.data.timeMetrics.timeToMaturityHuman),
                     ],
@@ -191,7 +191,7 @@ class _VestDetailsScreenState extends ConsumerState<ActiveVestDetailsScreen> wit
                 Expanded(
                   child: _buildMetricCard(
                     "ROI So Far",
-                    Utils.formatCurrency(stats.data.performanceMetrics.roiSoFar),
+                    ref.formatUserCurrency(stats.data.performanceMetrics.roiSoFar),
                     Colors.green,
                   ),
                 ),
@@ -199,7 +199,7 @@ class _VestDetailsScreenState extends ConsumerState<ActiveVestDetailsScreen> wit
                 Expanded(
                   child: _buildMetricCard(
                     "Current Value",
-                    Utils.formatCurrency(stats.data.performanceMetrics.currentValue),
+                    ref.formatUserCurrency(stats.data.performanceMetrics.currentValue),
                     Colors.cyan,
                   ),
                 ),
@@ -265,11 +265,11 @@ class _VestDetailsScreenState extends ConsumerState<ActiveVestDetailsScreen> wit
                       ),
                     ),
                   ),
-                  _buildEarningsRow("Total Invested", Utils.formatCurrency(stats.data.investmentDetails.investedAmount)),
+                  _buildEarningsRow("Total Invested", ref.formatUserCurrency(stats.data.investmentDetails.investedAmount)),
                   const Divider(color: Colors.white24),
-                  _buildEarningsRow("ROI Earned", Utils.formatCurrency(stats.data.performanceMetrics.roiSoFar), isGreen: true),
-                  _buildEarningsRow("Expected Total ROI", Utils.formatCurrency(stats.data.performanceMetrics.totalExpectedRoi)),
-                  _buildEarningsRow("Current Value", Utils.formatCurrency(stats.data.performanceMetrics.currentValue), isGreen: true),
+                  _buildEarningsRow("ROI Earned", ref.formatUserCurrency(stats.data.performanceMetrics.roiSoFar), isGreen: true),
+                  _buildEarningsRow("Expected Total ROI", ref.formatUserCurrency(stats.data.performanceMetrics.totalExpectedRoi)),
+                  _buildEarningsRow("Current Value", ref.formatUserCurrency(stats.data.performanceMetrics.currentValue), isGreen: true),
                   _buildEarningsRow("Days Invested", "${stats.data.performanceMetrics.daysSinceInvestment} days"),
                   _buildEarningsRow("Total Duration", "${stats.data.performanceMetrics.totalInvestmentDays} days"),
                 ],

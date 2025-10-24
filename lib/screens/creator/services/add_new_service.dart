@@ -412,20 +412,20 @@ class _AddNewServiceScreenState extends ConsumerState<AddNewServiceScreen> {
           maxLines: 4,
         ),
         LabeledSelectField(
-          label: "Category",
+          label: "Hives",
           controller: categoryController,
           items: categoryItems,
-          hintText: 'Select category',
+          hintText: 'Select Hives',
           onChanged: (selectedValue) {
             selectedCategoryId = selectedValue;
             ref.read(subcategoryProvider.notifier).getSubCategory(int.parse(selectedValue));
           },
         ),
         LabeledSelectField(
-          label: "Sub Category",
+          label: "Service Clusters",
           controller: subcategoryController,
           items: subCategoryItems,
-          hintText: 'Select sub category',
+          hintText: 'Select Cluster',
           onChanged: (value) {
             selectedSubCategoryId = value;
           },

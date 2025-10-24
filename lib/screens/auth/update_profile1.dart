@@ -44,11 +44,72 @@ class _UpdateProfileState extends State<UpdateProfile1> {
     });
   }
 
+  List<Map<String, String>> countries = [];
+
 
   @override
   void initState() {
     super.initState();
     loadData();
+    getCountries();
+  }
+  String? selectedCountry;
+
+
+  Future<void> getCountries() async {
+    try {
+      final options = Options(headers: {'Accept': 'application/json'});
+      final response = await widget.dio.get(
+        '/countries',
+        options: options,
+      );
+      if (response.statusCode == 200) {
+        final responseData = response.data['countries'];
+        setState(() {
+          countries.clear();
+          countries.addAll(responseData.map<Map<String, String>>((e) => {
+            "name": e['name'].toString(),
+            "code": e['code'].toString(),
+          }));
+        });
+
+      } else {
+        showCustomAlert(
+          context: context,
+          isSuccess: false,
+          title: 'Error',
+          message: 'Failed to get Banks',
+        );
+      }
+    } catch (error) {
+      if (error is DioError) {
+        String errorMessage = "Failed, Please check input";
+
+        if (error.response != null && error.response!.data != null) {
+          Map<String, dynamic> responseData = error.response!.data;
+          if (responseData.containsKey('message')) {
+            errorMessage = responseData['message'];
+          } else if (responseData.containsKey('errors')) {
+            Map<String, dynamic> errors = responseData['errors'];
+            List<String> errorMessages = [];
+            errors.forEach((key, value) {
+              if (value is List && value.isNotEmpty) {
+                errorMessages.addAll(value.map((error) => "$key: $error"));
+              }
+            });
+            errorMessage = errorMessages.join("\n");
+          }
+        }
+
+        showCustomAlert(
+          context: context,
+          isSuccess: false,
+          title: 'Error',
+          message: errorMessage,
+        );
+        return;
+      }
+    }
   }
 
   void _nextPage() {
@@ -247,6 +308,13 @@ class _UpdateProfileState extends State<UpdateProfile1> {
                   dobController: dobController,
                   phoneController: phoneController,
                   addressController: addressController,
+                  countries: countries,
+                  selectedCountry: selectedCountry,
+                  onCountryChanged: (value) {
+                    setState(() {
+                      selectedCountry = value;
+                    });
+                  },
                 ),
                 // InterestsStep(
                 //     onNext: _nextPage,
@@ -276,6 +344,9 @@ class UserDetailsStep extends StatelessWidget {
   final TextEditingController addressController;
   final TextEditingController dobController;
   final TextEditingController phoneController;
+  final List<Map<String, String>> countries;
+  final String? selectedCountry;
+  final ValueChanged<String?> onCountryChanged;
 
   const UserDetailsStep({
     super.key,
@@ -284,7 +355,10 @@ class UserDetailsStep extends StatelessWidget {
     required this.lastNameController,
     required this.dobController,
     required this.phoneController,
-    required this.addressController
+    required this.addressController,
+    required this.countries,
+    required this.selectedCountry,
+    required this.onCountryChanged,
   });
 
   @override
@@ -306,11 +380,45 @@ class UserDetailsStep extends StatelessWidget {
             const SizedBox(height: 10),
             _buildTextField('Date Of Birth', 'Enter your Date of Birth', dobController, context, isDate: true),
             const SizedBox(height: 10),
-            PhoneNumberField(
-              controller: phoneController,
-            ),
+            PhoneNumberField(controller: phoneController),
             const SizedBox(height: 10),
             _buildTextField('Address', 'Enter Address', addressController, context),
+            const SizedBox(height: 10),
+
+            // ✅ Dropdown for Countries
+            const Text('Country', style: TextStyle(color: Colors.white)),
+            const SizedBox(height: 8),
+            Container(
+              decoration: BoxDecoration(
+                color: Colors.white10,
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: Colors.white24),
+              ),
+              child: DropdownButtonFormField<String>(
+                value: selectedCountry,
+                dropdownColor: const Color(0xFF1C1C1C),
+                iconEnabledColor: Colors.white70,
+                decoration: const InputDecoration(
+                  border: InputBorder.none,
+                  contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 14),
+                ),
+                hint: const Text(
+                  'Select your country',
+                  style: TextStyle(color: Colors.white54),
+                ),
+                items: countries.map((country) {
+                  return DropdownMenuItem<String>(
+                    value: country["name"],
+                    child: Text(
+                      country["name"]!,
+                      style: const TextStyle(color: Colors.white),
+                    ),
+                  );
+                }).toList(),
+                onChanged: onCountryChanged,
+              ),
+            ),
+
             const SizedBox(height: 20),
             Center(
               child: SizedBox(
@@ -341,7 +449,8 @@ class UserDetailsStep extends StatelessWidget {
     );
   }
 
-  Widget _buildTextField(String label, String hint, TextEditingController controller,  BuildContext context, {bool isDate = false, bool isPhone = false}) {
+  Widget _buildTextField(String label, String hint, TextEditingController controller, BuildContext context,
+      {bool isDate = false, bool isPhone = false}) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -371,7 +480,9 @@ class UserDetailsStep extends StatelessWidget {
             hintText: hint,
             hintStyle: const TextStyle(color: Colors.white54),
             border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
-            suffixIcon: isDate ? const Icon(Icons.calendar_today, color: Colors.white54) : null,
+            suffixIcon: isDate
+                ? const Icon(Icons.calendar_today, color: Colors.white54)
+                : null,
           ),
           style: const TextStyle(color: Colors.white),
         ),
@@ -379,6 +490,7 @@ class UserDetailsStep extends StatelessWidget {
     );
   }
 }
+
 
 // Step 2: Select Interests
 class InterestsStep extends StatefulWidget {

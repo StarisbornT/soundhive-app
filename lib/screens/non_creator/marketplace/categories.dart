@@ -5,14 +5,15 @@ import 'package:soundhive2/model/user_model.dart';
 import 'package:soundhive2/lib/dashboard_provider/categoryProvider.dart';
 import '../../../lib/dashboard_provider/getMarketPlaceService.dart';
 import '../../../lib/dashboard_provider/sub_category_provider.dart';
+import '../../../lib/dashboard_provider/user_provider.dart';
+import '../../../lib/navigator_provider.dart';
 import '../../../model/category_model.dart';
 import '../../../model/sub_categories.dart';
 import '../../../utils/app_colors.dart';
 import 'service_list_screen.dart';
 
 class Categories extends ConsumerStatefulWidget {
-  final MemberCreatorResponse user;
-  const Categories({super.key, required this.user});
+  const Categories({super.key});
 
   @override
   _CategoriesState createState() => _CategoriesState();
@@ -107,10 +108,15 @@ class _CategoriesState extends ConsumerState<Categories> {
           leading: IconButton(
             icon: const Icon(Icons.arrow_back_ios, color: Colors.white),
             onPressed: () {
-              // Reset the marketplace state before going back
-              ref.read(getMarketplaceServiceProvider.notifier)
-                  .resetMarketplaceState(); // Clear the category filter
-              Navigator.pop(context);
+              if (_selectedCategoryId != null) {
+                // 🔙 If currently in subcategory view, go back to categories
+                _clearSubcategories();
+              } else {
+                // 🔙 Otherwise, go back to the Hive/Home section
+                ref.read(getMarketplaceServiceProvider.notifier).resetMarketplaceState();
+                Navigator.pop(context);
+                ref.read(bottomNavigationProvider.notifier).state = 0;
+              }
             },
           ),
         ),
@@ -119,80 +125,44 @@ class _CategoriesState extends ConsumerState<Categories> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              if (_selectedCategoryId == null)
-                const Text(
-                  'Service Categories',
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 24,
-                    fontWeight: FontWeight.w600,
-                  ),
-                )
-              else
-                Row(
-                  children: [
-                    IconButton(
-                      icon: const Icon(Icons.arrow_back, color: Colors.white),
-                      onPressed: _clearSubcategories,
-                    ),
-                    const SizedBox(width: 8),
-                    const Text(
-                      'Sub-Categories',
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 24,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                  ],
+              const Text(
+                "Explore Hives/Service Categories",
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 22,
+                  fontWeight: FontWeight.w700,
                 ),
+              ),
               const SizedBox(height: 20),
 
               // Search Box
               Container(
-                margin: const EdgeInsets.only(bottom: 16),
                 decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(10),
                   border: Border.all(color: Colors.white24),
-                  borderRadius: BorderRadius.circular(8),
                 ),
-                child: Row(
-                  children: [
-                    Expanded(
-                      child: TextField(
-                        controller: _searchController,
-                        style: const TextStyle(color: Colors.white),
-                        decoration: InputDecoration(
-                          hintText: _selectedCategoryId == null
-                              ? 'Search by category name'
-                              : 'Search by subcategory name',
-                          hintStyle: const TextStyle(color: Colors.white38),
-                          prefixIcon: const Icon(Icons.search, color: Colors.white38),
-                          border: InputBorder.none,
-                          contentPadding: const EdgeInsets.all(16),
-                        ),
-                      ),
-                    ),
-                    if (_searchController.text.isNotEmpty)
-                      IconButton(
-                        icon: const Icon(Icons.clear, color: Colors.white38),
-                        onPressed: _clearSearch,
-                      ),
-                  ],
+                child: TextField(
+                  controller: _searchController,
+                  style: const TextStyle(color: Colors.white),
+                  decoration: const InputDecoration(
+                    hintText: "Search",
+                    hintStyle: TextStyle(color: Colors.white54),
+                    prefixIcon: Icon(Icons.search, color: Colors.white54),
+                    border: InputBorder.none,
+                    contentPadding: EdgeInsets.all(16),
+                  ),
                 ),
               ),
+              const SizedBox(height: 20),
 
-              // Loading, Error or Categories/Subcategories
-              Expanded(
-                child: _selectedCategoryId == null
-                    ? _buildCategoriesList(categoryState)
-                    : _buildSubcategoriesList(subcategoryState),
-              ),
+          Expanded( child: _selectedCategoryId == null ? _buildCategoriesList(categoryState) : _buildSubcategoriesList(subcategoryState)),
             ],
           ),
         ),
       ),
     );
   }
+
 
   Widget _buildCategoriesList(AsyncValue<CategoryResponse> categoryState) {
     return categoryState.when(
@@ -230,27 +200,66 @@ class _CategoriesState extends ConsumerState<Categories> {
             }
 
             final category = categories[index];
+
             return Container(
-              margin: const EdgeInsets.only(bottom: 12),
-              child: ElevatedButton(
-                onPressed: () {
-                  _loadSubcategories(category.id, category.name);
-                },
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.transparent,
-                  foregroundColor: Colors.white,
-                  side: const BorderSide(color: Colors.white12),
-                  padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 16),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  elevation: 0,
-                ),
-                child: Align(
-                  alignment: Alignment.centerLeft,
-                  child: Text(
-                    category.name,
-                    style: const TextStyle(fontSize: 16),
+              margin: const EdgeInsets.only(bottom: 16),
+              decoration: BoxDecoration(
+                color: Colors.transparent,
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: Colors.white24, width: 1),
+              ),
+              child: InkWell(
+                onTap: () => _loadSubcategories(category.id, category.name),
+                borderRadius: BorderRadius.circular(12),
+                child: Padding(
+                  padding: const EdgeInsets.all(16.0),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        category.name,
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 18,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                      if (category.description != null &&
+                          category.description!.isNotEmpty)
+                        Padding(
+                          padding: const EdgeInsets.only(top: 6.0),
+                          child: Text(
+                            category.description!,
+                            style: const TextStyle(
+                              color: Colors.white70,
+                              fontSize: 13,
+                              height: 1.4,
+                            ),
+                          ),
+                        ),
+                      const SizedBox(height: 10),
+                      const Divider(color: Colors.white24),
+                      const SizedBox(height: 4),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Text(
+                            "No of creators: ${category.creatorCount}",
+                            style: const TextStyle(
+                              color: Color(0xFFD6ABFE),
+                              fontSize: 13,
+                            ),
+                          ),
+                          Text(
+                            "No of services: ${category.servicesCount}",
+                            style: const TextStyle(
+                              color: Color(0xFFD6ABFE),
+                              fontSize: 13,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
                   ),
                 ),
               ),
@@ -262,6 +271,7 @@ class _CategoriesState extends ConsumerState<Categories> {
   }
 
   Widget _buildSubcategoriesList(AsyncValue<SubCategories> subcategoryState) {
+    final user = ref.watch(userProvider).value;
     return subcategoryState.when(
       loading: () => const Center(child: CircularProgressIndicator()),
       error: (error, stackTrace) => Center(
@@ -286,7 +296,7 @@ class _CategoriesState extends ConsumerState<Categories> {
                       builder: (context) => ServicesListScreen(
                         id: _selectedCategoryId!,
                         subCategoryId: null,
-                        user: widget.user,
+                        user: user!,
                         categoryName: 'All Services in $_selectedCategoryName',
                       ),
                     ),
@@ -317,7 +327,7 @@ class _CategoriesState extends ConsumerState<Categories> {
               child: subcategories.isEmpty
                   ? const Center(
                 child: Text(
-                  'No subcategories found.',
+                  'No Service Clusters found.',
                   style: TextStyle(color: Colors.white60),
                 ),
               )
@@ -335,7 +345,7 @@ class _CategoriesState extends ConsumerState<Categories> {
                             builder: (context) => ServicesListScreen(
                               id: _selectedCategoryId!,
                               subCategoryId: subcategory.id,
-                              user: widget.user,
+                              user: user!,
                               categoryName: subcategory.name,
                             ),
                           ),

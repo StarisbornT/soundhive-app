@@ -139,6 +139,7 @@ class _CreatorHomeState extends ConsumerState<CreatorHome> with SingleTickerProv
       final response = await ref.read(addMoneyProvider.notifier).addMoney(
         context: context,
         amount: double.parse(cleanAmount),
+        currency: 'NGN'
       );
       if (response.url != null) {
         if (!mounted) return;

@@ -150,8 +150,12 @@ class CreatorDashboard extends ConsumerWidget {
                           children: [
                             CircleAvatar(
                               radius: 30,
-                              backgroundColor: AppColors.PRIMARYCOLOR,
-                              child: Text(
+                              backgroundColor: AppColors.BUTTONCOLOR,
+                              backgroundImage: (user?.image != null)
+                                  ? NetworkImage(user!.image!)
+                                  : null,
+                              child:(user?.image == null)
+                                  ?  Text(
                                 (user?.firstName.isNotEmpty == true)
                                     ? "${user?.firstName[0]}${user?.lastName[0]}"
                                     : '?',
@@ -160,7 +164,7 @@ class CreatorDashboard extends ConsumerWidget {
                                   fontSize: 30,
                                   fontWeight: FontWeight.bold,
                                 ),
-                              ),
+                              ): null,
                             ),
                             const SizedBox(height: 10),
                             Text(

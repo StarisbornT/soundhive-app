@@ -100,7 +100,7 @@ class ActiveVest {
   final int id;
   final String userId;
   final String vestId;
-  final String amount;
+  final dynamic amount;
   final String expectedRepayment;
   final String interest;
   final String maturityDate;

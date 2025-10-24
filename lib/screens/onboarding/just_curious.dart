@@ -8,6 +8,7 @@ import 'package:soundhive2/utils/app_colors.dart';
 import 'package:soundhive2/utils/utils.dart';
 
 import '../../lib/navigator_provider.dart';
+import '../non_creator/marketplace/categories.dart';
 import '../non_creator/marketplace/creators_list.dart';
 import '../non_creator/streaming/preference.dart';
 
@@ -25,8 +26,8 @@ class _JustCuriousState extends ConsumerState<JustCurious> {
   void _showCre8paySheet(BuildContext context) {
     showModalBottomSheet(
       context: context,
-      isScrollControlled: true, // Allows the sheet to take up more than half the screen
-      backgroundColor: Colors.transparent, // Important to show the custom rounded container
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
       builder: (BuildContext context) {
         return const Cre8payComingSoonBottomSheet();
       },
@@ -87,12 +88,28 @@ class _JustCuriousState extends ConsumerState<JustCurious> {
                   crossAxisSpacing: 20,
                   children: [
                     _buildOptionCard(
+                      icon: FontAwesomeIcons.house,
+                      text: "Go to Home Screen",
+                      color: const Color.fromRGBO(234, 208, 255, 0.1),
+                      backgroundImage: "images/c6.png",
+                      onTap: () {
+                        Navigator.pushNamed(context, NonCreatorDashboard.id).then((_) {
+                          ref.read(bottomNavigationProvider.notifier).state = 0;
+                        });
+                      },
+                    ),
+                    _buildOptionCard(
                       icon: FontAwesomeIcons.store,
                       text: "Explore Hives",
-                      color: const Color.fromRGBO(234, 208, 255, 0.1),
+                      color: const Color.fromRGBO(206, 74, 142, 0.1),
                       backgroundImage: "images/c4.png",
                       onTap: () {
-                        print("Access services tapped");
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => const Categories(),
+                          ),
+                        );
                       },
                     ),
                     _buildOptionCard(
@@ -164,50 +181,63 @@ class _JustCuriousState extends ConsumerState<JustCurious> {
   }) {
     return GestureDetector(
       onTap: disabled ? null : onTap,
-      child: Container(
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(12),
-          image: backgroundImage != null
-              ? DecorationImage(
-            image: AssetImage(backgroundImage),
-            fit: BoxFit.cover,
-          )
-              : null,
-          color: backgroundImage == null
-              ? color.withOpacity(disabled ? 0.4 : 1)
-              : null, // only apply solid color if no image
-        ),
-        child: Container(
-          padding: const EdgeInsets.all(16.0),
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(12),
-            // transparent overlay tint using your color
-            color: color.withOpacity(0.3), // 👈 makes image visible but tinted
-          ),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              FaIcon(
-                icon,
-                color: Colors.white,
-                size: 28,
-              ),
-              const SizedBox(height: 12),
-              Text(
-                text,
-                textAlign: TextAlign.center,
-                style: TextStyle(
-                  color: Colors.white,
-                  fontSize: 13,
-                  fontWeight: disabled ? FontWeight.w400 : FontWeight.w500,
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(12),
+        child: Stack(
+          children: [
+            // 🔹 Background color
+            Container(
+              color: backgroundImage == null
+                  ? color.withOpacity(disabled ? 0.4 : 1)
+                  : color.withOpacity(0.3),
+            ),
+
+            // 🔹 Optional background image with transparency
+            if (backgroundImage != null)
+              Align(
+                alignment: Alignment.bottomRight,
+                child: Opacity(
+                  opacity: 0.2, // 👈 Adjust transparency (0.0 - 1.0)
+                  child: Image.asset(
+                    backgroundImage,
+                    fit: BoxFit.contain,
+                    width: 120, // 👈 Adjust image size if needed
+                    height: 120,
+                  ),
                 ),
               ),
-            ],
-          ),
+
+            // 🔹 Main content
+            Container(
+              padding: const EdgeInsets.all(16.0),
+              alignment: Alignment.center,
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  FaIcon(
+                    icon,
+                    color: Colors.white,
+                    size: 28,
+                  ),
+                  const SizedBox(height: 12),
+                  Text(
+                    text,
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 13,
+                      fontWeight: disabled ? FontWeight.w400 : FontWeight.w500,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
         ),
       ),
     );
   }
+
 
 }
 

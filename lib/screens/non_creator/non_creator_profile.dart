@@ -83,7 +83,7 @@ class _NonCreatorProfileState extends ConsumerState<NonCreatorProfile> {
 
   Future<void> updateProfile(String imageUrl) async {
     final payload = {
-      "profile_image": imageUrl,
+      "image": imageUrl,
     };
 
     try {

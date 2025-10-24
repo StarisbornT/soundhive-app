@@ -1,28 +1,30 @@
 import 'dart:convert';
 
-class CategoryResponse {
-  final bool status;
-  final CategoryData data;
+import 'artist_profile_id_model.dart';
 
-  CategoryResponse({
+class PlaylistModel {
+  final bool status;
+  final PaginatedData data;
+
+  PlaylistModel({
     required this.status,
     required this.data,
   });
 
-  factory CategoryResponse.fromJson(String source) =>
-      CategoryResponse.fromMap(json.decode(source));
+  factory PlaylistModel.fromJson(String source) =>
+      PlaylistModel.fromMap(json.decode(source));
 
-  factory CategoryResponse.fromMap(Map<String, dynamic> map) {
-    return CategoryResponse(
+  factory PlaylistModel.fromMap(Map<String, dynamic> map) {
+    return PlaylistModel(
       status: map['status'] ?? false,
-      data: CategoryData.fromMap(map['data'] ?? {}),
+      data: PaginatedData.fromMap(map['data'] ?? {}),
     );
   }
 }
 
-class CategoryData {
+class PaginatedData {
   final int currentPage;
-  final List<Category> data;
+  final List<Playlist> data;
   final String? firstPageUrl;
   final int? from;
   final int lastPage;
@@ -35,36 +37,35 @@ class CategoryData {
   final int? to;
   final int total;
 
-  CategoryData({
+  PaginatedData({
     required this.currentPage,
     required this.data,
-    required this.firstPageUrl,
-    required this.from,
+    this.firstPageUrl,
+    this.from,
     required this.lastPage,
-    required this.lastPageUrl,
+    this.lastPageUrl,
     required this.links,
-    required this.nextPageUrl,
+    this.nextPageUrl,
     required this.path,
     required this.perPage,
-    required this.prevPageUrl,
-    required this.to,
+    this.prevPageUrl,
+    this.to,
     required this.total,
   });
 
-  factory CategoryData.fromJson(String source) =>
-      CategoryData.fromMap(json.decode(source));
-
-  factory CategoryData.fromMap(Map<String, dynamic> map) {
-    return CategoryData(
+  factory PaginatedData.fromMap(Map<String, dynamic> map) {
+    return PaginatedData(
       currentPage: map['current_page'] ?? 1,
-      data: List<Category>.from(
-          (map['data'] ?? []).map((x) => Category.fromMap(x))),
+      data: List<Playlist>.from(
+        (map['data'] ?? []).map((x) => Playlist.fromMap(x)),
+      ),
       firstPageUrl: map['first_page_url'],
       from: map['from'],
-      lastPage: map['last_page'] ?? 1,
+      lastPage: map['last_page'] ?? 0,
       lastPageUrl: map['last_page_url'],
-      links:
-      List<Link>.from((map['links'] ?? []).map((x) => Link.fromMap(x))),
+      links: List<Link>.from(
+        (map['links'] ?? []).map((x) => Link.fromMap(x)),
+      ),
       nextPageUrl: map['next_page_url'],
       path: map['path'] ?? '',
       perPage: map['per_page'] is String
@@ -77,37 +78,36 @@ class CategoryData {
   }
 }
 
-class Category {
+class Playlist {
   final int id;
-  final String name;
-  final String? description;
-  final String servicesCount;
-  final String creatorCount;
+  final String userId;
+  final String title;
   final String createdAt;
   final String updatedAt;
+  final String songsCount;
+  final List<Song> songs;
 
-  Category({
+  Playlist({
     required this.id,
-    required this.name,
-    this.description,
-    required this.servicesCount,
-    required this.creatorCount,
+    required this.userId,
+    required this.title,
     required this.createdAt,
     required this.updatedAt,
+    required this.songsCount,
+    required this.songs,
   });
 
-  factory Category.fromJson(String source) =>
-      Category.fromMap(json.decode(source));
-
-  factory Category.fromMap(Map<String, dynamic> map) {
-    return Category(
+  factory Playlist.fromMap(Map<String, dynamic> map) {
+    return Playlist(
       id: map['id'] ?? 0,
-      name: map['category_name'] ?? '',
-      description: map['description'] ?? '',
-      creatorCount: map['creator_count'] ?? '',
-      servicesCount: map['services_count'] ?? '',
+      userId: map['user_id'] ?? '',
+      title: map['title'] ?? '',
       createdAt: map['created_at'] ?? '',
       updatedAt: map['updated_at'] ?? '',
+      songsCount: map['songs_count'] ?? '0',
+      songs: List<Song>.from(
+        (map['songs'] ?? []).map((x) => Song.fromMap(x)),
+      ),
     );
   }
 }
@@ -118,13 +118,10 @@ class Link {
   final bool active;
 
   Link({
-    required this.url,
+    this.url,
     required this.label,
     required this.active,
   });
-
-  factory Link.fromJson(String source) =>
-      Link.fromMap(json.decode(source));
 
   factory Link.fromMap(Map<String, dynamic> map) {
     return Link(

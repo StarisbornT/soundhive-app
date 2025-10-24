@@ -101,7 +101,7 @@ class _EditServiceScreenState extends ConsumerState<EditServiceScreen> {
     // Find and set category name
     final category = services.firstWhere(
           (cat) => cat.id.toString() == service.categoryId,
-      orElse: () => Category(id: 0, name: '', createdAt: '', updatedAt: ''),
+      orElse: () => Category(id: 0, name: '', createdAt: '', updatedAt: '', servicesCount: '', creatorCount: ''),
     );
     if (category.id != 0) {
       categoryController.text = category.name;
@@ -487,20 +487,20 @@ class _EditServiceScreenState extends ConsumerState<EditServiceScreen> {
           maxLines: 4,
         ),
         LabeledSelectField(
-          label: "Category",
+          label: "Hives",
           controller: categoryController,
           items: categoryItems,
-          hintText: 'Select category',
+          hintText: 'Select Hives',
           onChanged: (selectedValue) {
             selectedCategoryId = selectedValue;
             ref.read(subcategoryProvider.notifier).getSubCategory(int.parse(selectedValue));
           },
         ),
         LabeledSelectField(
-          label: "Sub Category",
+          label: "Service Clusters",
           controller: subcategoryController,
           items: subCategoryItems,
-          hintText: 'Select sub category',
+          hintText: 'Select Cluster',
           onChanged: (value) {
             selectedSubCategoryId = value;
           },

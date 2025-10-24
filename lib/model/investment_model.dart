@@ -91,6 +91,7 @@ class Investment {
   final String status;
   final String createdAt;
   final String updatedAt;
+  final dynamic convertedMinimumAmount;
 
   Investment({
     required this.id,
@@ -107,6 +108,7 @@ class Investment {
     required this.status,
     required this.createdAt,
     required this.updatedAt,
+    required this.convertedMinimumAmount
   });
 
   factory Investment.fromMap(Map<String, dynamic> map) {
@@ -125,6 +127,7 @@ class Investment {
       status: map['status'] ?? '',
       createdAt: map['created_at'] ?? '',
       updatedAt: map['updated_at'] ?? '',
+      convertedMinimumAmount: map['converted_minimum_amount'] ?? '',
     );
   }
 }

@@ -11,6 +11,7 @@ import '../model/user_model.dart';
 import '../screens/creator/profile/setup_screen.dart';
 import '../screens/dashboard/transaction_history.dart';
 import '../screens/dashboard/withdraw.dart';
+import '../screens/non_creator/wallet/transaction_history.dart';
 import '../utils/app_colors.dart';
 import '../utils/utils.dart';
 import 'package:flutter/services.dart';
@@ -22,11 +23,13 @@ import 'label_text.dart';
 class WalletCard extends ConsumerWidget {
   final String balance;
   final VoidCallback onAddFunds;
+  final MemberCreatorResponse user;
 
   const WalletCard({
     super.key,
     required this.balance,
     required this.onAddFunds,
+    required this.user
   });
 
   @override
@@ -50,7 +53,6 @@ class WalletCard extends ConsumerWidget {
             style: const TextStyle(
               fontSize: 28,
               fontWeight: FontWeight.bold,
-              fontFamily: 'Roboto',
               color: Colors.white,
             ),
           ),
@@ -75,7 +77,7 @@ class WalletCard extends ConsumerWidget {
                   ),
                 ),
               ),
-              SizedBox(width: 10),
+              const SizedBox(width: 10),
               OutlinedButton.icon(
                 onPressed: () {
                   Navigator.push(
@@ -104,12 +106,12 @@ class WalletCard extends ConsumerWidget {
 
           GestureDetector(
             onTap: () {
-              // Navigator.push(
-              //   context,
-              //   MaterialPageRoute(
-              //     builder: (context) => TransactionHistory(),
-              //   ),
-              // );
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => TransactionHistory(user: user,),
+                ),
+              );
             },
             child: Container(
               width: double.infinity,

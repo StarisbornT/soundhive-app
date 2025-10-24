@@ -1,10 +1,8 @@
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-
 import 'package:soundhive2/lib/dashboard_provider/get_artist_profile_by_id_provider.dart';
-
-import '../../../lib/dashboard_provider/apiresponseprovider.dart';
+import 'package:soundhive2/lib/dashboard_provider/apiresponseprovider.dart';
 import '../../../model/apiresponse_model.dart';
 
 class ArtistProfile extends ConsumerStatefulWidget {
@@ -12,7 +10,7 @@ class ArtistProfile extends ConsumerStatefulWidget {
   const ArtistProfile({super.key, required this.artistId});
 
   @override
-  _ArtistProfileScreenState createState() => _ArtistProfileScreenState();
+  ConsumerState<ArtistProfile> createState() => _ArtistProfileScreenState();
 }
 
 final followStatusProvider = StateProvider<Map<String, bool>>((ref) => {});
@@ -37,14 +35,16 @@ class _ArtistProfileScreenState extends ConsumerState<ArtistProfile> {
         artistId: widget.artistId,
       );
 
-      if (response.status) {
-        // Update the follow status in provider
-        ref.read(followStatusProvider.notifier).update((state) {
-          return {...state, widget.artistId.toString(): response.data['is_following']};
-        });
-      }
+      print('🔍 CheckFollowStatus API Response:');
+      print('🔍 Status: ${response.status}');
+      print('🔍 Data: ${response.data}');
+      print('🔍 is_following: ${response.data['is_following']}');
+      ref.read(followStatusProvider.notifier).state = {
+        ...ref.read(followStatusProvider),
+        widget.artistId.toString(): response.data['is_following']
+      };
     } catch (error) {
-      print("Error checking follow status: $error");
+      print("❌ Error checking follow status: $error");
     }
   }
 
@@ -121,7 +121,6 @@ class _ArtistProfileScreenState extends ConsumerState<ArtistProfile> {
   Widget build(BuildContext context) {
     final profileState = ref.watch(getArtistProfileByIdProvider);
     final followStatus = ref.watch(followStatusProvider);
-
     return Scaffold(
       backgroundColor: const Color(0xFF0D0817),
       body: SafeArea(
