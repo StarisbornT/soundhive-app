@@ -21,7 +21,7 @@ class MarketplaceDetails extends ConsumerStatefulWidget {
   const MarketplaceDetails({super.key, required this.service, required this.user});
 
   @override
-  _MarketplaceDetailsScreenState createState() => _MarketplaceDetailsScreenState();
+  ConsumerState<MarketplaceDetails> createState() => _MarketplaceDetailsScreenState();
 }
 class _MarketplaceDetailsScreenState extends ConsumerState<MarketplaceDetails>  {
 
@@ -91,7 +91,7 @@ class _MarketplaceDetailsScreenState extends ConsumerState<MarketplaceDetails>  
         Text(
           ref.formatUserCurrency(widget.service.convertedRate),
           style: const TextStyle(
-            color: Colors.white, fontSize: 24, fontWeight: FontWeight.w500, fontFamily: 'Roboto'
+            color: Colors.white, fontSize: 24, fontWeight: FontWeight.w500,
           ),
         ),
         const SizedBox(height: 8),

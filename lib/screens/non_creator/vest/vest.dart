@@ -20,6 +20,9 @@ import '../../../model/get_active_vest_model.dart';
 import '../../../model/user_model.dart';
 import '../../../utils/utils.dart';
 import '../../dashboard/verification_webview.dart';
+import '../streaming/streaming.dart';
+import '../wallet/fund_wallet_provider.dart';
+import '../wallet/wallet_cards.dart';
 import 'active_vest_details.dart';
 import 'package:shimmer/shimmer.dart';
 
@@ -122,65 +125,18 @@ class _SoundhiveVestScreenState extends ConsumerState<SoundhiveVestScreen> with 
   }
 
   TextEditingController amountController = TextEditingController();
-  void _showAmountInputModal() {
-
-    final formatter = NumberFormat.currency(locale: 'en_US', symbol: '', decimalDigits: 0);
-
+  void _showAmountInputModal(String currency) {
     showDialog(
       context: context,
-      builder: (_) {
-        return AlertDialog(
-          title: const Text("Enter Amount"),
-          content: TextField(
-            controller: amountController,
-            keyboardType: TextInputType.number,
-            inputFormatters: [
-              FilteringTextInputFormatter.digitsOnly,
-              TextInputFormatter.withFunction((oldValue, newValue) {
-                String newText = newValue.text.replaceAll(',', '');
-                if (newText.isEmpty) return newValue.copyWith(text: '');
-                final number = int.tryParse(newText);
-                if (number == null) return oldValue;
-                final newFormatted = formatter.format(number);
-                return TextEditingValue(
-                  text: newFormatted,
-                  selection: TextSelection.collapsed(offset: newFormatted.length),
-                );
-              }),
-            ],
-            style: const TextStyle(color: Colors.black),
-            decoration: InputDecoration(
-              prefix: Text(
-                '${ref.userCurrency} ',
-                style: const TextStyle(
-                  color: Colors.black,
-                ),
-              ),
-              hintText: "Enter amount to fund",
-              hintStyle: const TextStyle(color: Colors.black54),
-            ),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () {
-                Navigator.of(context).pop();
-              },
-              child: const Text("Cancel"),
-            ),
-            ElevatedButton(
-              onPressed: () {
-                String cleanText = amountController.text.replaceAll(',', '');
-                int? amount = int.tryParse(cleanText);
-                if (amount != null && amount > 0) {
-                  Navigator.of(context).pop();
-                  fundWallet(); // will now work
-                }
-              },
-              child: const Text("Continue"),
-            ),
-          ],
-        );
-      },
+      builder: (_) => FundWalletModal(
+        currency: currency,
+      ),
+    );
+  }
+  void _navigateToWithdraw() {
+    Navigator.push(
+      context,
+      MaterialPageRoute(builder: (context) => const Streaming()),
     );
   }
 
@@ -256,18 +212,20 @@ class _SoundhiveVestScreenState extends ConsumerState<SoundhiveVestScreen> with 
               children: [
                 const SizedBox(height: 10),
                 const Text(
-                  'Soundhive Vest',
+                  'Cre8Vest',
                   style: TextStyle(color: Colors.white, fontSize: 24),
                 ),
                 const SizedBox(height: 10),
                 // Wallet Section
                 if(user?.wallet != null)
-                  WalletCard(
-                      balance: user?.wallet!.balance ?? '',
-                      onAddFunds: () {
-                        _showAmountInputModal();
-                      },
-                    user: widget.user,
+                  WalletBalanceCard(
+                    title: 'Base balance',
+                    balance: user?.wallet?.balance != null
+                        ? ref.formatUserCurrency(user?.wallet?.balance)
+                        : '',
+                    currencySymbol: user?.wallet!.currency ?? '',
+                    onAddFunds: () => _showAmountInputModal(user?.wallet!.currency ?? ''),
+                    onWithdraw: _navigateToWithdraw,
                   ),
                 const SizedBox(height: 20),
                 // Tabs

@@ -15,7 +15,7 @@ class CreatorPortfolio extends ConsumerStatefulWidget {
   const CreatorPortfolio({super.key, required this.service});
 
   @override
-  _CreatorPortfolioState createState() => _CreatorPortfolioState();
+  ConsumerState<CreatorPortfolio> createState() => _CreatorPortfolioState();
 
 }
 
@@ -76,13 +76,11 @@ class _CreatorPortfolioState extends ConsumerState<CreatorPortfolio> {
                     ),
                   ),
                   Text(
-                    Utils.formatCurrency(service.rate),
-                    style: GoogleFonts.roboto(
-                      textStyle: const TextStyle(
+                    ref.formatUserCurrency(service.convertedRate),
+                    style: const TextStyle(
                         color: Colors.white,
                         fontSize: 14,
                         fontWeight: FontWeight.w400,
-                      )
                     ),
                   ),
                 ],
@@ -167,7 +165,7 @@ class _CreatorPortfolioState extends ConsumerState<CreatorPortfolio> {
                   :  'Book',
               onPressed: () {
                 final user = ref.watch(userProvider);
-                if(service.user?.wallet == null) {
+                if(user.value?.user?.wallet == null) {
                   Navigator.push(
                     context,
                     MaterialPageRoute(

@@ -14,13 +14,17 @@ final notificationApiProvider = StateNotifierProvider<NotificationApiNotifier, A
 class NotificationApiNotifier extends StateNotifier<AsyncValue<NotificationModel>> {
   final Dio _dio;
   final FlutterSecureStorage _storage;
-  PaginatedNotifications? _paginatedData;
+  int _currentPage = 1;
+  bool _isFetching = false;
 
   NotificationApiNotifier(this._dio, this._storage) : super(const AsyncValue.loading()) {
     getNotifications();
   }
 
-  Future<void> getNotifications({bool refresh = false}) async {
+  Future<void> getNotifications({bool refresh = false, int page = 1, bool append = false}) async {
+    if (_isFetching) return;
+    _isFetching = true;
+
     if (refresh) {
       state = const AsyncValue.loading();
     }
@@ -28,6 +32,7 @@ class NotificationApiNotifier extends StateNotifier<AsyncValue<NotificationModel
     try {
       final response = await _dio.get(
         '/notifications',
+        queryParameters: {'page': page},
         options: Options(
           headers: {
             'Accept': 'application/json',
@@ -37,51 +42,61 @@ class NotificationApiNotifier extends StateNotifier<AsyncValue<NotificationModel
       );
 
       final serviceResponse = NotificationModel.fromMap(response.data);
-      _paginatedData = serviceResponse.data;
-      state = AsyncValue.data(serviceResponse);
+
+      if (append && state.hasValue) {
+        // Append new notifications to existing ones
+        final oldData = state.value!;
+        final combinedNotifications = [
+          ...oldData.data.notifications,
+          ...serviceResponse.data.notifications,
+        ];
+
+        final combinedData = NotificationModel(
+          success: true,
+          data: PaginatedNotifications(
+            currentPage: serviceResponse.data.currentPage,
+            notifications: combinedNotifications,
+            firstPageUrl: serviceResponse.data.firstPageUrl,
+            from: serviceResponse.data.from,
+            lastPage: serviceResponse.data.lastPage,
+            lastPageUrl: serviceResponse.data.lastPageUrl,
+            links: serviceResponse.data.links,
+            nextPageUrl: serviceResponse.data.nextPageUrl,
+            path: serviceResponse.data.path,
+            perPage: serviceResponse.data.perPage,
+            prevPageUrl: serviceResponse.data.prevPageUrl,
+            to: serviceResponse.data.to,
+            total: serviceResponse.data.total,
+          ),
+        );
+
+        state = AsyncValue.data(combinedData);
+      } else {
+        state = AsyncValue.data(serviceResponse);
+      }
+
+      _currentPage = serviceResponse.data.currentPage;
+
+      print('Fetched page $_currentPage. Total notifications: ${serviceResponse.data.notifications.length}');
+      print('Next page available: ${serviceResponse.data.nextPageUrl != null}');
+
     } catch (error, stackTrace) {
+      print('Error fetching notifications: $error');
       state = AsyncValue.error(error, stackTrace);
+    } finally {
+      _isFetching = false;
     }
   }
 
   Future<void> loadMore() async {
-    if (_paginatedData?.nextPageUrl == null) return;
+    final nextPage = _currentPage + 1;
 
-    try {
-
-      final response = await _dio.get(
-        _paginatedData!.nextPageUrl!,
-        options: Options(
-          headers: {
-            'Accept': 'application/json',
-            'Content-Type': 'application/json',
-          },
-        ),
-      );
-
-      final newData = NotificationModel.fromMap(response.data);
-      _paginatedData = PaginatedNotifications(
-        currentPage: newData.data.currentPage,
-        notifications: [...?_paginatedData?.notifications, ...newData.data.notifications],
-        firstPageUrl: newData.data.firstPageUrl,
-        from: newData.data.from,
-        lastPage: newData.data.lastPage,
-        lastPageUrl: newData.data.lastPageUrl,
-        links: newData.data.links,
-        nextPageUrl: newData.data.nextPageUrl,
-        path: newData.data.path,
-        perPage: newData.data.perPage,
-        prevPageUrl: newData.data.prevPageUrl,
-        to: newData.data.to,
-        total: newData.data.total,
-      );
-
-      state = AsyncValue.data(NotificationModel(
-        success: true,
-        data: _paginatedData!,
-      ));
-    } catch (error, stackTrace) {
-      state = AsyncValue.error(error, stackTrace);
+    // Check if we have more pages to load
+    if (state.hasValue && nextPage <= state.value!.data.lastPage) {
+      print('Loading more - page $nextPage');
+      await getNotifications(page: nextPage, append: true);
+    } else {
+      print('No more pages to load. Current page: $_currentPage, Last page: ${state.value?.data.lastPage}');
     }
   }
 
@@ -93,28 +108,28 @@ class NotificationApiNotifier extends StateNotifier<AsyncValue<NotificationModel
           headers: {
             'Accept': 'application/json',
             'Content-Type': 'application/json',
-
           },
         ),
       );
 
       // Update local state
-      if (_paginatedData != null) {
-        final updatedNotifications = _paginatedData!.notifications.map((n) {
+      if (state.hasValue) {
+        final currentData = state.value!;
+        final updatedNotifications = currentData.data.notifications.map((n) {
           if (n.id == notificationId) {
             return n.copyWith(isRead: true);
           }
           return n;
         }).toList();
 
-        _paginatedData = _paginatedData!.copyWith(notifications: updatedNotifications);
-        state = AsyncValue.data(NotificationModel(
+        final updatedData = NotificationModel(
           success: true,
-          data: _paginatedData!,
-        ));
+          data: currentData.data.copyWith(notifications: updatedNotifications),
+        );
+
+        state = AsyncValue.data(updatedData);
       }
     } catch (error) {
-      // Silently fail - we can retry later
       debugPrint('Failed to mark notification as read: $error');
     }
   }
@@ -127,22 +142,23 @@ class NotificationApiNotifier extends StateNotifier<AsyncValue<NotificationModel
           headers: {
             'Accept': 'application/json',
             'Content-Type': 'application/json',
-
           },
         ),
       );
 
       // Update local state
-      if (_paginatedData != null) {
-        final updatedNotifications = _paginatedData!.notifications
+      if (state.hasValue) {
+        final currentData = state.value!;
+        final updatedNotifications = currentData.data.notifications
             .map((n) => n.copyWith(isRead: true))
             .toList();
 
-        _paginatedData = _paginatedData!.copyWith(notifications: updatedNotifications);
-        state = AsyncValue.data(NotificationModel(
+        final updatedData = NotificationModel(
           success: true,
-          data: _paginatedData!,
-        ));
+          data: currentData.data.copyWith(notifications: updatedNotifications),
+        );
+
+        state = AsyncValue.data(updatedData);
       }
     } catch (error) {
       debugPrint('Failed to mark all notifications as read: $error');

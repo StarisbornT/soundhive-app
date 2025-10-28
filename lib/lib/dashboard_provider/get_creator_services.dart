@@ -37,7 +37,7 @@ class GetCreatorServicesNotifier
         ),
       );
 
-      final List<dynamic> data = response.data["user"]['data'];
+      final List<dynamic> data = response.data["data"]['data'];
       final services =
       data.map((e) => MarketOrder.fromMap(e)).toList();
 

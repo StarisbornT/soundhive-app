@@ -202,7 +202,7 @@ class NonCreatorDashboard extends ConsumerWidget {
                           ),
                         );
                       }),
-                      _buildDrawerItem(icon: 'images/music.png', text: 'Cre8Hive- Stream Music', onTap: () {
+                      _buildDrawerItem(icon: 'images/music.png', text: 'Soundhive- Stream Music', onTap: () {
                         if(user?.interests == null) {
                           Navigator.push(
                             context,

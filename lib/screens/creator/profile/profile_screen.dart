@@ -1,21 +1,17 @@
 import 'dart:io';
 
 import 'package:dio/dio.dart';
-import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:image_picker/image_picker.dart';
-import 'package:path_provider/path_provider.dart';
 import 'package:soundhive2/components/rounded_button.dart';
 import 'package:soundhive2/utils/app_colors.dart';
 import 'package:soundhive2/utils/utils.dart';
-
 import '../../../components/label_text.dart';
 import 'package:soundhive2/lib/dashboard_provider/apiresponseprovider.dart';
 import 'package:soundhive2/lib/dashboard_provider/user_provider.dart';
 import '../../../model/apiresponse_model.dart';
 import '../../../model/user_model.dart';
-import '../../../services/loader_service.dart';
 import '../../../utils/alert_helper.dart';
 
 class ProfileScreen extends ConsumerStatefulWidget {
@@ -23,12 +19,11 @@ class ProfileScreen extends ConsumerStatefulWidget {
   const ProfileScreen({super.key, required this.user});
 
   @override
-  _ProfileScreenState createState() => _ProfileScreenState();
+  ConsumerState<ProfileScreen> createState() => _ProfileScreenState();
 }
 
 class _ProfileScreenState extends ConsumerState<ProfileScreen> {
   final ValueNotifier<File?> _imageNotifier = ValueNotifier<File?>(null);
-  String? _uploadedImageUrl;
   Future<void> _pickAndUploadImage() async {
     final picker = ImagePicker();
     final pickedFile = await picker.pickImage(source: ImageSource.gallery);
@@ -47,7 +42,6 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
       );
 
       setState(() {
-        _uploadedImageUrl = imageUrl;
       });
 
       await updateProfile(imageUrl); // Send to backend
@@ -118,9 +112,9 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
   
   @override
   Widget build(BuildContext context) {
-    const Color cardBackgroundColor = Color(0xFF1A191E); // Slightly lighter for cards
+    const Color cardBackgroundColor = Color(0xFF1A191E);
     const Color textColor = Colors.white;
-    const Color hintTextColor = Colors.white70; // For labels
+    const Color hintTextColor = Colors.white70;
 
 
     Future<void> editJobTitle(String newJobTitle) async {
@@ -129,7 +123,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
       };
 
       try {
-        final response = await ref.read(apiresponseProvider.notifier).editJobTitle(
+        await ref.read(apiresponseProvider.notifier).editJobTitle(
           context: context,
           payload: payload,
         );
@@ -175,7 +169,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
       };
 
       try {
-        final response = await ref.read(apiresponseProvider.notifier).editDescription(
+        await ref.read(apiresponseProvider.notifier).editDescription(
           context: context,
           payload: payload,
         );
@@ -215,11 +209,57 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
         );
       }
     }
+    Future<void> editLocation(String location) async {
+      final payload = {
+        "location": location,
+      };
+
+      try {
+        await ref.read(apiresponseProvider.notifier).editLocation(
+          context: context,
+          payload: payload,
+        );
+
+        // Reload updated user info
+        await ref.read(userProvider.notifier).loadUserProfile();
+
+        showCustomAlert(
+          context: context,
+          isSuccess: true,
+          title: 'Success',
+          message: 'Location updated successfully',
+        );
+
+      } catch (error) {
+        String errorMessage = 'An unexpected error occurred';
+
+        if (error is DioException) {
+          if (error.response?.data != null) {
+            try {
+              final apiResponse = ApiResponseModel.fromJson(error.response?.data);
+              errorMessage = apiResponse.message;
+            } catch (e) {
+              errorMessage = 'Failed to parse error message';
+            }
+          } else {
+            errorMessage = error.message ?? 'Network error occurred';
+          }
+        }
+
+        print("Error: $errorMessage");
+        showCustomAlert(
+          context: context,
+          isSuccess: false,
+          title: 'Error',
+          message: errorMessage,
+        );
+      }
+    }
     Future<void> editSocials(Map<String, String> socials) async {
       final payload = socials;
 
       try {
-        final response = await ref.read(apiresponseProvider.notifier).editSocials(
+        await ref.read(apiresponseProvider.notifier).editSocials(
           context: context,
           payload: payload,
         );
@@ -273,6 +313,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
             onSave: (newValue) {
               if (newValue.trim().isEmpty) return;
               editJobTitle(newValue);
+              Navigator.pop(context);
             },
           );
         },
@@ -289,10 +330,32 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
             title: 'Edit Bio Description',
             initialValue: currentBio,
             hintText: 'I am a professional voice-over artist...',
-            isMultiline: true, // Set to true for multiline input
+            isMultiline: true,
             onSave: (newValue) {
               if (newValue.trim().isEmpty) return;
               editDescription(newValue);
+              Navigator.pop(context);
+            },
+          );
+        },
+      );
+    }
+
+    void showLocationBottomSheet(BuildContext context, String currentBio) {
+      showModalBottomSheet(
+        context: context,
+        isScrollControlled: true,
+        backgroundColor: Colors.transparent,
+        builder: (BuildContext context) {
+          return EditTextFieldBottomSheet(
+            title: 'Edit Location',
+            initialValue: currentBio,
+            hintText: '',
+            isMultiline: true,
+            onSave: (newValue) {
+              if (newValue.trim().isEmpty) return;
+              editLocation(newValue);
+              Navigator.pop(context);
             },
           );
         },
@@ -310,6 +373,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
             onSave: (newSocials) {
               if (newSocials.isEmpty) return;
               editSocials(newSocials);
+              Navigator.pop(context);
             },
           );
         },
@@ -332,11 +396,10 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
       backgroundColor: AppColors.BACKGROUNDCOLOR,
       appBar: AppBar(
         backgroundColor: Colors.transparent,
-        elevation: 0, // No shadow
+        elevation: 0,
         leading: IconButton(
           icon: const Icon(Icons.arrow_back_ios, color: textColor),
           onPressed: () {
-            // Implement navigation back
             Navigator.pop(context);
           },
         ),
@@ -434,7 +497,10 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
             _buildInfoCard(
               label: 'Where are you based?',
               value: user.value?.user?.creator?.location ?? 'Not specified',
-              hasEdit: false,
+              hasEdit: true,
+              onEdit: () {
+                showLocationBottomSheet(context, user.value?.user?.creator?.location ?? '');
+              },
               cardBackgroundColor: cardBackgroundColor,
               textColor: textColor,
               hintTextColor: hintTextColor,

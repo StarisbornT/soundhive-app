@@ -15,7 +15,7 @@ class CreatorProfile extends ConsumerStatefulWidget {
   const CreatorProfile({super.key, required this.creator});
 
   @override
-  _CreatorProfileState createState() => _CreatorProfileState();
+  ConsumerState<CreatorProfile> createState() => _CreatorProfileState();
 }
 
 class _CreatorProfileState extends ConsumerState<CreatorProfile> {
@@ -269,7 +269,7 @@ class _CreatorProfileState extends ConsumerState<CreatorProfile> {
                     child: _buildServiceCard(
                       service.serviceImage ?? '',
                       service.serviceName,
-                      Utils.formatCurrency(service.rate),
+                      ref.formatUserCurrency(service.convertedRate),
                       service
                     ),
                   );

@@ -1,12 +1,9 @@
-// Fund Wallet Provider
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 import 'package:soundhive2/utils/alert_helper.dart';
-import 'package:soundhive2/utils/utils.dart';
-
 import '../../../components/success.dart';
 import 'package:soundhive2/lib/dashboard_provider/add_money_provider.dart';
 import 'package:soundhive2/lib/dashboard_provider/getTransactionHistory.dart';
@@ -26,14 +23,14 @@ class FundWalletService {
   Future<void> fundWallet({
     required BuildContext context,
     required String amount,
-    required String currency, // Add currency parameter
+    required String currency,
     required VoidCallback onSuccess,
   }) async {
     try {
       final response = await ref.read(addMoneyProvider.notifier).addMoney(
         context: context,
         amount: double.parse(amount),
-        currency: currency, // Pass the currency parameter
+        currency: currency,
       );
 
       if (response.url != null) {
@@ -118,6 +115,7 @@ class _FundWalletModalState extends ConsumerState<FundWalletModal> {
   }
 
   void _showSuccessScreen() {
+    Navigator.pop(context);
     Navigator.push(
       context,
       MaterialPageRoute(

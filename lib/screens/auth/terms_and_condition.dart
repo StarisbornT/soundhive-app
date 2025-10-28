@@ -104,121 +104,132 @@ class _TermsAndConditionScreenState extends ConsumerState<TermsAndCondition> {
   }
 
   @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: AppColors.BACKGROUNDCOLOR,
-      body: SafeArea(
-        child: Column(
-          children: [
-            const SizedBox(height: 20),
-            Center(
-              child: Image.asset('images/logo.png', width: 200),
-            ),
-            const SizedBox(height: 40),
+Widget build(BuildContext context) {
+  return Scaffold(
+    backgroundColor: AppColors.BACKGROUNDCOLOR,
+    body: SafeArea(
+      child: Column(
+        children: [
+          const SizedBox(height: 20),
+          Center(
+            child: Image.asset('images/logo.png', width: 200),
+          ),
+          const SizedBox(height: 40),
 
-            // Scrollable content
-             Expanded(
-              child: SingleChildScrollView(
-                controller: _scrollController,
-                padding: const EdgeInsets.symmetric(horizontal: 20),
-                child: const Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'Terms and Conditions',
-                      style: TextStyle(
-                        fontSize: 24,
-                        fontWeight: FontWeight.w600,
-                        color: Colors.white,
-                      ),
-                    ),
-                    SizedBox(height: 20),
-                    Text(
-                      'There are many variations of passages of Lorem Ipsum available, but the majority have suffered alteration in some form, by injected humour, or randomised words which don\'t look even slightly believable. If you are going to use a passage of Lorem Ipsum, you need to be sure there isn\'t anything embarrassing hidden in the middle of text. All the Lorem Ipsum generators on the Internet tend to repeat predefined chunks as necessary, making this the first true generator on the Internet. It uses a dictionary of over 200 Latin words, combined with a handful of model sentence structures, to generate Lorem Ipsum which looks reasonable. The generated Lorem Ipsum is therefore always free from repetition, injected humour, or non-characteristic words etc.',
-
-                      style: TextStyle(
-                        fontSize: 14,
-                        color: Colors.white70,
-                        height: 1.5,
-                      ),
-                    ),
-                    SizedBox(height: 40),
-                    Text(
-                      'Privacy Policy',
-                      style: TextStyle(
-                        fontSize: 24,
-                        fontWeight: FontWeight.w600,
-                        color: Colors.white,
-                      ),
-                    ),
-                    SizedBox(height: 20),
-                    Text(
-                      'es simplemente el texto de relleno de las imprentas y archivos de texto. Lorem Ipsum ha sido el texto de relleno estándar de las industrias desde el año 1500, cuando un impresor (N. del T. persona que se dedica a la imprenta) desconocido usó una galería de textos y los mezcló de tal manera que logró hacer un libro de textos especimen. es simplemente el texto de relleno de las imprentas y archivos de texto. Lorem Ipsum ha sido el texto de relleno estándar de las industrias desde el año 1500, cuando un impresor (N. del T. persona que se dedica a la imprenta) desconocido usó una galería de textos y los mezcló de tal manera que logró hacer un libro de textos especimen.',
-                      style: TextStyle(
-                        fontSize: 14,
-                        color: Colors.white70,
-                        height: 1.5,
-                      ),
-                    ),
-                    SizedBox(height: 100),
-                  ],
-                ),
-              ),
-            ),
-
-            // Fixed bottom buttons
-            Padding(
-              padding: const EdgeInsets.fromLTRB(20, 10, 20, 20),
-              child: Row(
+          // Scrollable content
+          Expanded(
+            child: SingleChildScrollView(
+              controller: _scrollController,
+              padding: const EdgeInsets.symmetric(horizontal: 20),
+              child: const Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Expanded(
-                    child: OutlinedButton(
-                      onPressed: () {
-                        // Handle "I do not agree"
-                      },
-                      style: OutlinedButton.styleFrom(
-                        padding: const EdgeInsets.symmetric(vertical: 16),
-                        side: const BorderSide(color: Color(0xFF676579)),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(100.0),
-                        ),
-                      ),
-                      child: const Text(
-                        'I do not agree',
-                        style: TextStyle(color: Colors.white, fontSize: 16),
-                      ),
+                  Text(
+                    'Terms and Conditions',
+                    style: TextStyle(
+                      fontSize: 24,
+                      fontWeight: FontWeight.w600,
+                      color: Colors.white,
                     ),
                   ),
-                  const SizedBox(width: 10),
-                  Expanded(
-                    child: ElevatedButton(
-                      onPressed: _hasReachedBottom
-                          ? () {
-                        _saveFormData();
-                      }
-                          : null,
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: _hasReachedBottom
-                            ? const Color(0xFF924ACE)
-                            : const Color(0xFF5F5873),
-                        padding: const EdgeInsets.symmetric(vertical: 16),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(100.0),
-                        ),
-                      ),
-                      child: const Text(
-                        'Agree & continue',
-                        style: TextStyle(color: Colors.white, fontSize: 16),
-                      ),
+                  SizedBox(height: 20),
+                  Text(
+                    'Last updated: 27 October, 2025\n\n'
+                    'By creating an account or tapping “Agree”, you accept these Terms. Please do not proceed if you disagree.\n\n'
+                    '1️⃣ Use of the App\n\n'
+                    'Cre8hive includes:\n'
+                    '• Cre8hive Marketplace – book and offer creative services\n'
+                    '• Cre8Vest – access investment opportunities\n'
+                    '• SoundHive Streaming – stream licensed content\n'
+                    '• Cre8Pay Wallet – pay and receive funds within the ecosystem\n\n'
+                    'You agree to use the App lawfully and not upload harmful, abusive, or infringing content.\n\n'
+                    '2️⃣ Accounts & Security\n\n'
+                    'Provide accurate information and keep your login secure. You are responsible for all activity under your account.\n\n'
+                    '3️⃣ Payments & Wallet\n\n'
+                    'Wallet funds are used to pay for services and receive earnings.\n'
+                    '• Marketplace bookings are held in Escrow until confirmed\n'
+                    '• Cleared earnings move to Actual Balance for withdrawal\n'
+                    '• Multi-currency support may depend on verification and third-party processors (e.g., Stripe)\n'
+                    'KYC and country restrictions may apply.\n\n'
+                    '4️⃣ Content & Streaming\n\n'
+                    'Streaming content is provided by creators and rights-holders. We do not guarantee uninterrupted or error-free playback. '
+                    'Copyright rules must be respected — you may not copy, repost, or redistribute protected content.\n\n'
+                    '5️⃣ Disputes & Enforcement\n\n'
+                    'Disputes between Users and Creators may be reviewed by Cre8hive, whose decision will be final regarding payouts/refunds. '
+                    'We may suspend or terminate accounts that violate these Terms.\n\n'
+                    '6️⃣ Intellectual Property\n\n'
+                    'All Cre8hive brand assets, software, and design belong to Cre8hive and must not be copied without permission.\n\n'
+                    '7️⃣ Limitation of Liability\n\n'
+                    'Cre8hive is provided “as is”. We are not liable for indirect or consequential damages resulting from use or unavailability of the App.\n\n'
+                    '8️⃣ Changes & Contact\n\n'
+                    'We may update these Terms occasionally. Continued use means continued acceptance.\n'
+                    'For concerns or support, contact: support@cre8hiveapp.io',
+                    style: TextStyle(
+                      fontSize: 14,
+                      color: Colors.white70,
+                      height: 1.5,
                     ),
                   ),
+                  SizedBox(height: 100),
                 ],
               ),
             ),
-          ],
-        ),
+          ),
+
+          // Fixed bottom buttons
+          Padding(
+            padding: const EdgeInsets.fromLTRB(20, 10, 20, 20),
+            child: Row(
+              children: [
+                Expanded(
+                  child: OutlinedButton(
+                    onPressed: () {
+                      // Handle "I do not agree"
+                    },
+                    style: OutlinedButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(vertical: 16),
+                      side: const BorderSide(color: Color(0xFF676579)),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(100.0),
+                      ),
+                    ),
+                    child: const Text(
+                      'I do not agree',
+                      style: TextStyle(color: Colors.white, fontSize: 16),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: ElevatedButton(
+                    onPressed: _hasReachedBottom
+                        ? () {
+                            _saveFormData();
+                          }
+                        : null,
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: _hasReachedBottom
+                          ? const Color(0xFF924ACE)
+                          : const Color(0xFF5F5873),
+                      padding: const EdgeInsets.symmetric(vertical: 16),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(100.0),
+                      ),
+                    ),
+                    child: const Text(
+                      'Agree & continue',
+                      style: TextStyle(color: Colors.white, fontSize: 16),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
       ),
-    );
-  }
+    ),
+  );
+}
+
 
 }

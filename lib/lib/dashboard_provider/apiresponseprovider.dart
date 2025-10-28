@@ -749,6 +749,32 @@ class ApiResponseProvider extends StateNotifier<AsyncValue<void>> {
       LoaderService.hideLoader(context);
     }
   }
+  Future<ApiResponseModel> editLocation({
+    required BuildContext context,
+    required Map<String, dynamic> payload
+  }) async {
+    state = const AsyncValue.loading();
+    try {
+      LoaderService.showLoader(context);
+      final formData = jsonEncode(payload);
+      final response = await _dio.post(
+          '/update/location',
+          data: formData
+      );
+
+      if (response.statusCode == 200) {
+        state = const AsyncValue.data(null); // line or error
+        return ApiResponseModel.fromJson(response.data);
+      } else {
+        throw Exception(response.data['message'] ?? 'Something went wrong');
+      }
+    } catch (error, stackTrace) {
+      state = AsyncValue.error(error, stackTrace);
+      rethrow; // Let the caller handle the error
+    } finally {
+      LoaderService.hideLoader(context);
+    }
+  }
 
   Future<ApiResponseModel> editSocials({
     required BuildContext context,
