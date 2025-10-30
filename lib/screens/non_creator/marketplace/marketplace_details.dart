@@ -5,6 +5,7 @@ import 'package:intl/intl.dart';
 import 'package:soundhive2/components/rounded_button.dart';
 import 'package:soundhive2/screens/non_creator/wallet/wallet.dart';
 import 'package:soundhive2/utils/utils.dart';
+import '../../../components/success.dart';
 import '../../../components/widgets.dart';
 import 'package:soundhive2/lib/dashboard_provider/apiresponseprovider.dart';
 import 'package:soundhive2/lib/dashboard_provider/user_provider.dart';
@@ -263,17 +264,31 @@ class _MarketplaceDetailsScreenState extends ConsumerState<MarketplaceDetails>  
       if(response.status) {
         await ref.read(userProvider.notifier).loadUserProfile();
 
-        Navigator.push(
+        Navigator.pushReplacement(
           context,
           MaterialPageRoute(
-            builder: (context) => MarketplaceReceiptScreen(
-              service: widget.service,
-              paymentMethod: selectedPaymentOption ?? '',
-              availability: availablityDates,
-              user: widget.user.user!,
+            builder: (context) => Success(
+              title: 'Booked Successfully',
+              subtitle:
+              'You have successfully booked for this service',
+              onButtonPressed: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => MarketplaceReceiptScreen(
+                      service: widget.service,
+                      paymentMethod: selectedPaymentOption ?? '',
+                      availability: availablityDates,
+                      user: widget.user.user!,
+                    ),
+                  ),
+                );
+              },
             ),
           ),
         );
+
+
       }
 
 

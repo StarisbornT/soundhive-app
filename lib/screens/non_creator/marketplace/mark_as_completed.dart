@@ -21,7 +21,7 @@ import '../../../utils/app_colors.dart';
 class MarkAsCompletedScreen extends ConsumerStatefulWidget {
   final ActiveInvestment services;
   final User user;
-  const MarkAsCompletedScreen({Key? key, required this.services, required this.user}) : super(key: key);
+  const MarkAsCompletedScreen({super.key, required this.services, required this.user});
 
   @override
   _ServiceOrderSuccessScreenState createState() => _ServiceOrderSuccessScreenState();
