@@ -73,7 +73,7 @@ class _ServiceOrderSuccessScreenState extends ConsumerState<MarkAsCompletedScree
               ),
               const SizedBox(height: 10),
               Text(
-                "The payment you made for the rentage has been withheld by Soundlive and won’t be released until you mark ${services.service?.user?.firstName}'s job as “Completed”.",
+                "The payment you made for the ${services.service?.serviceName} has been withheld by Cre8Hive and won’t be released until you mark ${services.service?.user?.firstName}'s job as “Completed”.",
                 style: const TextStyle(color: Colors.white70, fontSize: 14),
               ),
               const SizedBox(height: 20),

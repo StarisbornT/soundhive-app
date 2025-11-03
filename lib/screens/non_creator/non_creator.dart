@@ -18,6 +18,7 @@ import 'package:soundhive2/lib/navigator_provider.dart';
 import '../../utils/app_colors.dart';
 import '../auth/login.dart';
 import '../creator/profile/setup_screen.dart';
+import '../onboarding/just_curious.dart';
 import 'marketplace/marketplace.dart';
 
 class NonCreatorDashboard extends ConsumerWidget {
@@ -190,6 +191,9 @@ class NonCreatorDashboard extends ConsumerWidget {
                           ],
                         ),
                       ),
+                      _buildDrawerItem(icon: 'images/transaction.png', text: 'Home Screen', onTap: () {
+                        Navigator.pushNamed(context, JustCurious.id);
+                      }),
                       _buildDrawerItem(icon: 'images/shop.png', text: 'Cre8Hive - Marketplace', onTap: () {
                         Navigator.pop(context);
                         ref.read(bottomNavigationProvider.notifier).state = 0;

@@ -1,4 +1,5 @@
 import 'package:dio/dio.dart';
+import 'package:flutter/cupertino.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import '../../model/market_orders_service_model.dart';
@@ -14,6 +15,7 @@ class GetMyOrdersAssetNotifier extends StateNotifier<AsyncValue<MarketOrdersPagi
   final FlutterSecureStorage _storage;
 
   List<MarketOrder> _allServices = [];
+  bool _isLoadingMore = false;
   int _currentPage = 1;
   bool _isLastPage = false;
   Map<String, dynamic> _currentFilters = {};
@@ -22,6 +24,7 @@ class GetMyOrdersAssetNotifier extends StateNotifier<AsyncValue<MarketOrdersPagi
 
   List<MarketOrder> get allServices => _allServices;
   bool get isLastPage => _isLastPage;
+  bool get isLoadingMore => _isLoadingMore;
 
   // Reset marketplace state
   Future<void> resetMarketplaceState() async {
@@ -49,6 +52,8 @@ class GetMyOrdersAssetNotifier extends StateNotifier<AsyncValue<MarketOrdersPagi
   Future<void> getMarketPlaceService({
     bool loadMore = false,
     String? serviceName,
+    String? creatorName,
+    String? searchTerm, // NEW: Combined search parameter
     int? categoryId,
     int? subCategoryId,
     double? minRate,
@@ -57,19 +62,34 @@ class GetMyOrdersAssetNotifier extends StateNotifier<AsyncValue<MarketOrdersPagi
     int? pageSize = 20,
   }) async {
     if (_isLastPage && loadMore) return;
+    if (_isLoadingMore) return;
 
     if (!loadMore) {
       state = const AsyncValue.loading();
       _currentPage = 1;
       _allServices = [];
       _isLastPage = false;
+    } else {
+      _isLoadingMore = true;
     }
 
-    // Update current filters
-    if (serviceName != null) _currentFilters['service_name'] = serviceName;
+    // NEW: Handle combined search - use search_term parameter for backend
+    if (searchTerm != null && searchTerm.isNotEmpty) {
+      _currentFilters['search_term'] = searchTerm;
+      // Remove individual service_name and creator_name when using combined search
+      _currentFilters.remove('service_name');
+      _currentFilters.remove('creator_name');
+    } else {
+      // Use individual filters if no combined search
+      if (serviceName != null) _currentFilters['service_name'] = serviceName;
+      if (creatorName != null) _currentFilters['creator_name'] = creatorName;
+      _currentFilters.remove('search_term');
+    }
+
+    // Update other filters
     if (categoryId != null) _currentFilters['category_id'] = categoryId;
-    if (minRate != null) _currentFilters['min_rate'] = minRate;
     if (subCategoryId != null) _currentFilters['sub_category_id'] = subCategoryId;
+    if (minRate != null) _currentFilters['min_rate'] = minRate;
     if (maxRate != null) _currentFilters['max_rate'] = maxRate;
     if (provider != null) _currentFilters['provider'] = provider;
 
@@ -82,6 +102,8 @@ class GetMyOrdersAssetNotifier extends StateNotifier<AsyncValue<MarketOrdersPagi
 
       // Remove null values from query parameters
       queryParams.removeWhere((key, value) => value == null);
+
+      debugPrint('API Call: /marketplace?${queryParams.toString()}');
 
       final response = await _dio.get(
         '/marketplace',
@@ -106,7 +128,10 @@ class GetMyOrdersAssetNotifier extends StateNotifier<AsyncValue<MarketOrdersPagi
         _currentPage += 1;
       }
     } catch (error, stackTrace) {
+      debugPrint('Error fetching marketplace: $error');
       state = AsyncValue.error(error, stackTrace);
+    } finally {
+      _isLoadingMore = false;
     }
   }
 

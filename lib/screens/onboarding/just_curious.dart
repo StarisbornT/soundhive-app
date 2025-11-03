@@ -7,10 +7,12 @@ import 'package:soundhive2/screens/non_creator/non_creator.dart';
 import 'package:soundhive2/utils/app_colors.dart';
 import 'package:soundhive2/utils/utils.dart';
 
+import '../../lib/dashboard_provider/user_provider.dart';
 import '../../lib/navigator_provider.dart';
 import '../non_creator/marketplace/categories.dart';
 import '../non_creator/marketplace/creators_list.dart';
 import '../non_creator/streaming/preference.dart';
+import '../non_creator/streaming/streaming.dart';
 
 class JustCurious extends ConsumerStatefulWidget {
   static String id = 'just_curious';
@@ -35,6 +37,7 @@ class _JustCuriousState extends ConsumerState<JustCurious> {
   }
   @override
   Widget build(BuildContext context) {
+    final user = ref.watch(userProvider);
     return Scaffold(
       backgroundColor: AppColors.BACKGROUNDCOLOR,
       body: SafeArea(
@@ -89,13 +92,12 @@ class _JustCuriousState extends ConsumerState<JustCurious> {
                   children: [
                     _buildOptionCard(
                       icon: FontAwesomeIcons.house,
-                      text: "Go to Home Screen",
+                      text: "Go to Home Feed",
                       color: const Color.fromRGBO(234, 208, 255, 0.1),
                       backgroundImage: "images/c6.png",
                       onTap: () {
-                        Navigator.pushNamed(context, NonCreatorDashboard.id).then((_) {
-                          ref.read(bottomNavigationProvider.notifier).state = 0;
-                        });
+                         ref.read(bottomNavigationProvider.notifier).state = 0;
+                         Navigator.pushNamed(context, NonCreatorDashboard.id);
                       },
                     ),
                     _buildOptionCard(
@@ -113,8 +115,44 @@ class _JustCuriousState extends ConsumerState<JustCurious> {
                       },
                     ),
                     _buildOptionCard(
+                      icon: FontAwesomeIcons.music,
+                      text: "SoundHive \n Stream Music from quality Artist",
+                      color: const Color.fromRGBO(255, 215, 151, 0.1),
+                      backgroundImage: "images/c2.png",
+                      onTap: () {
+                        if(user.value?.user?.interests == null) {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) =>  const PreferenceScreen(),
+                            ),
+                          );
+                        }else {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => const Streaming(
+                              ),
+                            ),
+                          );
+                        }
+                      },
+                    ),
+
+                    _buildOptionCard(
+                      icon: FontAwesomeIcons.chartLine,
+                      text: "Cre8Vest \n View Investment Opportunities in Entertainment",
+                      color: const Color.fromRGBO(193, 255, 196, 0.1),
+                      backgroundImage: "images/c1.png",
+                      onTap: () {
+                          ref.read(bottomNavigationProvider.notifier).state = 2;
+
+                          Navigator.pushNamed(context, NonCreatorDashboard.id);
+                      },
+                    ),
+                    _buildOptionCard(
                       icon: FontAwesomeIcons.userGroup,
-                      text: "Find Creators",
+                      text: "Cre8Hive Marketplace \n Find top creators near you",
                       color: const Color.fromRGBO(255, 179, 150, 0.1),
                       backgroundImage: "images/c3.png",
                       onTap: () {
@@ -126,31 +164,7 @@ class _JustCuriousState extends ConsumerState<JustCurious> {
                         );
                       },
                     ),
-                    _buildOptionCard(
-                      icon: FontAwesomeIcons.chartLine,
-                      text: "View Investment Opportunities",
-                      color: const Color.fromRGBO(193, 255, 196, 0.1),
-                      backgroundImage: "images/c1.png",
-                      onTap: () {
-                        Navigator.pushNamed(context, NonCreatorDashboard.id).then((_) {
-                          ref.read(bottomNavigationProvider.notifier).state = 2;
-                        });
-                      },
-                    ),
-                    _buildOptionCard(
-                      icon: FontAwesomeIcons.music,
-                      text: "Stream music from your favourite artists",
-                      color: const Color.fromRGBO(255, 215, 151, 0.1),
-                      backgroundImage: "images/c2.png",
-                      onTap: () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (context) =>  const PreferenceScreen(),
-                          ),
-                        );
-                      },
-                    ),
+
                     _buildOptionCard(
                       icon: FontAwesomeIcons.wallet,
                       text: "Cre8pay – Coming soon",
@@ -220,15 +234,18 @@ class _JustCuriousState extends ConsumerState<JustCurious> {
                     size: 28,
                   ),
                   const SizedBox(height: 12),
-                  Text(
-                    text,
-                    textAlign: TextAlign.center,
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 13,
-                      fontWeight: disabled ? FontWeight.w400 : FontWeight.w500,
+                  Flexible(
+                    child: Text(
+                      text,
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 13,
+                        fontWeight: disabled ? FontWeight.w400 : FontWeight.w500,
+                      ),
                     ),
                   ),
+
                 ],
               ),
             ),

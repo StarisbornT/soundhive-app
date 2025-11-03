@@ -172,13 +172,23 @@ class _MarketplaceState extends ConsumerState<Marketplace>
 
     _searchDebounce = Timer(const Duration(milliseconds: 500), () {
       if (mounted) {
-        ref.read(getMarketplaceServiceProvider.notifier).getMarketPlaceService(
-          serviceName: value,
-          pageSize: 20, // Add pagination limit
-        );
+        final searchTerm = value.trim();
+
+        if (searchTerm.isEmpty) {
+          // If search is cleared, reset to show all services
+          ref.read(getMarketplaceServiceProvider.notifier).resetMarketplaceState();
+        } else {
+          // Use a single search parameter that searches both service and creator names
+          // The backend will handle searching across both fields with OR logic
+          ref.read(getMarketplaceServiceProvider.notifier).getMarketPlaceService(
+            searchTerm: searchTerm, // New parameter for combined search
+            pageSize: 20,
+          );
+        }
       }
     });
   }
+
 
   @override
   Widget build(BuildContext context) {
@@ -448,6 +458,15 @@ class _MarketplaceState extends ConsumerState<Marketplace>
                       hintStyle: const TextStyle(color: Colors.white54),
                       prefixIcon: const Icon(Icons.search, color: Colors.white54),
                       contentPadding: const EdgeInsets.symmetric(vertical: 14.0),
+                      suffixIcon: _searchController.text.isNotEmpty
+                          ? IconButton(
+                        icon: const Icon(Icons.clear, color: Colors.white54),
+                        onPressed: () {
+                          _searchController.clear();
+                          ref.read(getMarketplaceServiceProvider.notifier).resetMarketplaceState();
+                        },
+                      )
+                          : null,
                     ),
                   )
                       : _buildFilterChips(),
@@ -512,7 +531,7 @@ class _MarketplaceState extends ConsumerState<Marketplace>
               );
             }
 
-            return _buildServicesGrid(displayedServices);
+            return _buildServicesGrid(displayedServices, ref);
           },
         ),
 
@@ -1008,33 +1027,58 @@ class _MarketplaceState extends ConsumerState<Marketplace>
     );
   }
 
-  Widget _buildServicesGrid(List<MarketOrder> services) {
+  Widget _buildServicesGrid(List<MarketOrder> services, WidgetRef ref) {
+    final servicesNotifier = ref.read(getMarketplaceServiceProvider.notifier);
+    final isLastPage = servicesNotifier.isLastPage;
+    final isLoadingMore = servicesNotifier.isLoadingMore; // You'll need to add this to your provider
+
     final pageCount = (services.length / 4).ceil();
     final rowCount = (services.length / 2).ceil();
     final gridHeight = rowCount * 220;
 
     return SizedBox(
       height: gridHeight.toDouble().clamp(220, 480),
-      child: NotificationListener<ScrollNotification>(
+      child: NotificationListener<ScrollEndNotification>(
         onNotification: (notification) {
-          if (notification is ScrollEndNotification &&
-              notification.metrics.pixels == notification.metrics.maxScrollExtent) {
-            ref.read(getMarketplaceServiceProvider.notifier).getMarketPlaceService(
-              loadMore: true,
-              pageSize: 20,
-            );
+          // Detect when user swipes horizontally and reaches near the end
+          final metrics = notification.metrics;
+          if (metrics.pixels >= metrics.maxScrollExtent * 0.8 &&
+              !isLastPage &&
+              !isLoadingMore) {
+            _loadMoreServices(servicesNotifier);
           }
           return false;
         },
         child: PageView.builder(
           scrollDirection: Axis.horizontal,
-          itemCount: pageCount,
+          itemCount: pageCount + (isLastPage ? 0 : 1), // Add extra page for loading indicator
           itemBuilder: (context, pageIndex) {
+            // Show loading indicator on last page if there's more data to load
+            if (pageIndex >= pageCount && !isLastPage) {
+              return Center(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    const CircularProgressIndicator(color: Colors.white),
+                    const SizedBox(height: 16),
+                    Text(
+                      'Loading more services...',
+                      style: TextStyle(
+                        color: Colors.white.withOpacity(0.7),
+                        fontSize: 14,
+                      ),
+                    ),
+                  ],
+                ),
+              );
+            }
+
+            // Calculate items for current page
             final startIndex = pageIndex * 4;
             final endIndex = (startIndex + 4).clamp(0, services.length);
             final pageItems = services.sublist(startIndex, endIndex);
 
-            // Create a list of items for this page, filling empty slots with empty containers
+            // Create grid items for this page
             final gridItems = List<Widget>.generate(4, (index) {
               if (index < pageItems.length) {
                 return _buildServiceItem(pageItems[index]);
@@ -1059,6 +1103,14 @@ class _MarketplaceState extends ConsumerState<Marketplace>
       ),
     );
   }
+
+  Future<void> _loadMoreServices(GetMyOrdersAssetNotifier servicesNotifier) async {
+    await servicesNotifier.getMarketPlaceService(
+      loadMore: true,
+      pageSize: 20,
+    );
+  }
+
 
   Widget _buildServiceItem(MarketOrder item) {
     return GestureDetector(
@@ -1135,9 +1187,10 @@ class _MarketplaceState extends ConsumerState<Marketplace>
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
         children: [
           Container(
-            height: 100,
+            height: 110,
             decoration: BoxDecoration(
               color: const Color(0xFF6A0DAD),
               borderRadius: const BorderRadius.vertical(top: Radius.circular(12)),
@@ -1177,13 +1230,10 @@ class _MarketplaceState extends ConsumerState<Marketplace>
                 const SizedBox(height: 4),
                 Text(
                   price,
-                  style: GoogleFonts.notoSans(
-                    textStyle: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 14,
-                      fontWeight: FontWeight.w500,
-                      fontFamily: 'Roboto',
-                    )
+                  style:  const TextStyle(
+                    color: Colors.white,
+                    fontSize: 12,
+                    fontWeight: FontWeight.w500,
                   ),
                 ),
                 const SizedBox(height: 4),

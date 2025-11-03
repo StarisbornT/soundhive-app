@@ -292,7 +292,7 @@ class _SoundhiveVestScreenState extends ConsumerState<SoundhiveVestScreen> with 
                                    Center(
                                     child: Text(
                                       textAlign: TextAlign.center,
-                                      (user?.creator == null) ?  "Complete your KYC so as to activate your Soundhive Vest Account Unlock your ability to Invest in verifiable and quality entertainment projects or artists, as well as share in their success.": "Your account is under review",
+                                      (user?.creator == null) ?  "Complete your KYC so as to activate your Cre8Vest Account Unlock your ability to Invest in verifiable and quality entertainment projects or artists, as well as share in their success.": "Your account is under review",
                                       style: const TextStyle(
                                           color: Colors.white, fontSize: 18),
                                     ),
