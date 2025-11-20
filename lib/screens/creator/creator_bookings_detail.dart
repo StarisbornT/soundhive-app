@@ -11,7 +11,7 @@ class CreatorBookingsDetailScreen extends ConsumerStatefulWidget {
   const CreatorBookingsDetailScreen({super.key, required this.service});
 
   @override
-  _CreatorBookingsDetailScreenState createState() => _CreatorBookingsDetailScreenState();
+  ConsumerState<CreatorBookingsDetailScreen> createState() => _CreatorBookingsDetailScreenState();
 }
 class _CreatorBookingsDetailScreenState extends ConsumerState<CreatorBookingsDetailScreen>  {
   @override

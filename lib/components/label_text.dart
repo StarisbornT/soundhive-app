@@ -570,7 +570,7 @@ class _CurrencyInputFieldState extends ConsumerState<CurrencyInputField> {
     _internalController = widget.controller ?? TextEditingController();
     // Initialize with "0.00" if empty, to match the "₦0.00" prefix appearance
     if (_internalController.text.isEmpty) {
-      _internalController.text = '0.00';
+      _internalController.text = '';
     }
     _internalController.addListener(_formatCurrencyInput);
   }

@@ -24,7 +24,7 @@ class CreatorHome extends ConsumerStatefulWidget {
   const CreatorHome({super.key, required this.user});
 
   @override
-  _CreatorHomeState createState() => _CreatorHomeState();
+  ConsumerState<CreatorHome> createState() => _CreatorHomeState();
 }
 class _CreatorHomeState extends ConsumerState<CreatorHome> with SingleTickerProviderStateMixin  {
   int selectedTabIndex = 0;

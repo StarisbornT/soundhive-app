@@ -825,6 +825,9 @@ class EditTextFieldBottomSheet extends StatefulWidget {
   final String initialValue;
   final String hintText;
   final bool isMultiline;
+  final bool isCurrency;
+  final String? buttonText;
+  final TextInputType? inputType;
   final Function(String newValue) onSave;
 
   const EditTextFieldBottomSheet({
@@ -834,6 +837,9 @@ class EditTextFieldBottomSheet extends StatefulWidget {
     this.hintText = '',
     this.isMultiline = false,
     required this.onSave,
+    this.buttonText,
+    this.inputType,
+    this.isCurrency = false
   });
 
   @override
@@ -890,19 +896,34 @@ class _EditTextFieldBottomSheetState extends State<EditTextFieldBottomSheet> {
           ),
           const SizedBox(height: 20),
           // Text input field
-          LabeledTextField(
-            label: '',
-            controller: _controller,
-            hintText: widget.hintText,
-            keyboardType: widget.isMultiline
-                ? TextInputType.multiline
-                : TextInputType.text,
-            maxLines: widget.isMultiline ? 4 : 1,
+          if(widget.isCurrency)...[
+            CurrencyInputField(
+              label: "",
+              controller: _controller,
+              onChanged: (value) {
+                print('Input changed to: $value');
+              },
+              validator: (value) {
+                if (value == null || value.isEmpty || double.tryParse(value) == null) {
+                  return 'Please enter a valid amount';
+                }
+                return null;
+              },
+            ),
+          ]else... [
+            LabeledTextField(
+              label: '',
+              controller: _controller,
+              hintText: widget.hintText,
+              keyboardType: widget.inputType ?? TextInputType.text,
+              maxLines: widget.isMultiline ? 4 : 1,
 
-          ),
+            ),
+          ],
+
           const SizedBox(height: 30),
           RoundedButton(
-              title: 'Save changes',
+              title: widget.buttonText ?? 'Save changes',
             color: AppColors.BUTTONCOLOR,
             onPressed: () {
               widget.onSave(_controller.text); // Call the onSave callback

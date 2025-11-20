@@ -27,7 +27,7 @@ class ServiceScreen extends ConsumerStatefulWidget {
   final MemberCreatorResponse user;
   const ServiceScreen({super.key, required this.user});
   @override
-  _ServiceScreenState createState() => _ServiceScreenState();
+  ConsumerState<ServiceScreen> createState() => _ServiceScreenState();
 }
 
 class _ServiceScreenState extends ConsumerState<ServiceScreen> with TickerProviderStateMixin {

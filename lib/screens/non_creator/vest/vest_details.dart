@@ -8,9 +8,8 @@ import 'package:soundhive2/lib/dashboard_provider/apiresponseprovider.dart';
 
 import '../../../components/pin_screen.dart';
 import '../../../components/success.dart';
-import '../../../components/widgets.dart';
 import 'package:soundhive2/lib/dashboard_provider/user_provider.dart';
-import '../../../lib/navigator_provider.dart';
+import 'package:soundhive2/lib/navigator_provider.dart';
 import '../../../model/apiresponse_model.dart';
 import '../../../model/investment_model.dart';
 import '../../../model/user_model.dart';
@@ -24,7 +23,7 @@ class VestDetailsScreen extends ConsumerStatefulWidget {
   const VestDetailsScreen({super.key, required this.investment, required this.user});
 
   @override
-  _VestDetailsScreenState createState() => _VestDetailsScreenState();
+  ConsumerState<VestDetailsScreen> createState() => _VestDetailsScreenState();
 }
 class _VestDetailsScreenState extends ConsumerState<VestDetailsScreen>  {
 

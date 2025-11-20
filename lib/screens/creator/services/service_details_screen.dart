@@ -2,7 +2,9 @@ import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
+import 'package:shimmer/shimmer.dart';
 import 'package:soundhive2/screens/creator/services/edit_service.dart';
+import 'package:soundhive2/screens/creator/services/offer_details.dart';
 import 'package:soundhive2/screens/creator/services/services.dart';
 import 'package:soundhive2/utils/app_colors.dart';
 import 'package:soundhive2/utils/utils.dart';
@@ -15,6 +17,7 @@ import 'package:soundhive2/lib/dashboard_provider/getCreatorServiceStatisticsPro
 import 'package:soundhive2/lib/dashboard_provider/serviceProvider.dart';
 import 'package:soundhive2/lib/dashboard_provider/user_provider.dart';
 import '../../../model/apiresponse_model.dart';
+import '../../../model/getOfferFromUserProvider.dart';
 import '../../../model/service_model.dart';
 import '../../../utils/alert_helper.dart';
 
@@ -27,8 +30,53 @@ class ServiceDetailsScreen extends ConsumerStatefulWidget {
   ConsumerState<ServiceDetailsScreen> createState() => _ServiceScreenState();
 }
 
-class _ServiceScreenState extends ConsumerState<ServiceDetailsScreen> {
+class _ServiceScreenState extends ConsumerState<ServiceDetailsScreen>
+    with SingleTickerProviderStateMixin {
+  final ScrollController _bookingsScrollController = ScrollController();
+  late TabController _tabController;
 
+  @override
+  void initState() {
+    super.initState();
+
+    _tabController = TabController(length: 4, vsync: this);
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      await  ref.read(getOfferFromUserProvider.notifier).getOffers(id: widget.services.id, pageSize: 10);
+    });
+
+    _tabController.addListener(() {
+      // When Offers tab is selected
+      if (_tabController.index == 3) {
+        final notifier = ref.read(getOfferFromUserProvider.notifier);
+        if (notifier.allServices.isEmpty) {
+          notifier.getOffers(id: widget.services.id, pageSize: 10);
+        }
+      }
+    });
+
+    _bookingsScrollController.addListener(_scrollListener);
+  }
+
+  @override
+  void dispose() {
+    _bookingsScrollController.dispose();
+    _tabController.dispose();
+    super.dispose();
+  }
+
+  void _scrollListener() {
+    if (_bookingsScrollController.position.pixels ==
+        _bookingsScrollController.position.maxScrollExtent) {
+      _loadMoreBookings();
+    }
+  }
+
+  Future<void> _loadMoreBookings() async {
+    final notifier = ref.read(getOfferFromUserProvider.notifier);
+    if (!notifier.isLastPage && mounted) {
+      await notifier.getOffers(loadMore: true, id: widget.services.id);
+    }
+  }
   void deleteService(item) async {
 
     try {
@@ -93,7 +141,7 @@ class _ServiceScreenState extends ConsumerState<ServiceDetailsScreen> {
   @override
   Widget build(BuildContext context) {
     return DefaultTabController(
-      length: 3, // About, Portfolio, Reviews
+      length: 4, // About, Portfolio, Reviews
       child: Scaffold(
         backgroundColor: AppColors.BACKGROUNDCOLOR,
         appBar: AppBar(
@@ -198,6 +246,7 @@ class _ServiceScreenState extends ConsumerState<ServiceDetailsScreen> {
                 Tab(text: "About"),
                 Tab(text: "Portfolio"),
                 Tab(text: "Reviews"),
+                Tab(text: "Offers"),
               ],
             ),
 
@@ -208,10 +257,180 @@ class _ServiceScreenState extends ConsumerState<ServiceDetailsScreen> {
                   _aboutTab(),
                   _portfolioTab(),
                   _reviewsTab(),
+                  buildMyBookingsUI(),
                 ],
               ),
             ),
           ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildShimmerBookingsList() {
+    return ListView.builder(
+      padding: const EdgeInsets.symmetric(horizontal: 16),
+      shrinkWrap: true,
+      physics: const AlwaysScrollableScrollPhysics(),
+      itemCount: 5,
+      itemBuilder: (context, index) {
+        return Padding(
+          padding: const EdgeInsets.symmetric(vertical: 8),
+          child: Shimmer.fromColors(
+            baseColor: Colors.grey[700]!,
+            highlightColor: Colors.grey[500]!,
+            child: Container(
+              height: 100,
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(12),
+              ),
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  Widget buildMyBookingsUI() {
+    final offersState = ref.watch(getOfferFromUserProvider);
+
+    return offersState.when(
+      loading: () => _buildShimmerBookingsList(),
+      error: (e, _) => Center(
+        child: Text("Error: $e", style: const TextStyle(color: Colors.white)),
+      ),
+      data: (offerModel) {
+        // Access the offers list correctly from the model
+        final offers = offerModel.data.data ?? [];
+        final isLastPage = ref.read(getOfferFromUserProvider.notifier).isLastPage;
+        final isLoadingMore = ref.read(getOfferFromUserProvider.notifier).isLoadingMore;
+
+        if (offers.isEmpty) {
+          return const Center(
+            child: Text("No offers found", style: TextStyle(color: Colors.white)),
+          );
+        }
+
+        return Stack(
+          children: [
+            ListView.builder(
+              controller: _bookingsScrollController,
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              shrinkWrap: true,
+              physics: const AlwaysScrollableScrollPhysics(),
+              itemCount: offers.length,
+              itemBuilder: (context, index) {
+                final offer = offers[index];
+                final service = offer.service;
+
+                return GestureDetector(
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => OfferDetailScreen(
+                          offer: offer,
+                        ),
+                      ),
+                    );
+                  },
+                  child: Card(
+                    color: Colors.transparent,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    margin: const EdgeInsets.symmetric(vertical: 8),
+                    child: ListTile(
+                      leading: service?.coverImage != null
+                          ? ClipRRect(
+                        borderRadius: BorderRadius.circular(8),
+                        child: Image.network(
+                          service?.coverImage ?? '',
+                          width: 100,
+                          height: 78,
+                          fit: BoxFit.cover,
+                          errorBuilder: (_, __, ___) =>
+                          const Icon(Icons.image, color: Colors.white),
+                        ),
+                      )
+                          : const CircleAvatar(
+                        backgroundColor: AppColors.BUTTONCOLOR,
+                        child: Icon(Icons.work, color: Colors.white),
+                      ),
+                      title: Text(
+                        service?.serviceName ?? "Offer #${offer.id}",
+                        style: const TextStyle(color: Colors.white, fontSize: 14),
+                      ),
+                      subtitle: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            "Amount: ${ref.formatCreatorCurrency(offer.convertedAmount)}",
+                            style: const TextStyle(color: Colors.white54, fontSize: 12),
+                          ),
+                          Text(
+                            "Offered on ${DateFormat('dd/MM/yyyy').format(DateTime.parse(offer.createdAt))}",
+                            style: const TextStyle(color: Colors.white54, fontSize: 12),
+                          ),
+                          const SizedBox(height: 10),
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                            decoration: BoxDecoration(
+                              color: offer.status == "PENDING"
+                                  ? const Color.fromRGBO(255, 193, 7, 0.1)
+                                  : offer.status == "ACCEPTED"
+                                  ? const Color.fromRGBO(76, 175, 80, 0.1)
+                                  : const Color.fromRGBO(244, 67, 54, 0.1),
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            child: Text(
+                              offer.status,
+                              style: TextStyle(
+                                color: offer.status == "PENDING"
+                                    ? const Color(0xFFFFC107)
+                                    : offer.status == "ACCEPTED"
+                                    ? const Color(0xFF4CAF50)
+                                    : const Color(0xFFF44336),
+                                fontSize: 10,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                );
+              },
+            ),
+            if (!isLastPage && isLoadingMore)
+              Positioned(
+                bottom: 10,
+                left: 0,
+                right: 0,
+                child: Center(child: _buildLoadingIndicator()),
+              ),
+          ],
+        );
+      },
+    );
+  }
+
+  Widget _buildLoadingIndicator() {
+    return Padding(
+      padding: const EdgeInsets.all(16.0),
+      child: Center(
+        child: Shimmer.fromColors(
+          baseColor: Colors.grey[700]!,
+          highlightColor: Colors.grey[500]!,
+          child: Container(
+            width: 40,
+            height: 40,
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(20),
+            ),
+          ),
         ),
       ),
     );
