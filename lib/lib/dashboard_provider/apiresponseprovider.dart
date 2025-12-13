@@ -1,12 +1,8 @@
-
-
 import 'dart:convert';
-
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
-
 import '../../model/apiresponse_model.dart';
 import '../../model/bvn_response_model.dart';
 import '../../services/loader_service.dart';
@@ -113,6 +109,86 @@ class ApiResponseProvider extends StateNotifier<AsyncValue<void>> {
       LoaderService.showLoader(context);
       final response = await _dio.post(
         '/offers/$id/accept',
+      );
+
+      if (response.statusCode == 200) {
+        state = const AsyncValue.data(null);
+        return ApiResponseModel.fromJson(response.data);
+      } else {
+        throw Exception(response.data['message'] ?? 'Something went wrong');
+      }
+    } catch (error, stackTrace) {
+      state = AsyncValue.error(error, stackTrace);
+      rethrow;
+    } finally {
+      LoaderService.hideLoader(context);
+    }
+  }
+  Future<ApiResponseModel> counterOffer({
+    required BuildContext context,
+    required int id,
+    required String counterAmount,
+    String? counterMessage,
+  }) async {
+    state = const AsyncValue.loading();
+    try {
+      final Map<String, dynamic> data = {
+        'counter_amount': counterAmount,
+        if (counterMessage != null && counterMessage.isNotEmpty)
+          'counter_message': counterMessage,
+      };
+      LoaderService.showLoader(context);
+      final response = await _dio.post(
+        '/offers/$id/counter',
+        data: data
+      );
+
+      if (response.statusCode == 200) {
+        state = const AsyncValue.data(null);
+        return ApiResponseModel.fromJson(response.data);
+      } else {
+        throw Exception(response.data['message'] ?? 'Something went wrong');
+      }
+    } catch (error, stackTrace) {
+      state = AsyncValue.error(error, stackTrace);
+      rethrow;
+    } finally {
+      LoaderService.hideLoader(context);
+    }
+  }
+  Future<ApiResponseModel> acceptCounterOffer({
+    required BuildContext context,
+    required int offerId,
+  }) async {
+    state = const AsyncValue.loading();
+    try {
+      LoaderService.showLoader(context);
+      final response = await _dio.post(
+          '/offers/$offerId/accept-counter',
+      );
+
+      if (response.statusCode == 200) {
+        state = const AsyncValue.data(null);
+        return ApiResponseModel.fromJson(response.data);
+      } else {
+        throw Exception(response.data['message'] ?? 'Something went wrong');
+      }
+    } catch (error, stackTrace) {
+      state = AsyncValue.error(error, stackTrace);
+      rethrow;
+    } finally {
+      LoaderService.hideLoader(context);
+    }
+  }
+  Future<ApiResponseModel> rejectCounterOffer({
+    required BuildContext context,
+    required int offerId,
+  }) async {
+    state = const AsyncValue.loading();
+    try {
+      LoaderService.showLoader(context);
+      final response = await _dio.post(
+        '/offers/$offerId/reject-counter',
       );
 
       if (response.statusCode == 200) {
@@ -527,6 +603,36 @@ class ApiResponseProvider extends StateNotifier<AsyncValue<void>> {
       LoaderService.hideLoader(context);
     }
   }
+  Future<ApiResponseModel> generateWorkFlow({
+    required BuildContext context,
+    required String description,
+     int? parentConversationId,
+
+  }) async {
+    state = const AsyncValue.loading();
+    try {
+      // LoaderService.showLoader(context);
+      final response = await _dio.post(
+        '/ai-workflow/generate',
+        data: jsonEncode({
+          'project_description': description,
+          'parent_conversation_id': parentConversationId ?? ""
+        })
+      );
+
+      if (response.statusCode == 200) {
+        state = const AsyncValue.data(null);
+        return ApiResponseModel.fromJson(response.data);
+      } else {
+        throw Exception(response.data['message'] ?? 'Something went wrong');
+      }
+    } catch (error, stackTrace) {
+      state = AsyncValue.error(error, stackTrace);
+      rethrow; // Let the caller handle the error
+    } finally {
+      // LoaderService.hideLoader(context);
+    }
+  }
   Future<ApiResponseModel> followArtist({
     required BuildContext context,
     required int artistId,
@@ -652,6 +758,59 @@ class ApiResponseProvider extends StateNotifier<AsyncValue<void>> {
       );
 
       if (response.statusCode == 200) {
+        state = const AsyncValue.data(null); // line or error
+        return ApiResponseModel.fromJson(response.data);
+      } else {
+        throw Exception(response.data['message'] ?? 'Something went wrong');
+      }
+    } catch (error, stackTrace) {
+      state = AsyncValue.error(error, stackTrace);
+      rethrow; // Let the caller handle the error
+    } finally {
+      LoaderService.hideLoader(context);
+    }
+  }
+
+  Future<ApiResponseModel> verifyBusiness({
+    required BuildContext context,
+    required Map<String, dynamic> payload
+  }) async {
+    state = const AsyncValue.loading();
+    try {
+      LoaderService.showLoader(context);
+      final formData = jsonEncode(payload);
+      final response = await _dio.post(
+          '/verify/business',
+          data: formData
+      );
+
+      if (response.statusCode == 200) {
+        state = const AsyncValue.data(null); // line or error
+        return ApiResponseModel.fromJson(response.data);
+      } else {
+        throw Exception(response.data['message'] ?? 'Something went wrong');
+      }
+    } catch (error, stackTrace) {
+      state = AsyncValue.error(error, stackTrace);
+      rethrow; // Let the caller handle the error
+    } finally {
+      LoaderService.hideLoader(context);
+    }
+  }
+  Future<ApiResponseModel> makeReview({
+    required BuildContext context,
+    required Map<String, dynamic> payload
+  }) async {
+    state = const AsyncValue.loading();
+    try {
+      LoaderService.showLoader(context);
+      final formData = jsonEncode(payload);
+      final response = await _dio.post(
+          '/reviews',
+          data: formData
+      );
+
+      if (response.statusCode == 201) {
         state = const AsyncValue.data(null); // line or error
         return ApiResponseModel.fromJson(response.data);
       } else {

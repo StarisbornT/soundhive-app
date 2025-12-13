@@ -16,8 +16,8 @@ class CreatorListResponse {
   factory CreatorListResponse.fromMap(Map<String, dynamic> json) {
     return CreatorListResponse(
       message: json['message'] ?? '',
-      user: json['user'] != null
-          ? CreatorPaginatedData.fromMap(json['user'])
+      user: json['creators'] != null
+          ? CreatorPaginatedData.fromMap(json['creators'])
           : null,
     );
   }
@@ -86,67 +86,229 @@ class CreatorPaginatedData {
 class CreatorData {
   final int id;
   final String userId;
-  final String gender;
-  final String nin;
-  final String idType;
+  final String? gender;
+  final String role;
+  final String? nin;
+  final String? idType;
   final String? copyOfId;
-  final String utilityBill;
+  final String? utilityBill;
   final String? copyOfUtilityBill;
   final String jobTitle;
   final String bio;
   final bool active;
+  final bool hasLiveTest;
+  final bool hasVerifiedIdentity;
+  final bool hasVerifiedCreativeProfile;
+
   final String location;
-  final String linkedin;
-  final String x;
-  final String instagram;
+  final String? linkedin;
+  final String? x;
+  final String? instagram;
+
+  final String? businessName;
+  final String? businessPhone;
+  final String? businessEmail;
+  final String? businessAddress;
+  final String? bvn;
+  final String? cacDocs;
+
+  final bool verified;
+  final String baseCurrency;
+
   final String createdAt;
   final String updatedAt;
-  final User? user; // embedded user object
+
+  final User? user;
+  final List<Review> reviews;
 
   CreatorData({
     required this.id,
     required this.userId,
-    required this.gender,
-    required this.nin,
-    required this.idType,
+    this.gender,
+    required this.role,
+    this.nin,
+    this.idType,
     this.copyOfId,
-    required this.utilityBill,
+    this.utilityBill,
     this.copyOfUtilityBill,
     required this.jobTitle,
     required this.bio,
     required this.active,
+    required this.hasLiveTest,
+    required this.hasVerifiedIdentity,
+    required this.hasVerifiedCreativeProfile,
     required this.location,
-    required this.linkedin,
-    required this.x,
-    required this.instagram,
+    this.linkedin,
+    this.x,
+    this.instagram,
+    this.businessName,
+    this.businessPhone,
+    this.businessEmail,
+    this.businessAddress,
+    this.bvn,
+    this.cacDocs,
+    required this.verified,
+    required this.baseCurrency,
     required this.createdAt,
     required this.updatedAt,
     this.user,
+    required this.reviews,
   });
 
   factory CreatorData.fromJson(Map<String, dynamic> json) {
     return CreatorData(
       id: json['id'] ?? 0,
       userId: json['user_id'] ?? '',
-      gender: json['gender'] ?? '',
-      nin: json['nin'] ?? '',
-      idType: json['id_type'] ?? '',
+      gender: json['gender'],
+      role: json['role'] ?? '',
+      nin: json['nin'],
+      idType: json['id_type'],
       copyOfId: json['copy_of_id'],
-      utilityBill: json['utility_bill'] ?? '',
+      utilityBill: json['utility_bill'],
       copyOfUtilityBill: json['copy_of_utility_bill'],
       jobTitle: json['job_title'] ?? '',
       bio: json['bio'] ?? '',
       active: json['active'] ?? false,
+      hasLiveTest: json['has_live_test'] ?? false,
+      hasVerifiedIdentity: json['has_verified_identity'] ?? false,
+      hasVerifiedCreativeProfile: json['has_verified_creative_profile'] ?? false,
       location: json['location'] ?? '',
-      linkedin: json['linkedin'] ?? '',
-      x: json['x'] ?? '',
-      instagram: json['instagram'] ?? '',
+      linkedin: json['linkedin'],
+      x: json['x'],
+      instagram: json['instagram'],
+      businessName: json['business_name'],
+      businessPhone: json['business_phone'],
+      businessEmail: json['business_email'],
+      businessAddress: json['business_address'],
+      bvn: json['bvn'],
+      cacDocs: json['cac_docs'],
+      verified: json['verified'] ?? false,
+      baseCurrency: json['base_currency'] ?? '',
       createdAt: json['created_at'] ?? '',
       updatedAt: json['updated_at'] ?? '',
       user: json['user'] != null ? User.fromJson(json['user']) : null,
+      reviews: json['reviews'] != null
+          ? List<Review>.from(json['reviews'].map((r) => Review.fromJson(r)))
+          : [],
     );
   }
 }
+
+
+class Review {
+  final int id;
+  final String userId;
+  final String creatorId;
+  final String bookingId;
+  final int rating;
+  final String reviewText;
+  final bool isApproved;
+  final bool isFlagged;
+  final String? flaggedReason;
+  final String createdAt;
+  final String updatedAt;
+
+  final User? user;
+  final List<ReviewTag> tags;
+  final ReviewMedia? media;
+
+
+  Review({
+    required this.id,
+    required this.userId,
+    required this.creatorId,
+    required this.bookingId,
+    required this.rating,
+    required this.reviewText,
+    required this.isApproved,
+    required this.isFlagged,
+    this.flaggedReason,
+    required this.createdAt,
+    required this.updatedAt,
+    this.user,
+    required this.tags,
+    this.media,
+  });
+
+  factory Review.fromJson(Map<String, dynamic> json) {
+    return Review(
+      id: json['id'],
+      userId: json['user_id'],
+      creatorId: json['creator_id'],
+      bookingId: json['booking_id'],
+      rating: json['rating'] ?? 0,
+      reviewText: json['review_text'] ?? '',
+      isApproved: json['is_approved'] ?? false,
+      isFlagged: json['is_flagged'] ?? false,
+      flaggedReason: json['flagged_reason'],
+      createdAt: json['created_at'] ?? '',
+      updatedAt: json['updated_at'] ?? '',
+      user: json['user'] != null ? User.fromJson(json['user']) : null,
+      tags: json['tags'] != null
+          ? List<ReviewTag>.from(json['tags'].map((t) => ReviewTag.fromJson(t)))
+          : [],
+      media: json['media'] != null ? ReviewMedia.fromJson(json['media']) : null,
+    );
+  }
+}
+
+class ReviewMedia {
+  final int id;
+  final String reviewId;
+  final String filePath;
+  final String fileType;
+  final String fileSize;
+  final String originalName;
+  final String createdAt;
+  final String updatedAt;
+
+  ReviewMedia({
+    required this.id,
+    required this.reviewId,
+    required this.filePath,
+    required this.fileType,
+    required this.fileSize,
+    required this.originalName,
+    required this.createdAt,
+    required this.updatedAt,
+  });
+
+  factory ReviewMedia.fromJson(Map<String, dynamic> json) {
+    return ReviewMedia(
+      id: json['id'],
+      reviewId: json['review_id'].toString(),
+      filePath: json['file_path'] ?? '',
+      fileType: json['file_type'] ?? '',
+      fileSize: json['file_size'] ?? '',
+      originalName: json['original_name'] ?? '',
+      createdAt: json['created_at'] ?? '',
+      updatedAt: json['updated_at'] ?? '',
+    );
+  }
+}
+
+
+class ReviewTag {
+  final int id;
+  final String reviewId;
+  final String tag;
+
+  ReviewTag({
+    required this.id,
+    required this.reviewId,
+    required this.tag,
+  });
+
+  factory ReviewTag.fromJson(Map<String, dynamic> json) {
+    return ReviewTag(
+      id: json['id'],
+      reviewId: json['review_id'],
+      tag: json['tag'] ?? '',
+    );
+  }
+}
+
+
 
 class Link {
   final String? url;

@@ -395,7 +395,8 @@ class UserDetailsStep extends StatelessWidget {
                 border: Border.all(color: Colors.white24),
               ),
               child: DropdownButtonFormField<String>(
-                value: selectedCountry,
+                isExpanded: true,
+                initialValue: selectedCountry,
                 dropdownColor: const Color(0xFF1C1C1C),
                 iconEnabledColor: Colors.white70,
                 decoration: const InputDecoration(

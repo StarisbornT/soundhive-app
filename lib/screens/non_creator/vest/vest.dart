@@ -1,6 +1,5 @@
 import 'dart:ui';
 import 'package:dio/dio.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
@@ -11,10 +10,9 @@ import 'package:soundhive2/screens/creator/profile/setup_screen.dart';
 import 'package:soundhive2/screens/non_creator/vest/vest_details.dart';
 import '../../../components/rounded_button.dart';
 import '../../../components/success.dart';
-import '../../../components/widgets.dart';
 import 'package:soundhive2/lib/dashboard_provider/getActiveVestProvider.dart';
-import '../../../lib/dashboard_provider/add_money_provider.dart';
-import '../../../lib/dashboard_provider/user_provider.dart';
+import 'package:soundhive2/lib/dashboard_provider/add_money_provider.dart';
+import 'package:soundhive2/lib/dashboard_provider/user_provider.dart';
 import '../../../model/add_money_model.dart';
 import '../../../model/get_active_vest_model.dart';
 import '../../../model/user_model.dart';
@@ -27,17 +25,17 @@ import 'active_vest_details.dart';
 import 'package:shimmer/shimmer.dart';
 
 final authTokenProvider = FutureProvider<String?>((ref) async {
-  final storage = FlutterSecureStorage();
+  const storage = FlutterSecureStorage();
   return await storage.read(key: 'auth_token');
 });
 
 class SoundhiveVestScreen extends ConsumerStatefulWidget {
   static const String id = '/soundhivevest';
   final MemberCreatorResponse user;
-  SoundhiveVestScreen({required this.user});
+  const SoundhiveVestScreen({super.key, required this.user});
 
   @override
-  _SoundhiveVestScreenState createState() => _SoundhiveVestScreenState();
+  ConsumerState<SoundhiveVestScreen> createState() => _SoundhiveVestScreenState();
 }
 
 
@@ -148,12 +146,12 @@ class _SoundhiveVestScreenState extends ConsumerState<SoundhiveVestScreen> with 
         amount: double.parse(cleanAmount), // safe parse
         currency: ''
       );
-      if (response.url != null) {
+      if (response.data != null) {
         if (!mounted) return;
         final result = await Navigator.push<String>(
           context,
           MaterialPageRoute(
-            builder: (context) => VerificationWebView(url: response.url!, title: 'Add Money',),
+            builder: (context) => VerificationWebView(url: response.data!.checkoutUrl, title: 'Add Money',),
           ),
         );
         if (result == 'success') {

@@ -33,14 +33,14 @@ class FundWalletService {
         currency: currency,
       );
 
-      if (response.url != null) {
+      if (response.data != null) {
         if (!context.mounted) return;
 
         final result = await Navigator.push<String>(
           context,
           MaterialPageRoute(
             builder: (context) => VerificationWebView(
-              url: response.url!,
+              url: response.data!.checkoutUrl,
               title: 'Add Money',
             ),
           ),
@@ -50,6 +50,9 @@ class FundWalletService {
           await ref.read(userProvider.notifier).loadUserProfile();
           await ref.read(getTransactionHistoryPlaceProvider.notifier).getTransactionHistory();
           onSuccess();
+        }else {
+          showCustomAlert(
+              context: context, isSuccess: false, title: 'Error', message: "Funding is not successful");
         }
       }
     } catch (error) {

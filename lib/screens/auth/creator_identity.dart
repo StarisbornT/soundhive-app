@@ -2,21 +2,20 @@ import 'package:flutter/material.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:soundhive2/screens/auth/create_account.dart';
 import 'package:soundhive2/utils/app_colors.dart';
+
 import '../../components/rounded_button.dart';
 import '../../utils/utils.dart';
-import 'creator_identity.dart';
 
-
-class IdentityScreen extends StatefulWidget {
+class CreatorIdentityScreen extends StatefulWidget {
   final FlutterSecureStorage storage;
-  const IdentityScreen({super.key, required this.storage});
-  static String id = 'identity_screen';
+  const CreatorIdentityScreen({super.key, required this.storage});
+  static String id = 'creator_identity';
 
   @override
-  State<IdentityScreen> createState() => _IdentityScreenState();
+  State<CreatorIdentityScreen> createState() => _IdentityScreenState();
 }
 
-class _IdentityScreenState extends State<IdentityScreen> {
+class _IdentityScreenState extends State<CreatorIdentityScreen> {
   String? selectedIdentity;
   String? selectedIdentityUpdate;
 
@@ -38,10 +37,10 @@ class _IdentityScreenState extends State<IdentityScreen> {
             crossAxisAlignment: CrossAxisAlignment.center,
             children: [
               // Logo
-             Utils.logo(),
+              Utils.logo(),
               const SizedBox(height: 40),
               const Text(
-                "What best describes you?",
+                "Do you provide your creative services as an individual or a Business?",
                 style: TextStyle(
                   fontSize: 22,
                   color: Colors.white,
@@ -52,13 +51,13 @@ class _IdentityScreenState extends State<IdentityScreen> {
 
               // Creator Option
               GestureDetector(
-                onTap: () => _selectIdentity("creator"),
+                onTap: () => _selectIdentity("individual"),
                 child: Container(
                   padding: const EdgeInsets.all(16),
                   decoration: BoxDecoration(
                     border: Border.all(
-                      color: selectedIdentity == "creator"
-                          ? const Color(0xFF2C2C2C)
+                      color: selectedIdentity == "individual"
+                          ? Color(0xFF2C2C2C)
                           : Colors.white24,
                     ),
                     borderRadius: BorderRadius.circular(8),
@@ -71,7 +70,7 @@ class _IdentityScreenState extends State<IdentityScreen> {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(
-                              "Creator",
+                              "Individual",
                               style: TextStyle(
                                 color: Colors.white,
                                 fontSize: 16,
@@ -80,7 +79,7 @@ class _IdentityScreenState extends State<IdentityScreen> {
                             ),
                             SizedBox(height: 4),
                             Text(
-                              "I want to provide creative services",
+                              "I work as a solo creative",
                               style: TextStyle(
                                 color: Colors.white70,
                                 fontSize: 13,
@@ -90,7 +89,7 @@ class _IdentityScreenState extends State<IdentityScreen> {
                         ),
                       ),
                       Radio<String>(
-                        value: "creator",
+                        value: "individual",
                         groupValue: selectedIdentity,
                         onChanged: (value) => _selectIdentity(value!),
                         activeColor: AppColors.WHITECOLOR,
@@ -103,12 +102,12 @@ class _IdentityScreenState extends State<IdentityScreen> {
 
               // Not a Creator Option
               GestureDetector(
-                onTap: () => _selectIdentity("not_creator"),
+                onTap: () => _selectIdentity("business"),
                 child: Container(
                   padding: const EdgeInsets.all(16),
                   decoration: BoxDecoration(
                     border: Border.all(
-                      color: selectedIdentity == "not_creator"
+                      color: selectedIdentity == "business"
                           ? const Color(0xFF2C2C2C)
                           : Colors.white24,
                     ),
@@ -122,7 +121,7 @@ class _IdentityScreenState extends State<IdentityScreen> {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(
-                              "Not a creator",
+                              "Business",
                               style: TextStyle(
                                 color: Colors.white,
                                 fontSize: 16,
@@ -131,7 +130,7 @@ class _IdentityScreenState extends State<IdentityScreen> {
                             ),
                             SizedBox(height: 4),
                             Text(
-                              "Looking to explore soundhive, hire creatives,\ninvest and stream songs by favourite artists.",
+                              "I have a business that provides creative services.",
                               style: TextStyle(
                                 color: Colors.white70,
                                 fontSize: 13,
@@ -141,7 +140,7 @@ class _IdentityScreenState extends State<IdentityScreen> {
                         ),
                       ),
                       Radio<String>(
-                        value: "not_creator",
+                        value: "business",
                         groupValue: selectedIdentity,
                         onChanged: (value) => _selectIdentity(value!),
                         activeColor: AppColors.WHITECOLOR,
@@ -155,15 +154,9 @@ class _IdentityScreenState extends State<IdentityScreen> {
               RoundedButton(
                 title: 'Contiue',
                 onPressed: selectedIdentity != null ? () async {
-                  await widget.storage.write(key: 'identity', value: selectedIdentity);
-                  await widget.storage.write(key: 'identityUpdate', value: selectedIdentity);
+                  await widget.storage.write(key: 'creator_identity', value: selectedIdentity);
                   print("Selected: $selectedIdentity");
-                  if(selectedIdentity == "creator") {
-                    Navigator.pushNamed(context, CreatorIdentityScreen.id);
-                  }else {
-                    Navigator.pushNamed(context, CreateAccount.id);
-                  }
-
+                  Navigator.pushNamed(context, CreateAccount.id);
                 } : null,
                 color: selectedIdentity != null ? AppColors.PRIMARYCOLOR : AppColors.INACTIVEBUTTONCOLOR,
                 borderWidth: 0,

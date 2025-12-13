@@ -4,7 +4,6 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
 import 'package:shimmer/shimmer.dart';
 import 'package:soundhive2/components/label_text.dart';
@@ -23,6 +22,7 @@ import '../../../model/market_orders_service_model.dart';
 import '../../../model/user_model.dart';
 import '../../../utils/app_colors.dart';
 import '../../creator/profile/setup_screen.dart';
+import '../ai/ai_conversation_list.dart';
 import 'creator.dart';
 import 'mark_as_completed.dart';
 import 'marketplace_details.dart';
@@ -32,7 +32,7 @@ class Marketplace extends ConsumerStatefulWidget {
   const Marketplace({super.key, required this.user});
 
   @override
-  _MarketplaceState createState() => _MarketplaceState();
+  ConsumerState<Marketplace> createState() => _MarketplaceState();
 }
 
 class _MarketplaceState extends ConsumerState<Marketplace>
@@ -208,72 +208,109 @@ class _MarketplaceState extends ConsumerState<Marketplace>
       child: Scaffold(
         backgroundColor: AppColors.BACKGROUNDCOLOR,
         body: SafeArea(
-          child: SingleChildScrollView(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Column(
-                  children: [
-                    if(widget.user.user?.creator == null)...[
-                      GestureDetector(
-                          onTap: (){
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (context) => SetupScreen(user: widget.user),
-                              ),
-                            );
-                          },
-                          child: Image.asset('images/banner.png')
-                      )
-                    ]else if(!(widget.user.user?.creator!.active ?? false))...[
-                      GestureDetector(
-                        onTap: (){
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (context) => SetupScreen(user: widget.user),
-                            ),
-                          );
-                          },
-                          child: Image.asset('images/banner.png')
-                      )
-                    ],
-                    const SizedBox(height: 20,),
-                    SingleChildScrollView(
-                      scrollDirection: Axis.horizontal,
-                      child: Row(
-                        children: [
-                          Utils.menuButton(
-                            "Marketplace",
-                            selectedTabIndex == 0,
-                            onTap: () => _tabController.animateTo(0),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Fixed header section (banner + tabs)
+              Column(
+                children: [
+                  if (widget.user.user?.creator == null) ...[
+                    GestureDetector(
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => SetupScreen(user: widget.user),
                           ),
-                          const SizedBox(width: 10),
-                          Utils.menuButton(
-                            "My Bookings",
-                            selectedTabIndex == 1,
-                            onTap: () => _tabController.animateTo(1),
+                        );
+                      },
+                      child: Image.asset('images/banner.png'),
+                    )
+                  ] else if (!(widget.user.user?.creator!.active ?? false)) ...[
+                    GestureDetector(
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => SetupScreen(user: widget.user),
                           ),
-                          const SizedBox(width: 10),
-                          Utils.menuButton(
-                            "My Events",
-                            selectedTabIndex == 2,
-                            onTap: () => _tabController.animateTo(2),
-                          ),
-                        ],
+                        );
+                      },
+                      child: Image.asset('images/banner.png'),
+                    )
+                  ],
+                  const SizedBox(height: 20),
+                  SingleChildScrollView(
+                    scrollDirection: Axis.horizontal,
+                    padding: const EdgeInsets.symmetric(horizontal: 10),
+                    child: Row(
+                      children: [
+                        Utils.menuButton(
+                          "Marketplace",
+                          selectedTabIndex == 0,
+                          onTap: () => _tabController.animateTo(0),
+                        ),
+                        const SizedBox(width: 10),
+                        Utils.menuButton(
+                          "My Bookings",
+                          selectedTabIndex == 1,
+                          onTap: () => _tabController.animateTo(1),
+                        ),
+                        const SizedBox(width: 10),
+                        Utils.menuButton(
+                          "My Events",
+                          selectedTabIndex == 2,
+                          onTap: () => _tabController.animateTo(2),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 10),
+                ],
+              ),
+
+              // Tab content with different scrolling behaviors
+              if (selectedTabIndex == 0)
+              // Marketplace - Scrollable page
+                Expanded(
+                  child: SingleChildScrollView(
+                    child: buildMarketPlaceUI(),
+                  ),
+                )
+              else if (selectedTabIndex == 1)
+              // Bookings - Full screen list with pagination
+                Expanded(
+                  child: buildMyBookingsUI(),
+                )
+              else
+              // My Events - Add similar structure as needed
+                Expanded(
+                  child: Container(
+                    color: AppColors.BACKGROUNDCOLOR,
+                    child: const Center(
+                      child: Text(
+                        "My Events",
+                        style: TextStyle(color: Colors.white),
                       ),
                     ),
-                    const SizedBox(height: 10),
-                    if (selectedTabIndex == 0)
-                      buildMarketPlaceUI()
-                    else if (selectedTabIndex == 1)
-                      buildMyBookingsUI()
-                    else
-                      const SizedBox(),
-                  ],
+                  ),
                 ),
-              ],
+            ],
+          ),
+        ),
+        floatingActionButton: SizedBox(
+          width: 70,
+          height: 70,
+          child: RawMaterialButton(
+            onPressed: () {
+                Navigator.push(context, MaterialPageRoute(builder: (_) => const AiChatConversationScreen()));
+            },
+            fillColor: const Color(0xFF8C52FF),
+            shape: const CircleBorder(),
+            elevation: 6,
+            child: Image.asset(
+             "images/ai_chat.png",
+              color: Colors.white,
             ),
           ),
         ),
@@ -299,97 +336,111 @@ class _MarketplaceState extends ConsumerState<Marketplace>
           );
         }
 
-        return Stack(
+        return Column(
           children: [
-            ListView.builder(
-              controller: _bookingsScrollController,
-              padding: const EdgeInsets.symmetric(horizontal: 16),
-              shrinkWrap: true,
-              physics: const AlwaysScrollableScrollPhysics(),
-              itemCount: investments.length,
-              itemBuilder: (context, index) {
-                final investment = investments[index];
-                final service = investment.service;
-
-                return GestureDetector(
-                  onTap: () {
-                    if (investment.status == "PENDING") {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => MarkAsCompletedScreen(
-                            services: investment,
-                            user: widget.user.user!,
-                          ),
-                        ),
-                      );
+            Expanded(
+              child: NotificationListener<ScrollNotification>(
+                onNotification: (scrollNotification) {
+                  if (scrollNotification is ScrollEndNotification) {
+                    final metrics = scrollNotification.metrics;
+                    // Load more when user reaches 80% of the list
+                    if (metrics.pixels >= metrics.maxScrollExtent * 0.8 &&
+                        !isLastPage &&
+                        !isLoadingMore) {
+                      _loadMoreBookings();
                     }
-                  },
-                  child: Card(
-                    color: Colors.transparent,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    margin: const EdgeInsets.symmetric(vertical: 8),
-                    child: ListTile(
-                      leading: service?.coverImage != null
-                          ? ClipRRect(
-                        borderRadius: BorderRadius.circular(8),
-                        child: Image.network(
-                          service!.coverImage,
-                          width: 100,
-                          height: 78,
-                          fit: BoxFit.cover,
-                          errorBuilder: (_, __, ___) =>
-                          const Icon(Icons.image, color: Colors.white),
-                        ),
-                      )
-                          : const CircleAvatar(
-                        backgroundColor: AppColors.BUTTONCOLOR,
-                        child: Icon(Icons.work, color: Colors.white),
-                      ),
-                      title: Text(
-                        service?.serviceName ?? "Booking #${investment.id}",
-                        style: const TextStyle(color: Colors.white, fontSize: 14),
-                      ),
-                      subtitle: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            "Booked on ${DateFormat('dd/MM/yyyy').format(DateTime.parse(investment.createdAt))}",
-                            style: const TextStyle(color: Colors.white54, fontSize: 12),
-                          ),
-                          const SizedBox(height: 10),
-                          Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                            decoration: BoxDecoration(
-                              color: investment.status == "PENDING"
-                                  ? const Color.fromRGBO(255, 193, 7, 0.1)
-                                  : const Color.fromRGBO(76, 175, 80, 0.1),
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                            child: Text(
-                              investment.status == "PENDING" ? 'Ongoing' : 'Completed',
-                              style: TextStyle(
-                                color: investment.status == "PENDING"
-                                    ? const Color(0xFFFFC107)
-                                    : const Color(0xFF4CAF50),
-                                fontSize: 10,
+                  }
+                  return false;
+                },
+                child: ListView.builder(
+                  controller: _bookingsScrollController,
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                  itemCount: investments.length,
+                  itemBuilder: (context, index) {
+                    final investment = investments[index];
+                    final service = investment.service;
+
+                    return GestureDetector(
+                      onTap: () {
+                        if (investment.status == "PENDING") {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => MarkAsCompletedScreen(
+                                services: investment,
+                                user: widget.user.user!,
                               ),
                             ),
+                          );
+                        }
+                      },
+                      child: Card(
+                        color: Colors.transparent,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        margin: const EdgeInsets.symmetric(vertical: 8),
+                        child: ListTile(
+                          leading: service?.coverImage != null
+                              ? ClipRRect(
+                            borderRadius: BorderRadius.circular(8),
+                            child: Image.network(
+                              service!.coverImage,
+                              width: 100,
+                              height: 78,
+                              fit: BoxFit.cover,
+                              errorBuilder: (_, __, ___) =>
+                              const Icon(Icons.image, color: Colors.white),
+                            ),
+                          )
+                              : const CircleAvatar(
+                            backgroundColor: AppColors.BUTTONCOLOR,
+                            child: Icon(Icons.work, color: Colors.white),
                           ),
-                        ],
+                          title: Text(
+                            service?.serviceName ?? "Booking #${investment.id}",
+                            style: const TextStyle(color: Colors.white, fontSize: 14),
+                          ),
+                          subtitle: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                "Booked on ${DateFormat('dd/MM/yyyy').format(DateTime.parse(investment.createdAt))}",
+                                style: const TextStyle(color: Colors.white54, fontSize: 12),
+                              ),
+                              const SizedBox(height: 10),
+                              Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                decoration: BoxDecoration(
+                                  color: investment.status == "PENDING"
+                                      ? const Color.fromRGBO(255, 193, 7, 0.1)
+                                      : const Color.fromRGBO(76, 175, 80, 0.1),
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                                child: Text(
+                                  investment.status == "PENDING" ? 'Ongoing' : 'Completed',
+                                  style: TextStyle(
+                                    color: investment.status == "PENDING"
+                                        ? const Color(0xFFFFC107)
+                                        : const Color(0xFF4CAF50),
+                                    fontSize: 10,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
                       ),
-                    ),
-                  ),
-                );
-              },
+                    );
+                  },
+                ),
+              ),
             ),
-            if (!isLastPage && isLoadingMore)
-              Positioned(
-                bottom: 10,
-                left: 0,
-                right: 0,
+
+            // Loading indicator at bottom
+            if (isLoadingMore)
+              Container(
+                padding: const EdgeInsets.all(16.0),
                 child: Center(child: _buildLoadingIndicator()),
               ),
           ],
@@ -398,29 +449,29 @@ class _MarketplaceState extends ConsumerState<Marketplace>
     );
   }
 
-
+// Update the shimmer to also use Expanded
   Widget _buildShimmerBookingsList() {
-    return ListView.builder(
-      padding: const EdgeInsets.symmetric(horizontal: 16),
-      shrinkWrap: true,
-      physics: const AlwaysScrollableScrollPhysics(),
-      itemCount: 5,
-      itemBuilder: (context, index) {
-        return Padding(
-          padding: const EdgeInsets.symmetric(vertical: 8),
-          child: Shimmer.fromColors(
-            baseColor: Colors.grey[700]!,
-            highlightColor: Colors.grey[500]!,
-            child: Container(
-              height: 100,
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(12),
+    return Expanded(
+      child: ListView.builder(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        itemCount: 5,
+        itemBuilder: (context, index) {
+          return Padding(
+            padding: const EdgeInsets.symmetric(vertical: 8),
+            child: Shimmer.fromColors(
+              baseColor: Colors.grey[700]!,
+              highlightColor: Colors.grey[500]!,
+              child: Container(
+                height: 100,
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(12),
+                ),
               ),
             ),
-          ),
-        );
-      },
+          );
+        },
+      ),
     );
   }
 
@@ -1126,7 +1177,7 @@ class _MarketplaceState extends ConsumerState<Marketplace>
         price: ref.formatUserCurrency(item.convertedRate),
         name: "${item.user?.firstName} ${item.user?.lastName}",
         rating: 4.5,
-        clients: '20k clients',
+        clients: '${item.bookingCount} clients',
         location: item.status,
         isRemote: item.status.toLowerCase().contains('remote'),
         image: item.coverImage,
@@ -1255,15 +1306,15 @@ class _MarketplaceState extends ConsumerState<Marketplace>
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Row(
-                      children: [
-                        const Icon(Icons.star, color: Colors.amber, size: 14),
-                        Text(
-                          '$rating rating',
-                          style: const TextStyle(color: Colors.white70, fontSize: 8),
-                        ),
-                      ],
-                    ),
+                    // Row(
+                    //   children: [
+                    //     const Icon(Icons.star, color: Colors.amber, size: 14),
+                    //     Text(
+                    //       '$rating rating',
+                    //       style: const TextStyle(color: Colors.white70, fontSize: 8),
+                    //     ),
+                    //   ],
+                    // ),
                     Row(
                       children: [
                         const Icon(Icons.group, color: Colors.white70, size: 14),
@@ -1302,7 +1353,7 @@ class FilterScreen extends ConsumerStatefulWidget {
   const FilterScreen({super.key});
 
   @override
-  _FilterScreenState createState() => _FilterScreenState();
+  ConsumerState<FilterScreen> createState() => _FilterScreenState();
 }
 
 class _FilterScreenState extends ConsumerState<FilterScreen> {

@@ -47,12 +47,15 @@ class _CreateAccountScreenState extends State<CreateAccount> {
 
 
   String? identity;
+  String? creatorIdentity;
 
   Future<void> loadData() async {
     String? storedEmail = await widget.storage.read(key: 'identity');
+    String? storedIdentity = await widget.storage.read(key: 'creator_identity');
     print("Identity $storedEmail");
     setState(() {
       identity = storedEmail;
+      creatorIdentity = storedIdentity;
     });
   }
 
@@ -65,6 +68,7 @@ class _CreateAccountScreenState extends State<CreateAccount> {
         "email": emailController.text,
         "password": passwordController.text,
         "role": identity == "creator" ? "CREATOR" : "USER",
+        'creator_role': creatorIdentity?.toUpperCase() ?? ""
       };
       final options = Options(headers: {'Accept': 'application/json'});
       final response = await dio.post(

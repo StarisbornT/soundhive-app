@@ -157,6 +157,7 @@ class Creator {
   final String userId;
   final String? gender;
   final String? nin;
+  final String? role;
   final String? idType;
   final String? copyOfId;
   final String? utilityBill;
@@ -164,6 +165,9 @@ class Creator {
   final String? jobTitle;
   final String? bio;
   final bool? active;
+  final bool? hasLiveTest;
+  final bool? hasVerifiedIdentity;
+  final bool? hasVerifiedCreativeProfile;
   final String? location;
   final String? linkedin;
   final String? x;
@@ -177,6 +181,7 @@ class Creator {
     required this.userId,
     this.gender,
     this.nin,
+    this.role,
     this.idType,
     this.copyOfId,
     this.utilityBill,
@@ -190,7 +195,10 @@ class Creator {
     this.instagram,
     required this.createdAt,
     required this.updatedAt,
-    this.baseCurrency
+    this.baseCurrency,
+    this.hasLiveTest,
+    this.hasVerifiedIdentity,
+    this.hasVerifiedCreativeProfile
   });
 
   factory Creator.fromJson(Map<String, dynamic> json) {
@@ -199,6 +207,7 @@ class Creator {
       userId: json['user_id'] ?? '',
       gender: json['gender'],
       nin: json['nin'],
+      role: json['role'],
       idType: json['id_type'],
       copyOfId: json['copy_of_id'],
       utilityBill: json['utility_bill'],
@@ -206,6 +215,9 @@ class Creator {
       jobTitle: json['job_title'],
       bio: json['bio'],
       active: json['active'],
+      hasLiveTest: json['has_live_test'],
+      hasVerifiedIdentity: json['has_verified_identity'],
+      hasVerifiedCreativeProfile: json['has_verified_creative_profile'],
       location: json['location'],
       linkedin: json['linkedin'],
       x: json['x'],

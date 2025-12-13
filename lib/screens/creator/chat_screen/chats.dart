@@ -5,7 +5,7 @@ import 'package:firebase_database/ui/firebase_animated_list.dart';
 import 'package:intl/intl.dart';
 import 'package:soundhive2/model/user_model.dart';
 
-import '../../non_creator/chat_screen.dart';
+import '../../chats/chat_screen.dart';
 import '../../non_creator/disputes/dispute_chat_screen.dart';
 
 class ChatListScreen extends ConsumerStatefulWidget {

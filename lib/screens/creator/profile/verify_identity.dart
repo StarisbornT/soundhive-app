@@ -22,7 +22,7 @@ class VerifyIdentity extends ConsumerStatefulWidget {
   const VerifyIdentity({super.key, required this.user});
 
   @override
-  _VerifyIdentityScreenState createState() => _VerifyIdentityScreenState();
+  ConsumerState<VerifyIdentity> createState() => _VerifyIdentityScreenState();
 }
 
 class _VerifyIdentityScreenState extends ConsumerState<VerifyIdentity> {

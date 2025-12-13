@@ -1111,8 +1111,8 @@ class _PaymentMethodSelectorState extends ConsumerState<PaymentMethodSelector> {
 
                   _buildPaymentOption(
                     context,
-                    title: 'Wallet - ${widget.user.wallet?.balance}',
-                    icon: Icons.account_balance_wallet,
+                    title: 'Cre8hive Pay - ${widget.user.wallet?.balance}',
+                    icon: "images/logo1.png",
                     selected: selectedOption == 0,
                     onTap: () => setStateBottomSheet(() => selectedOption = 0),
                     radioColor: Colors.white,
@@ -1156,7 +1156,7 @@ class _PaymentMethodSelectorState extends ConsumerState<PaymentMethodSelector> {
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
             Text(
-              "Wallet - ${widget.user.wallet?.balance}",
+              "Cre8hive Pay - ${widget.user.wallet?.balance}",
               style: TextStyle(
                 color: _selectedMethod == null ? Colors.grey : Colors.white,
               ),
@@ -1171,7 +1171,7 @@ class _PaymentMethodSelectorState extends ConsumerState<PaymentMethodSelector> {
   Widget _buildPaymentOption(
       BuildContext context, {
         required String title,
-        required IconData icon,
+        required String icon,
         required bool selected,
         required VoidCallback onTap,
         required Color radioColor,
@@ -1191,7 +1191,7 @@ class _PaymentMethodSelectorState extends ConsumerState<PaymentMethodSelector> {
             Expanded(
               child: Row(
                 children: [
-                  Icon(icon, color: Colors.white),
+                  Image.asset(icon, color: Colors.white, width: 50),
                   const SizedBox(width: 8),
                   Expanded(
                     child: Text(

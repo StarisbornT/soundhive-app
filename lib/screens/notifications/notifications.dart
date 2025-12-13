@@ -215,7 +215,7 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
         children: [
           if (data['amount'] != null)
             Text(
-              'Amount: ₦${data['amount']}',
+              'Amount: ${data['currency'] ?? data['service_currency'] ?? data['original_currency']}${data['amount']}',
               style: const TextStyle(fontSize: 12, fontFamily: 'Roboto',),
             ),
           if (data['property_name'] != null)

@@ -94,6 +94,7 @@ class MarketOrder {
   final String currency;
   final String serviceDescription;
   final dynamic convertedRate;
+  final String? bookingCount;
   final String convertedCurrency;
   final User? user;
 
@@ -112,6 +113,7 @@ class MarketOrder {
     required this.createdAt,
     required this.updatedAt,
     required this.currency,
+    this.bookingCount,
     required this.serviceDescription,
     required this.convertedRate,
     required this.convertedCurrency,
@@ -124,6 +126,7 @@ class MarketOrder {
       userId: map['user_id'] ?? '',
       serviceName: map['service_name'] ?? '',
       categoryId: map['category_id'] ?? '',
+      bookingCount: map['bookings_count'] ?? '',
       subCategoryId: map['sub_category_id'] ?? '',
       rate: map['rate'] ?? '',
       coverImage: map['cover_image'] ?? '',

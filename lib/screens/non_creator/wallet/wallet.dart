@@ -22,7 +22,7 @@ class WalletScreen extends ConsumerStatefulWidget {
   const WalletScreen({super.key, required this.user});
 
   @override
-  _WalletScreenState createState() => _WalletScreenState();
+  ConsumerState<WalletScreen> createState() => _WalletScreenState();
 }
 
 class _WalletScreenState extends ConsumerState<WalletScreen> {

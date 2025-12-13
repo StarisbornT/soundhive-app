@@ -69,7 +69,7 @@ class _VerificationWebViewState extends ConsumerState<VerificationWebView> {
         backgroundColor: const Color(0xFF0C051F),
         title:  Text(
           widget.title ?? 'BVN Verification',
-          style: TextStyle(color: Colors.white),
+          style: const TextStyle(color: Colors.white),
         ),
         actions: [
           IconButton(

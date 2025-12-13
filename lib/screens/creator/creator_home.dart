@@ -141,12 +141,12 @@ class _CreatorHomeState extends ConsumerState<CreatorHome> with SingleTickerProv
         amount: double.parse(cleanAmount),
         currency: 'NGN'
       );
-      if (response.url != null) {
+      if (response.data != null) {
         if (!mounted) return;
         final result = await Navigator.push<String>(
           context,
           MaterialPageRoute(
-            builder: (context) => VerificationWebView(url: response.url!, title: 'Add Money',),
+            builder: (context) => VerificationWebView(url: response.data!.checkoutUrl!, title: 'Add Money',),
           ),
         );
         if (result == 'success') {
@@ -216,8 +216,19 @@ class _CreatorHomeState extends ConsumerState<CreatorHome> with SingleTickerProv
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                if(widget.user.user?.creator == null)...[
-                  Image.asset('images/banner.png')
+                if((widget.user.user?.creator == null || widget.user.user?.creator?.hasVerifiedIdentity == false || widget.user.user?.creator?.hasVerifiedCreativeProfile == false))...[
+                  GestureDetector(
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => SetupScreen(user: widget.user),
+                        ),
+                      );
+
+                    },
+                      child: Image.asset('images/banner.png')
+                  )
                 ]else if(!(widget.user.user?.creator!.active ?? false))...[
                   Utils.reviewCard(
                     context,

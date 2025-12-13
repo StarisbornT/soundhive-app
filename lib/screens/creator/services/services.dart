@@ -219,8 +219,8 @@ class _ServiceScreenState extends ConsumerState<ServiceScreen> with TickerProvid
                       Center(
                         child: Text(
                           textAlign: TextAlign.center,
-                          (widget.user.user?.creator == null)
-                              ? "Complete your KYC so as to activate your Soundhive Vest Account Unlock your ability to Invest in verifiable and quality entertainment projects or artists, as well as share in their success."
+                          (widget.user.user?.creator == null || widget.user.user?.creator?.hasVerifiedIdentity == false || widget.user.user?.creator?.hasVerifiedCreativeProfile == false)
+                              ? "Complete your KYC so as to activate your option to create services"
                               : "Your account is under review",
                           style: const TextStyle(color: Colors.white, fontSize: 18),
                         ),

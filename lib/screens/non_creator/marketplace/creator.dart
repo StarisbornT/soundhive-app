@@ -29,6 +29,51 @@ class _CreatorProfileState extends ConsumerState<CreatorProfile> {
       }
     });
   }
+  Widget _buildReviewSection() {
+    final reviews = widget.creator.reviews;
+    final count = reviews.length;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        InkWell(
+          onTap: () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (_) => CreatorAllReviewsScreen(
+                  creator: widget.creator,
+                ),
+              ),
+            );
+          },
+          child: Text(
+            "View all reviews here ($count) >",
+            style: const TextStyle(
+              color: Color(0xFFC5AFFF),
+              fontSize: 12,
+              decoration: TextDecoration.underline,
+            ),
+          ),
+        ),
+        const SizedBox(height: 15),
+      ],
+    );
+  }
+
+  double getOverallRating() {
+    final reviews = widget.creator.reviews;
+
+    if (reviews.isEmpty) return 0.0;
+
+    double total = 0;
+    for (var r in reviews) {
+      total += r.rating;
+    }
+
+    return total / reviews.length;
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -44,6 +89,8 @@ class _CreatorProfileState extends ConsumerState<CreatorProfile> {
               _buildProfileHeader(),
               const SizedBox(height: 30),
               _buildAboutSection(),
+              const SizedBox(height: 10),
+              _buildReviewSection(),
               const SizedBox(height: 30),
               _buildSocialIcons(),
               const SizedBox(height: 20),
@@ -148,19 +195,21 @@ class _CreatorProfileState extends ConsumerState<CreatorProfile> {
                 ),
               ),
               const SizedBox(height: 5),
-              const Row(
+              Row(
                 children: [
-                  Icon(Icons.star, color: Colors.amber, size: 16),
-                  SizedBox(width: 5),
+                  const Icon(Icons.star, color: Colors.amber, size: 16),
+                  const SizedBox(width: 5),
                   Text(
-                    '4.8 overall rating',
-                    style: TextStyle(
+                    '${getOverallRating().toStringAsFixed(1)} overall rating',
+                    style: const TextStyle(
                       color: Colors.white70,
                       fontSize: 12,
                     ),
                   ),
                 ],
               ),
+
+
             ],
           ),
         ),
@@ -538,3 +587,158 @@ class _AvailabilityCalendarState extends State<AvailabilityCalendar> {
     );
   }
 }
+
+class ReviewItem extends StatelessWidget {
+  final Review review;
+
+  const ReviewItem({required this.review, super.key});
+
+  String formatReviewDate(String dateString) {
+    final date = DateTime.parse(dateString);
+
+    final day = date.day.toString().padLeft(2, '0');
+    final month = date.month.toString().padLeft(2, '0');
+    final year = date.year;
+
+    // Format time
+    int hour = date.hour;
+    final minute = date.minute.toString().padLeft(2, '0');
+    final ampm = hour >= 12 ? 'pm' : 'am';
+
+    if (hour > 12) hour -= 12;
+    if (hour == 0) hour = 12;
+
+    return "$day/$month/$year, $hour:$minute$ampm";
+  }
+
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 20),
+      padding: const EdgeInsets.all(12),
+      decoration: const BoxDecoration(
+        border: Border(bottom: BorderSide(color: Colors.white12)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // ---- USER + RATING ROW ----
+          Row(
+            children: [
+              CircleAvatar(
+                backgroundColor: AppColors.PRIMARYCOLOR,
+                backgroundImage: review.user?.image != null
+                    ? NetworkImage(review.user!.image!)
+                    : null,
+                child: review.user?.image == null
+                    ? Text(
+                  review.user?.firstName.substring(0, 1) ?? "?",
+                  style: const TextStyle(fontSize: 20, color: Colors.white),
+                )
+                    : null,
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Text(
+                  "${review.user?.firstName} ${review.user?.lastName}",
+                  style: const TextStyle(color: Colors.white),
+                ),
+              ),
+
+            ],
+          ),
+
+          const SizedBox(height: 8),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Row(
+                children: List.generate(
+                  review.rating,
+                      (i) => const Icon(Icons.star, color: Colors.amber, size: 16),
+                ),
+              ),
+              Text(
+                formatReviewDate(review.createdAt),
+                style: const TextStyle(fontSize: 12, color: Color(0xFF7C7C88)),
+              )
+
+            ],
+          ),
+          const SizedBox(height: 8),
+          // ---- REVIEW TEXT ----
+          Text(
+            review.reviewText ?? "",
+            style: const TextStyle(color: Colors.white70, fontSize: 12),
+          ),
+
+          const SizedBox(height: 8),
+
+          // ---- TAGS ----
+          Wrap(
+            spacing: 8,
+            children: review.tags
+                .map(
+                  (t) => Container(
+                padding:
+                const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                decoration: BoxDecoration(
+                  color: Colors.white12,
+                  borderRadius: BorderRadius.circular(20),
+                ),
+                child: Text(
+                  t.tag,
+                  style:
+                  const TextStyle(color: Colors.white70, fontSize: 11),
+                ),
+              ),
+            )
+                .toList(),
+          ),
+
+          if (review.media != null) ...[
+            const SizedBox(height: 12),
+            ClipRRect(
+              borderRadius: BorderRadius.circular(8),
+              child: Image.network(
+                review.media?.filePath ?? "",
+                height: 150,
+                width: double.infinity,
+                fit: BoxFit.cover,
+              ),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+}
+
+class CreatorAllReviewsScreen extends StatelessWidget {
+  final CreatorData creator;
+
+  const CreatorAllReviewsScreen({required this.creator, super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: AppColors.BACKGROUNDCOLOR,
+      appBar: AppBar(
+        backgroundColor: AppColors.BACKGROUNDCOLOR,
+        title: Text(
+          "Reviews (${creator.reviews.length})",
+          style: const TextStyle(color: Colors.white),
+        ),
+        iconTheme: const IconThemeData(color: Colors.white),
+      ),
+      body: ListView(
+        padding: const EdgeInsets.all(16),
+        children: creator.reviews
+            .map((r) => ReviewItem(review: r))
+            .toList(),
+      ),
+    );
+  }
+}
+

@@ -10,30 +10,42 @@ import '../../../components/success.dart';
 import '../../../components/widgets.dart';
 import 'package:soundhive2/lib/dashboard_provider/apiresponseprovider.dart';
 import 'package:soundhive2/lib/dashboard_provider/user_provider.dart';
-import '../../../lib/dashboard_provider/getActiveInvestmentProvider.dart';
+import 'package:soundhive2/lib/dashboard_provider/getActiveInvestmentProvider.dart';
 import '../../../model/apiresponse_model.dart';
 import '../../../model/market_orders_service_model.dart';
+import '../../../model/offerFromUserModel.dart';
 import '../../../model/user_model.dart';
 import '../../../utils/alert_helper.dart';
 import '../../../utils/app_colors.dart';
 import '../../creator/profile/profile_screen.dart';
 import '../../dashboard/marketplace/markplace_recept.dart';
 
-
 final withdrawStateProvider = StateProvider<bool>((ref) => false);
+
 class MarketplaceDetails extends ConsumerStatefulWidget {
   final MarketOrder service;
   final MemberCreatorResponse user;
-  const MarketplaceDetails({super.key, required this.service, required this.user});
+  const MarketplaceDetails(
+      {super.key, required this.service, required this.user});
 
   @override
-  ConsumerState<MarketplaceDetails> createState() => _MarketplaceDetailsScreenState();
+  ConsumerState<MarketplaceDetails> createState() =>
+      _MarketplaceDetailsScreenState();
 }
+
 class _MarketplaceDetailsScreenState extends ConsumerState<MarketplaceDetails> {
   int _currentStep = 0;
   String? selectedPaymentOption;
   late List<DateTime> availabilityDates = [];
   double? _bookingAmount;
+  String _formatDate(String dateString) {
+    try {
+      final date = DateTime.parse(dateString);
+      return '${date.day}/${date.month}/${date.year}';
+    } catch (e) {
+      return dateString;
+    }
+  }
 
   @override
   void initState() {
@@ -41,6 +53,263 @@ class _MarketplaceDetailsScreenState extends ConsumerState<MarketplaceDetails> {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       ref.read(checkOfferProvider.notifier).checkOffer(widget.service.id);
     });
+  }
+
+  void _showCounterOfferDialog(OfferFromUser offer) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: AppColors.BACKGROUNDCOLOR,
+        title: const Text(
+          'Counter Offer Received',
+          style: TextStyle(color: Colors.white),
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(
+              'The creator has countered your offer:',
+              style: TextStyle(color: Colors.white70),
+            ),
+            SizedBox(height: 16),
+
+            // Original offer
+            _buildCounterOfferRow(
+              'Your Offer',
+              ref.formatUserCurrency(offer.amount),
+            ),
+
+            // Counter offer
+            _buildCounterOfferRow(
+              'Counter Offer',
+              ref.formatUserCurrency(offer.counterAmount ?? '0'),
+            ),
+            if (offer.counterMessage != null)
+              Padding(
+                padding: const EdgeInsets.only(top: 12),
+                child: Text(
+                  'Message: ${offer.counterMessage}',
+                  style: const TextStyle(color: Colors.white70, fontSize: 14),
+                ),
+              ),
+
+            if (offer.counterExpiresAt != null)
+              Padding(
+                padding: const EdgeInsets.only(top: 8),
+                child: Text(
+                  'Expires: ${_formatDate(offer.counterExpiresAt!)}',
+                  style: const TextStyle(color: Colors.yellow, fontSize: 12),
+                ),
+              ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => _rejectCounterOffer(offer),
+            child: const Text('Reject', style: TextStyle(color: Colors.red)),
+          ),
+          ElevatedButton(
+            onPressed: () => _acceptCounterOffer(offer),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppColors.PRIMARYCOLOR,
+            ),
+            child: const Text('Accept', style: TextStyle(color: Colors.white),),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildCounterOfferRow(String label, String value,
+      {bool isSecondary = false}) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 4),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Text(
+            label,
+            style: TextStyle(
+              color: isSecondary ? Colors.grey : Colors.white70,
+              fontSize: isSecondary ? 12 : 14,
+            ),
+          ),
+          Text(
+            value,
+            style: TextStyle(
+              color: isSecondary ? Colors.grey : Colors.white,
+              fontSize: isSecondary ? 12 : 14,
+              fontWeight: isSecondary ? FontWeight.normal : FontWeight.w500,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _acceptCounterOffer(OfferFromUser offer) async {
+    Navigator.pop(context);
+
+    try {
+      final response =
+          await ref.read(apiresponseProvider.notifier).acceptCounterOffer(
+                context: context,
+                offerId: offer.id,
+              );
+
+      if (response.status) {
+        await ref
+            .read(checkOfferProvider.notifier)
+            .checkOffer(widget.service.id);
+
+        showCustomAlert(
+          context: context,
+          isSuccess: true,
+          title: 'Success',
+          message: 'Counter offer accepted successfully!',
+        );
+      }
+    } catch (error) {
+      _handleCounterOfferError(error);
+    }
+  }
+
+  Future<void> _rejectCounterOffer(OfferFromUser offer) async {
+    Navigator.pop(context);
+
+    try {
+      final response =
+          await ref.read(apiresponseProvider.notifier).rejectCounterOffer(
+                context: context,
+                offerId: offer.id,
+              );
+
+      if (response.status) {
+        await ref
+            .read(checkOfferProvider.notifier)
+            .checkOffer(widget.service.id);
+
+        showCustomAlert(
+          context: context,
+          isSuccess: true,
+          title: 'Success',
+          message: 'Counter offer rejected.',
+        );
+      }
+    } catch (error) {
+      _handleCounterOfferError(error);
+    }
+  }
+
+  void _handleCounterOfferError(dynamic error) {
+    String errorMessage = 'An unexpected error occurred';
+
+    if (error is DioException) {
+      if (error.response?.data != null) {
+        try {
+          final apiResponse = ApiResponseModel.fromJson(error.response?.data);
+          errorMessage = apiResponse.message;
+        } catch (e) {
+          errorMessage = 'Failed to parse error message';
+        }
+      } else {
+        errorMessage = error.message ?? 'Network error occurred';
+      }
+    }
+
+    showCustomAlert(
+      context: context,
+      isSuccess: false,
+      title: 'Error',
+      message: errorMessage,
+    );
+  }
+
+  Widget _buildOfferButton(OfferFromUser? offer) {
+    if (offer == null) {
+      return OutlinedButton(
+        onPressed: () => _showOfferBottomSheet(),
+        style: OutlinedButton.styleFrom(
+          foregroundColor: Colors.white,
+          side: const BorderSide(color: Colors.white24),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(30),
+          ),
+        ),
+        child: const Text(
+          'Make an Offer',
+          style: TextStyle(color: Colors.white),
+        ),
+      );
+    }
+
+    switch (offer.status) {
+      case 'ACCEPTED':
+        return OutlinedButton(
+          onPressed: null,
+          style: OutlinedButton.styleFrom(
+            foregroundColor: Colors.white,
+            side: const BorderSide(color: Colors.white24),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(30),
+            ),
+          ),
+          child: const Text(
+            'Offer Accepted',
+            style: TextStyle(color: Colors.white),
+          ),
+        );
+
+      case 'REJECTED':
+        return OutlinedButton(
+          onPressed: () => _showOfferBottomSheet(),
+          style: OutlinedButton.styleFrom(
+            foregroundColor: Colors.white,
+            side: const BorderSide(color: Colors.white24),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(30),
+            ),
+          ),
+          child: const Text(
+            'Make New Offer',
+            style: TextStyle(color: Colors.white),
+          ),
+        );
+
+      case 'COUNTERED':
+        return OutlinedButton(
+          onPressed: () => _showCounterOfferDialog(offer),
+          style: OutlinedButton.styleFrom(
+            foregroundColor: Colors.yellow,
+            side: const BorderSide(color: Colors.yellow),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(30),
+            ),
+          ),
+          child: const Text(
+            'Counter Offer',
+            style: TextStyle(color: Colors.yellow),
+          ),
+        );
+
+      case 'PENDING':
+      default:
+        return OutlinedButton(
+          onPressed: null,
+          style: OutlinedButton.styleFrom(
+            foregroundColor: Colors.white,
+            side: const BorderSide(color: Colors.white24),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(30),
+            ),
+          ),
+          child: const Text(
+            'Offer Pending',
+            style: TextStyle(color: Colors.white),
+          ),
+        );
+    }
   }
 
   @override
@@ -86,13 +355,13 @@ class _MarketplaceDetailsScreenState extends ConsumerState<MarketplaceDetails> {
             borderRadius: BorderRadius.circular(10),
             child: widget.service.coverImage.isNotEmpty
                 ? Image.network(
-              widget.service.coverImage,
-              height: 200,
-              width: double.infinity,
-              fit: BoxFit.cover,
-              errorBuilder: (context, error, stackTrace) =>
-                  Utils.buildImagePlaceholder(),
-            )
+                    widget.service.coverImage,
+                    height: 200,
+                    width: double.infinity,
+                    fit: BoxFit.cover,
+                    errorBuilder: (context, error, stackTrace) =>
+                        Utils.buildImagePlaceholder(),
+                  )
                 : Utils.buildImagePlaceholder(),
           ),
         ),
@@ -117,17 +386,17 @@ class _MarketplaceDetailsScreenState extends ConsumerState<MarketplaceDetails> {
               radius: 15,
               backgroundColor: AppColors.BUTTONCOLOR,
               backgroundImage: (widget.service.user?.image != null &&
-                  widget.service.user!.image!.isNotEmpty)
+                      widget.service.user!.image!.isNotEmpty)
                   ? NetworkImage(widget.service.user!.image!)
                   : null,
               child: (widget.service.user?.image == null ||
-                  widget.service.user!.image!.isEmpty)
+                      widget.service.user!.image!.isEmpty)
                   ? Text(
-                widget.service.user?.firstName.isNotEmpty == true
-                    ? widget.service.user!.firstName[0].toUpperCase()
-                    : '',
-                style: const TextStyle(fontSize: 14, color: Colors.white),
-              )
+                      widget.service.user?.firstName.isNotEmpty == true
+                          ? widget.service.user!.firstName[0].toUpperCase()
+                          : '',
+                      style: const TextStyle(fontSize: 14, color: Colors.white),
+                    )
                   : null,
             ),
             const SizedBox(width: 8),
@@ -156,7 +425,8 @@ class _MarketplaceDetailsScreenState extends ConsumerState<MarketplaceDetails> {
         const SizedBox(height: 16),
         Row(
           children: [
-            const Icon(Icons.location_on_outlined, color: Color(0xFFB0B0B6), size: 18),
+            const Icon(Icons.location_on_outlined,
+                color: Color(0xFFB0B0B6), size: 18),
             Text(
               widget.service.user?.creator?.location ?? '',
               style: const TextStyle(color: Colors.grey, fontSize: 12),
@@ -197,45 +467,15 @@ class _MarketplaceDetailsScreenState extends ConsumerState<MarketplaceDetails> {
           children: [
             offerState.when(
               data: (data) {
-                String buttonText;
-                bool isDisabled;
-
-                if (data.hasActiveOffer) {
-                  if (data.offer?.status == "ACCEPTED") {
-                    buttonText = "Offer Accepted";
-                    isDisabled = true;
-                  }else if(data.offer?.status == "REJECTED"){
-                    buttonText = "Offer Rejected";
-                    isDisabled = true;
-                  } else
-                  {
-                    buttonText = "Offer Pending";
-                    isDisabled = true;
-                  }
-                } else {
-                  buttonText = "Make an Offer";
-                  isDisabled = false;
-                }
-
-                return OutlinedButton(
-                  onPressed: isDisabled ? null : () => _showOfferBottomSheet(),
-                  style: OutlinedButton.styleFrom(
-                    foregroundColor: Colors.white,
-                    side: const BorderSide(color: Colors.white24),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(30),
-                    ),
-                  ),
-                  child: Text(
-                    buttonText,
-                    style: const TextStyle(color: Colors.white),
-                  ),
-                );
+                return _buildOfferButton(data.offer);
               },
-              error: (err, stack) => Text(
-                "Error loading offer",
-                style: const TextStyle(color: Colors.red),
-              ),
+              error: (err, stack) {
+                print(err);
+                return const Text(
+                  "Error loading offer",
+                  style: TextStyle(color: Colors.red),
+                );
+    },
               loading: () => const SizedBox(
                 width: 120,
                 child: Center(
@@ -243,7 +483,6 @@ class _MarketplaceDetailsScreenState extends ConsumerState<MarketplaceDetails> {
                 ),
               ),
             ),
-
             RoundedButton(
               title: widget.user.user?.wallet == null
                   ? "Activate your wallet"
@@ -253,7 +492,8 @@ class _MarketplaceDetailsScreenState extends ConsumerState<MarketplaceDetails> {
                   Navigator.push(
                     context,
                     MaterialPageRoute(
-                      builder: (context) => WalletScreen(user: widget.user.user!),
+                      builder: (context) =>
+                          WalletScreen(user: widget.user.user!),
                     ),
                   );
                 } else {
@@ -284,7 +524,7 @@ class _MarketplaceDetailsScreenState extends ConsumerState<MarketplaceDetails> {
             final offerAmount = data.offer?.amount;
 
             if (hasAcceptedOffer && offerAmount != null) {
-              _bookingAmount = double.parse(offerAmount) ;
+              _bookingAmount = double.parse(offerAmount);
               return Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -303,7 +543,8 @@ class _MarketplaceDetailsScreenState extends ConsumerState<MarketplaceDetails> {
                       ),
                       const SizedBox(width: 8),
                       Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 6, vertical: 2),
                         decoration: BoxDecoration(
                           color: const Color(0xFF4CAF50),
                           borderRadius: BorderRadius.circular(4),
@@ -389,7 +630,8 @@ class _MarketplaceDetailsScreenState extends ConsumerState<MarketplaceDetails> {
         DateSelectionInput(
           onDatesSelected: (dates) {
             availabilityDates = dates;
-            print('Selected dates: ${dates.map((d) => DateFormat('dd/MM/yyyy').format(d)).join(', ')}');
+            print(
+                'Selected dates: ${dates.map((d) => DateFormat('dd/MM/yyyy').format(d)).join(', ')}');
           },
         ),
         const SizedBox(height: 150),
@@ -435,8 +677,10 @@ class _MarketplaceDetailsScreenState extends ConsumerState<MarketplaceDetails> {
                   ),
                   const SizedBox(height: 12),
                   if (hasAcceptedOffer && offerAmount != null) ...[
-                    _buildSummaryRow('Original Price', ref.formatUserCurrency(widget.service.convertedRate)),
-                    _buildSummaryRow('Accepted Offer', ref.formatUserCurrency(offerAmount)),
+                    _buildSummaryRow('Original Price',
+                        ref.formatUserCurrency(widget.service.convertedRate)),
+                    _buildSummaryRow(
+                        'Accepted Offer', ref.formatUserCurrency(offerAmount)),
                     const Divider(color: Colors.white24),
                     _buildSummaryRow(
                       'Total Amount',
@@ -461,7 +705,8 @@ class _MarketplaceDetailsScreenState extends ConsumerState<MarketplaceDetails> {
                       ),
                       child: const Row(
                         children: [
-                          Icon(Icons.info_outline, color: Color(0xFF4CAF50), size: 16),
+                          Icon(Icons.info_outline,
+                              color: Color(0xFF4CAF50), size: 16),
                           SizedBox(width: 8),
                           Expanded(
                             child: Text(
@@ -563,28 +808,30 @@ class _MarketplaceDetailsScreenState extends ConsumerState<MarketplaceDetails> {
     try {
       final offerState = ref.read(checkOfferProvider);
       final hasAcceptedOffer = offerState.value?.offer?.status == 'ACCEPTED';
-      final offerAmount =
-          offerState.value?.offer?.amount;
+      final offerAmount = offerState.value?.offer?.amount;
 
       // Use accepted offer amount if available, otherwise use service rate
-      final bookingAmount = hasAcceptedOffer ? offerAmount : widget.service.rate;
+      final bookingAmount =
+          hasAcceptedOffer ? offerAmount : widget.service.convertedRate;
 
       final payload = {
         "service_id": widget.service.id,
-        "date": availabilityDates.map((date) => DateFormat('yyyy-MM-dd').format(date)).toList(),
+        "date": availabilityDates
+            .map((date) => DateFormat('yyyy-MM-dd').format(date))
+            .toList(),
         "amount": bookingAmount,
       };
 
       final response = await ref.read(apiresponseProvider.notifier).buyServices(
-        context: context,
-        payload: payload,
-      );
+            context: context,
+            payload: payload,
+          );
 
       if (response.status) {
         await ref.read(userProvider.notifier).loadUserProfile();
         ref.read(getActiveInvestmentProvider.notifier).getActiveInvestments(
-          pageSize: 10,
-        );
+              pageSize: 10,
+            );
 
         Navigator.pushReplacement(
           context,
@@ -601,7 +848,7 @@ class _MarketplaceDetailsScreenState extends ConsumerState<MarketplaceDetails> {
                       paymentMethod: selectedPaymentOption ?? '',
                       availability: availabilityDates,
                       user: widget.user.user!,
-                      price: bookingAmount ?? "",
+                      price: bookingAmount.toString() ?? "",
                     ),
                   ),
                 );
@@ -652,13 +899,15 @@ class _MarketplaceDetailsScreenState extends ConsumerState<MarketplaceDetails> {
       };
 
       final response = await ref.read(apiresponseProvider.notifier).makeOffer(
-        context: context,
-        payload: payload,
-      );
+            context: context,
+            payload: payload,
+          );
 
       if (response.status) {
         await ref.read(userProvider.notifier).loadUserProfile();
-        await ref.read(checkOfferProvider.notifier).checkOffer(widget.service.id);
+        await ref
+            .read(checkOfferProvider.notifier)
+            .checkOffer(widget.service.id);
 
         showCustomAlert(
           context: context,
@@ -701,4 +950,3 @@ class _MarketplaceDetailsScreenState extends ConsumerState<MarketplaceDetails> {
     );
   }
 }
-

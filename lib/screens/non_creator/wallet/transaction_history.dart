@@ -159,7 +159,7 @@ class TransactionCard extends ConsumerWidget {
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
           Text(
-           "${ref.userCurrency} ${transaction.amount}",
+           "${transaction.currency ?? ref.userCurrency} ${transaction.amount}",
             style: const TextStyle(
               color: Colors.white,
               fontSize: 16,

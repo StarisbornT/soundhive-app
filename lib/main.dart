@@ -4,6 +4,7 @@ import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:soundhive2/screens/auth/create_account.dart';
+import 'package:soundhive2/screens/auth/creator_identity.dart';
 import 'package:soundhive2/screens/auth/forgot_otp_screen.dart';
 import 'package:soundhive2/screens/auth/forgot_password.dart';
 import 'package:soundhive2/screens/auth/identity_screen.dart';
@@ -94,6 +95,7 @@ class SoundHive extends ConsumerWidget {
         SplashScreen.id: (context) => const SplashScreen(),
         Onboard.id: (context) => const Onboard(),
         IdentityScreen.id: (context) =>  IdentityScreen(storage: storage),
+        CreatorIdentityScreen.id: (context) =>  CreatorIdentityScreen(storage: storage),
         CreateAccount.id: (context) => CreateAccount(storage: storage, dio: dio,),
         Login.id: (context) =>  Login(storage: storage, dio: dio,),
         ForgotPassword.id: (context) =>  ForgotPassword(storage: storage, dio: dio,),

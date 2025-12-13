@@ -102,7 +102,11 @@ class OfferFromUser {
   final String updatedAt;
   final BookingUser? user;
   final Service? service;
-  final double? convertedAmount;
+  final dynamic convertedAmount;
+  final String? counterAmount;
+  final String? counterCurrency;
+  final String? counterMessage;
+  final String? counterExpiresAt;
 
   OfferFromUser({
     required this.convertedAmount,
@@ -115,6 +119,10 @@ class OfferFromUser {
     required this.updatedAt,
     this.service,
     this.user,
+    this.counterAmount,
+    this.counterCurrency,
+    this.counterMessage,
+    this.counterExpiresAt,
   });
 
   factory OfferFromUser.fromMap(Map<String, dynamic> map) {
@@ -129,6 +137,10 @@ class OfferFromUser {
       convertedAmount: map['converted_amount'] ?? 0.0,
       service: map['service'] != null ? Service.fromMap(map['service']) : null,
       user: map['user'] != null ? BookingUser.fromMap(map['user']) : null,
+      counterAmount: map['counter_amount']?.toString(),
+      counterCurrency: map['counter_currency'],
+      counterMessage: map['counter_message'],
+      counterExpiresAt: map['counter_expires_at'],
     );
   }
 }

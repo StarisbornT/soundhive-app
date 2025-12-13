@@ -1,20 +1,22 @@
 
 import 'dart:async';
-
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:soundhive2/screens/non_creator/marketplace/creator.dart';
-
 import 'package:soundhive2/lib/dashboard_provider/creatorProvider.dart';
-import '../../../model/creator_model.dart';
 import '../../../utils/app_colors.dart';
 import '../../../utils/utils.dart';
 
 class CreatorsList extends ConsumerStatefulWidget {
-  const CreatorsList({Key? key}) : super(key: key);
+  final String? initialJobTitleFilter;
+
+  const CreatorsList({
+    super.key,
+    this.initialJobTitleFilter,  // Add this
+  });
 
   @override
-  _CreatorsListState createState() => _CreatorsListState();
+  ConsumerState<CreatorsList> createState() => _CreatorsListState();
 }
 
 class _CreatorsListState extends ConsumerState<CreatorsList> {
@@ -26,8 +28,19 @@ class _CreatorsListState extends ConsumerState<CreatorsList> {
   void initState() {
     super.initState();
     // Load creators when widget initializes
+    if (widget.initialJobTitleFilter != null) {
+      _searchController.text = widget.initialJobTitleFilter!;
+    }
+
+    // Load creators when widget initializes
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      ref.read(creatorProvider.notifier).getCreators();
+      if (widget.initialJobTitleFilter != null) {
+        // If we have initial filter, perform search
+        ref.read(creatorProvider.notifier).searchCreators(widget.initialJobTitleFilter!);
+      } else {
+        // Otherwise load all creators
+        ref.read(creatorProvider.notifier).getCreators();
+      }
     });
 
     _searchController.addListener(_onSearchChanged);
@@ -135,7 +148,7 @@ class _CreatorsListState extends ConsumerState<CreatorsList> {
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      Text(
+                      const Text(
                         'Failed to load creators',
                         style: TextStyle(
                           color: Colors.white60,
@@ -160,7 +173,7 @@ class _CreatorsListState extends ConsumerState<CreatorsList> {
                       child: Column(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-                          Icon(
+                          const Icon(
                             Icons.search_off,
                             color: Colors.white38,
                             size: 64,
@@ -170,7 +183,7 @@ class _CreatorsListState extends ConsumerState<CreatorsList> {
                             _searchController.text.isEmpty
                                 ? 'No creators found'
                                 : 'No creators found for "${_searchController.text}"',
-                            style: TextStyle(
+                            style: const TextStyle(
                               color: Colors.white60,
                               fontSize: 16,
                             ),
@@ -182,7 +195,7 @@ class _CreatorsListState extends ConsumerState<CreatorsList> {
                                 _searchController.clear();
                                 ref.read(creatorProvider.notifier).getCreators(page: 1);
                               },
-                              child: Text(
+                              child: const Text(
                                 'Clear search',
                                 style: TextStyle(color: Colors.blue),
                               ),
@@ -217,6 +230,18 @@ class _CreatorsListState extends ConsumerState<CreatorsList> {
                       }
 
                       final creator = creators[index];
+                      double getOverallRating() {
+                        final reviews = creator.reviews;
+
+                        if (reviews.isEmpty) return 0.0;
+
+                        double total = 0;
+                        for (var r in reviews) {
+                          total += r.rating;
+                        }
+
+                        return total / reviews.length;
+                      }
                       return GestureDetector(
                         onTap: () {
                           Navigator.push(
@@ -231,8 +256,8 @@ class _CreatorsListState extends ConsumerState<CreatorsList> {
                         child: Utils.buildCreativeCard(
                           context,
                           name: '${creator.user?.firstName} ${creator.user?.lastName}',
-                          role: creator.jobTitle ?? '',
-                          rating: 4.8,
+                          role: creator.jobTitle,
+                          rating: getOverallRating(),
                           profileImage: creator.user?.image ?? '',
                           firstName: creator.user?.firstName ?? '',
                         ),

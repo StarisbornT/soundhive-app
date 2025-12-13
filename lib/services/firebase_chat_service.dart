@@ -2,8 +2,7 @@ import 'dart:io';
 
 import 'package:firebase_database/firebase_database.dart';
 import 'dart:convert';
-
-import '../screens/non_creator/chat_screen.dart';
+import '../screens/chats/chat_service.dart';
 
 class FirebaseChatService {
   final DatabaseReference _dbRef = FirebaseDatabase.instance.ref();

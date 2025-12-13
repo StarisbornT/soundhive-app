@@ -1,5 +1,5 @@
-import 'dart:async';
 
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:firebase_database/firebase_database.dart';
@@ -8,9 +8,11 @@ import 'dart:io';
 import 'package:image_picker/image_picker.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:soundhive2/utils/app_colors.dart';
+import 'package:soundhive2/lib/dashboard_provider/user_provider.dart';
 
-import '../../lib/dashboard_provider/user_provider.dart';
-import '../../model/user_model.dart';
+import 'package:soundhive2/lib/dashboard_provider/call_provider.dart';
+import 'package:soundhive2/lib/provider.dart';
+import 'call_screen.dart';
 
 // Update your Message class
 class Message {
@@ -167,7 +169,7 @@ class ChatScreen extends ConsumerStatefulWidget {
   });
 
   @override
-  _ChatScreenState createState() => _ChatScreenState();
+  ConsumerState<ChatScreen> createState() => _ChatScreenState();
 }
 
 class _ChatScreenState extends ConsumerState<ChatScreen> {
@@ -176,7 +178,9 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
   final DatabaseReference _dbRef = FirebaseDatabase.instance.ref();
   late StreamSubscription<DatabaseEvent> _messageSubscription;
   final ScrollController _scrollController = ScrollController();
+  bool _isCallActive = false;
 
+  late StreamSubscription<DatabaseEvent> _callSubscription;
   List<Message> _messages = [];
   bool _isLoading = true;
 
@@ -318,6 +322,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
     super.initState();
     _setupRealtimeListener();
     _loadInitialMessages();
+    _setupCallListener();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _markMessagesAsRead();
       _migrateOldMessages();
@@ -328,6 +333,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
   @override
   void dispose() {
     _messageSubscription.cancel();
+    _callSubscription.cancel();
     _scrollController.dispose();
     super.dispose();
   }
@@ -339,6 +345,211 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
         curve: Curves.easeOut,
       );
     }
+  }
+  void _setupCallListener() {
+    final currentUser = ref.read(userProvider).value?.user;
+    if (currentUser == null) return;
+
+    final userId = currentUser.id.toString();
+    final otherUserId = userId == widget.sellerId ? widget.receiverId : widget.sellerId;
+    final chatId = _getChatId(userId, otherUserId);
+
+    _callSubscription = _dbRef
+        .child('calls/$chatId')
+        .onValue
+        .listen((DatabaseEvent event) {
+      if (event.snapshot.value != null) {
+        final callData = event.snapshot.value as Map<dynamic, dynamic>;
+        _handleIncomingCall(callData, userId);
+      }
+    });
+  }
+
+  void _handleIncomingCall(Map<dynamic, dynamic> callData, String userId) {
+    final callStatus = callData['status']?.toString();
+    final callerId = callData['callerId']?.toString();
+    final channelName = callData['channelName']?.toString();
+
+    if (callStatus == 'calling' && callerId != userId) {
+      // Show incoming call dialog
+      _showIncomingCallDialog(callData);
+    } else if (callStatus == 'ended') {
+      // End call if active
+      if (_isCallActive) {
+        ref.read(audioCallProvider.notifier).endCall();
+        _isCallActive = false;
+      }
+    }
+  }
+
+  void _showIncomingCallDialog(Map<dynamic, dynamic> callData) {
+    final callerName = callData['callerName']?.toString() ?? 'Unknown';
+    final channelName = callData['channelName']?.toString() ?? '';
+
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => AlertDialog(
+        backgroundColor: AppColors.BACKGROUNDCOLOR,
+        title: const Text('Incoming Audio Call', style: TextStyle(color: Colors.white)),
+        content: Text('$callerName is calling you...', style: TextStyle(color: Colors.white70)),
+        actions: [
+          TextButton(
+            onPressed: () {
+              Navigator.pop(context);
+              _rejectCall();
+            },
+            child: const Text('Reject', style: TextStyle(color: Colors.red)),
+          ),
+          TextButton(
+            onPressed: () {
+              Navigator.pop(context);
+              _acceptCall(channelName);
+            },
+            child: const Text('Accept', style: TextStyle(color: Colors.green)),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _startCall(WidgetRef ref) async {
+    final currentUser = ref.read(userProvider).value?.user;
+    if (currentUser == null) return;
+
+    final userId = currentUser.id.toString();
+    final otherUserId = userId == widget.sellerId ? widget.receiverId : widget.sellerId;
+    final chatId = _getChatId(userId, otherUserId);
+    final channelName = 'audio_call_${DateTime.now().millisecondsSinceEpoch}';
+
+    try {
+      // 1. Create call in Firebase (for real-time sync)
+      await _dbRef.child('calls/$chatId').set({
+        'callerId': userId,
+        'callerName': "${currentUser.firstName} ${currentUser.lastName}".trim(),
+        'channelName': channelName,
+        'status': 'calling',
+        'timestamp': DateTime.now().toIso8601String(),
+      });
+
+      // 2. Send push notification via Laravel (for offline users)
+      await _sendCallNotification(ref, otherUserId, channelName);
+
+      // 3. Start the local call
+      await ref.read(audioCallProvider.notifier).startCall(channelName, int.parse(userId));
+
+      // 4. Show call screen
+      _showCallScreen(ref);
+
+    } catch (e) {
+      debugPrint("Failed to start call: $e");
+
+      // FIX: Check if context is mounted before showing SnackBar
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Failed to start call')),
+        );
+      }
+    }
+  }
+
+  // Add this method to your ChatScreen
+  Future<void> _sendCallNotification(WidgetRef ref, String receiverId, String channelName) async {
+    final currentUser = ref.read(userProvider).value?.user;
+    final dio = ref.read(dioProvider);
+
+    if (currentUser == null) return;
+
+    try {
+      final response = await dio.post(
+        '/calls/notify-incoming',
+        data: {
+          'receiver_id': int.parse(receiverId),
+          'caller_name': "${currentUser.firstName} ${currentUser.lastName}".trim(),
+          'channel_name': channelName,
+          'call_id': 'call_${DateTime.now().millisecondsSinceEpoch}',
+        },
+      );
+
+      if (response.statusCode == 200) {
+        print('Call notification sent successfully');
+      } else {
+        print('Failed to send call notification: ${response.statusCode}');
+      }
+    } catch (e) {
+      print('Error sending call notification: $e');
+      // Don't throw error - call should continue even if notification fails
+    }
+  }
+
+  void _showCallScreen(WidgetRef ref) {
+    Navigator.of(context).push(
+      PageRouteBuilder(
+        opaque: true,
+        transitionDuration: Duration.zero,
+        reverseTransitionDuration: Duration.zero,
+        pageBuilder: (_, __, ___) => Consumer(
+          builder: (context, ref, child) {
+            return AudioCallScreen(
+              onEndCall: () {
+                Navigator.pop(context);
+                _endCall();
+              },
+            );
+          },
+        ),
+      ),
+    ).then((_) {
+      _endCall();
+    });
+  }
+
+
+  Future<void> _acceptCall(String channelName) async {
+    final currentUser = ref.read(userProvider).value?.user;
+    if (currentUser == null) return;
+
+    final userId = currentUser.id.toString();
+    final otherUserId = userId == widget.sellerId ? widget.receiverId : widget.sellerId;
+    final chatId = _getChatId(userId, otherUserId);
+
+    // Update call status
+    await _dbRef.child('calls/$chatId/status').set('connected');
+
+    // Join the call
+    ref.read(audioCallProvider.notifier).joinCall(channelName, int.parse(userId));
+    _isCallActive = true;
+
+    // Show call screen
+    _showCallScreen(ref);
+  }
+
+  Future<void> _rejectCall() async {
+    final currentUser = ref.read(userProvider).value?.user;
+    if (currentUser == null) return;
+
+    final userId = currentUser.id.toString();
+    final otherUserId = userId == widget.sellerId ? widget.receiverId : widget.sellerId;
+    final chatId = _getChatId(userId, otherUserId);
+
+    // End the call
+    await _dbRef.child('calls/$chatId/status').set('ended');
+  }
+
+  Future<void> _endCall() async {
+    final currentUser = ref.read(userProvider).value?.user;
+    if (currentUser == null) return;
+
+    final userId = currentUser.id.toString();
+    final otherUserId = userId == widget.sellerId ? widget.receiverId : widget.sellerId;
+    final chatId = _getChatId(userId, otherUserId);
+
+    // End call in database
+    await _dbRef.child('calls/$chatId/status').set('ended');
+
+    // End call locally
+    ref.read(audioCallProvider.notifier).endCall();
+    _isCallActive = false;
   }
   void _setupRealtimeListener() {
     final currentUser = ref.read(userProvider).value?.user;
@@ -616,6 +827,12 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
           icon: const Icon(Icons.arrow_back_ios, color: Colors.white),
           onPressed: () => Navigator.pop(context),
         ),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.phone, color: Colors.white),
+            onPressed: () => _startCall(ref),
+          ),
+        ],
       ),
       body: Column(
         children: [
@@ -871,8 +1088,8 @@ class _MessageInput extends StatelessWidget {
                               ? const Column(
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: [
-                               Icon(Icons.picture_as_pdf, color: Colors.white, size: 40),
-                               Text('PDF', style: TextStyle(color: Colors.white)),
+                              Icon(Icons.picture_as_pdf, color: Colors.white, size: 40),
+                              Text('PDF', style: TextStyle(color: Colors.white)),
                             ],
                           )
                               : Image.file(file, fit: BoxFit.cover),
