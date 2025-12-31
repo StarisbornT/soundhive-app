@@ -6,7 +6,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:soundhive2/components/rounded_button.dart';
 import 'package:soundhive2/utils/app_colors.dart';
-import 'package:soundhive2/utils/utils.dart';
 import '../../../components/label_text.dart';
 import 'package:soundhive2/lib/dashboard_provider/apiresponseprovider.dart';
 import 'package:soundhive2/lib/dashboard_provider/user_provider.dart';
@@ -24,6 +23,7 @@ class ProfileScreen extends ConsumerStatefulWidget {
 
 class _ProfileScreenState extends ConsumerState<ProfileScreen> {
   final ValueNotifier<File?> _imageNotifier = ValueNotifier<File?>(null);
+
   Future<void> _pickAndUploadImage() async {
     final picker = ImagePicker();
     final pickedFile = await picker.pickImage(source: ImageSource.gallery);
@@ -34,19 +34,14 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
     _imageNotifier.value = imageFile;
 
     try {
-
       final imageUrl = await _uploadFileToCloudinary(
         file: imageFile,
         resourceType: 'image',
         preset: 'soundhive',
       );
 
-      setState(() {
-      });
-
       await updateProfile(imageUrl); // Send to backend
       await ref.read(userProvider.notifier).loadUserProfile(); // Reload avatar
-
     } catch (e) {
       showCustomAlert(
         context: context,
@@ -57,11 +52,11 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
     }
   }
 
-
-  Future<String> _uploadFileToCloudinary(
-      {required File file,
-        required String resourceType,
-        required String preset}) async {
+  Future<String> _uploadFileToCloudinary({
+    required File file,
+    required String resourceType,
+    required String preset,
+  }) async {
     final formData = FormData.fromMap({
       'file': await MultipartFile.fromFile(file.path),
       'upload_preset': preset,
@@ -86,7 +81,10 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
     };
 
     try {
-      await ref.read(apiresponseProvider.notifier).updateProfile(context:context,payload: payload);
+      await ref.read(apiresponseProvider.notifier).updateProfile(
+        context: context,
+        payload: payload,
+      );
       showCustomAlert(
         context: context,
         isSuccess: true,
@@ -109,276 +107,286 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
       );
     }
   }
-  
+
+  Future<void> editJobTitle(String newJobTitle) async {
+    final payload = {
+      "job_title": newJobTitle,
+    };
+
+    try {
+      await ref.read(apiresponseProvider.notifier).editJobTitle(
+        context: context,
+        payload: payload,
+      );
+
+      // Reload updated user info
+      await ref.read(userProvider.notifier).loadUserProfile();
+
+      showCustomAlert(
+        context: context,
+        isSuccess: true,
+        title: 'Success',
+        message: 'Job title updated successfully',
+      );
+    } catch (error) {
+      String errorMessage = 'An unexpected error occurred';
+
+      if (error is DioException) {
+        if (error.response?.data != null) {
+          try {
+            final apiResponse = ApiResponseModel.fromJson(error.response?.data);
+            errorMessage = apiResponse.message;
+          } catch (e) {
+            errorMessage = 'Failed to parse error message';
+          }
+        } else {
+          errorMessage = error.message ?? 'Network error occurred';
+        }
+      }
+
+      debugPrint("Error: $errorMessage");
+      showCustomAlert(
+        context: context,
+        isSuccess: false,
+        title: 'Error',
+        message: errorMessage,
+      );
+    }
+  }
+
+  Future<void> editDescription(String description) async {
+    final payload = {
+      "bio": description,
+    };
+
+    try {
+      await ref.read(apiresponseProvider.notifier).editDescription(
+        context: context,
+        payload: payload,
+      );
+
+      // Reload updated user info
+      await ref.read(userProvider.notifier).loadUserProfile();
+
+      showCustomAlert(
+        context: context,
+        isSuccess: true,
+        title: 'Success',
+        message: 'Bio Description updated successfully',
+      );
+    } catch (error) {
+      String errorMessage = 'An unexpected error occurred';
+
+      if (error is DioException) {
+        if (error.response?.data != null) {
+          try {
+            final apiResponse = ApiResponseModel.fromJson(error.response?.data);
+            errorMessage = apiResponse.message;
+          } catch (e) {
+            errorMessage = 'Failed to parse error message';
+          }
+        } else {
+          errorMessage = error.message ?? 'Network error occurred';
+        }
+      }
+
+      debugPrint("Error: $errorMessage");
+      showCustomAlert(
+        context: context,
+        isSuccess: false,
+        title: 'Error',
+        message: errorMessage,
+      );
+    }
+  }
+
+  Future<void> editLocation(String location) async {
+    final payload = {
+      "location": location,
+    };
+
+    try {
+      await ref.read(apiresponseProvider.notifier).editLocation(
+        context: context,
+        payload: payload,
+      );
+
+      // Reload updated user info
+      await ref.read(userProvider.notifier).loadUserProfile();
+
+      showCustomAlert(
+        context: context,
+        isSuccess: true,
+        title: 'Success',
+        message: 'Location updated successfully',
+      );
+    } catch (error) {
+      String errorMessage = 'An unexpected error occurred';
+
+      if (error is DioException) {
+        if (error.response?.data != null) {
+          try {
+            final apiResponse = ApiResponseModel.fromJson(error.response?.data);
+            errorMessage = apiResponse.message;
+          } catch (e) {
+            errorMessage = 'Failed to parse error message';
+          }
+        } else {
+          errorMessage = error.message ?? 'Network error occurred';
+        }
+      }
+
+      debugPrint("Error: $errorMessage");
+      showCustomAlert(
+        context: context,
+        isSuccess: false,
+        title: 'Error',
+        message: errorMessage,
+      );
+    }
+  }
+
+  Future<void> editSocials(Map<String, String> socials) async {
+    final payload = socials;
+
+    try {
+      await ref.read(apiresponseProvider.notifier).editSocials(
+        context: context,
+        payload: payload,
+      );
+
+      // Reload updated user info
+      await ref.read(userProvider.notifier).loadUserProfile();
+
+      showCustomAlert(
+        context: context,
+        isSuccess: true,
+        title: 'Success',
+        message: 'Socials updated successfully',
+      );
+    } catch (error) {
+      String errorMessage = 'An unexpected error occurred';
+
+      if (error is DioException) {
+        if (error.response?.data != null) {
+          try {
+            final apiResponse = ApiResponseModel.fromJson(error.response?.data);
+            errorMessage = apiResponse.message;
+          } catch (e) {
+            errorMessage = 'Failed to parse error message';
+          }
+        } else {
+          errorMessage = error.message ?? 'Network error occurred';
+        }
+      }
+
+      debugPrint("Error: $errorMessage");
+      showCustomAlert(
+        context: context,
+        isSuccess: false,
+        title: 'Error',
+        message: errorMessage,
+      );
+    }
+  }
+
+  void showEditJobTitleSheet(BuildContext context, String currentJobTitle,
+      ThemeData theme, bool isDark) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (BuildContext context) {
+        return EditTextFieldBottomSheet(
+          title: 'Edit Job Title',
+          initialValue: currentJobTitle,
+          hintText: 'Voice Over Artist',
+          isMultiline: true,
+          onSave: (newValue) {
+            if (newValue.trim().isEmpty) return;
+            editJobTitle(newValue);
+            Navigator.pop(context);
+          },
+          theme: theme,
+          isDark: isDark,
+        );
+      },
+    );
+  }
+
+  void showEditBioDescriptionSheet(BuildContext context, String currentBio,
+      ThemeData theme, bool isDark) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (BuildContext context) {
+        return EditTextFieldBottomSheet(
+          title: 'Edit Bio Description',
+          initialValue: currentBio,
+          hintText: 'I am a professional voice-over artist...',
+          isMultiline: true,
+          onSave: (newValue) {
+            if (newValue.trim().isEmpty) return;
+            editDescription(newValue);
+            Navigator.pop(context);
+          },
+          theme: theme,
+          isDark: isDark,
+        );
+      },
+    );
+  }
+
+  void showLocationBottomSheet(BuildContext context, String currentBio,
+      ThemeData theme, bool isDark) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (BuildContext context) {
+        return EditTextFieldBottomSheet(
+          title: 'Edit Location',
+          initialValue: currentBio,
+          hintText: '',
+          isMultiline: true,
+          onSave: (newValue) {
+            if (newValue.trim().isEmpty) return;
+            editLocation(newValue);
+            Navigator.pop(context);
+          },
+          theme: theme,
+          isDark: isDark,
+        );
+      },
+    );
+  }
+
+  void showEditSocialsSheet(BuildContext context, Map<String, String> currentSocials,
+      ThemeData theme, bool isDark) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (BuildContext context) {
+        return EditSocialsBottomSheet(
+          initialSocials: currentSocials,
+          onSave: (newSocials) {
+            if (newSocials.isEmpty) return;
+            editSocials(newSocials);
+            Navigator.pop(context);
+          },
+          theme: theme,
+          isDark: isDark,
+        );
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
-    const Color cardBackgroundColor = Color(0xFF1A191E);
-    const Color textColor = Colors.white;
-    const Color hintTextColor = Colors.white70;
-
-
-    Future<void> editJobTitle(String newJobTitle) async {
-      final payload = {
-        "job_title": newJobTitle,
-      };
-
-      try {
-        await ref.read(apiresponseProvider.notifier).editJobTitle(
-          context: context,
-          payload: payload,
-        );
-
-        // Reload updated user info
-        await ref.read(userProvider.notifier).loadUserProfile();
-
-        showCustomAlert(
-          context: context,
-          isSuccess: true,
-          title: 'Success',
-          message: 'Job title updated successfully',
-        );
-
-      } catch (error) {
-        String errorMessage = 'An unexpected error occurred';
-
-        if (error is DioException) {
-          if (error.response?.data != null) {
-            try {
-              final apiResponse = ApiResponseModel.fromJson(error.response?.data);
-              errorMessage = apiResponse.message;
-            } catch (e) {
-              errorMessage = 'Failed to parse error message';
-            }
-          } else {
-            errorMessage = error.message ?? 'Network error occurred';
-          }
-        }
-
-        print("Error: $errorMessage");
-        showCustomAlert(
-          context: context,
-          isSuccess: false,
-          title: 'Error',
-          message: errorMessage,
-        );
-      }
-    }
-    Future<void> editDescription(String description) async {
-      final payload = {
-        "bio": description,
-      };
-
-      try {
-        await ref.read(apiresponseProvider.notifier).editDescription(
-          context: context,
-          payload: payload,
-        );
-
-        // Reload updated user info
-        await ref.read(userProvider.notifier).loadUserProfile();
-
-        showCustomAlert(
-          context: context,
-          isSuccess: true,
-          title: 'Success',
-          message: 'Bio Description updated successfully',
-        );
-
-      } catch (error) {
-        String errorMessage = 'An unexpected error occurred';
-
-        if (error is DioException) {
-          if (error.response?.data != null) {
-            try {
-              final apiResponse = ApiResponseModel.fromJson(error.response?.data);
-              errorMessage = apiResponse.message;
-            } catch (e) {
-              errorMessage = 'Failed to parse error message';
-            }
-          } else {
-            errorMessage = error.message ?? 'Network error occurred';
-          }
-        }
-
-        print("Error: $errorMessage");
-        showCustomAlert(
-          context: context,
-          isSuccess: false,
-          title: 'Error',
-          message: errorMessage,
-        );
-      }
-    }
-    Future<void> editLocation(String location) async {
-      final payload = {
-        "location": location,
-      };
-
-      try {
-        await ref.read(apiresponseProvider.notifier).editLocation(
-          context: context,
-          payload: payload,
-        );
-
-        // Reload updated user info
-        await ref.read(userProvider.notifier).loadUserProfile();
-
-        showCustomAlert(
-          context: context,
-          isSuccess: true,
-          title: 'Success',
-          message: 'Location updated successfully',
-        );
-
-      } catch (error) {
-        String errorMessage = 'An unexpected error occurred';
-
-        if (error is DioException) {
-          if (error.response?.data != null) {
-            try {
-              final apiResponse = ApiResponseModel.fromJson(error.response?.data);
-              errorMessage = apiResponse.message;
-            } catch (e) {
-              errorMessage = 'Failed to parse error message';
-            }
-          } else {
-            errorMessage = error.message ?? 'Network error occurred';
-          }
-        }
-
-        print("Error: $errorMessage");
-        showCustomAlert(
-          context: context,
-          isSuccess: false,
-          title: 'Error',
-          message: errorMessage,
-        );
-      }
-    }
-    Future<void> editSocials(Map<String, String> socials) async {
-      final payload = socials;
-
-      try {
-        await ref.read(apiresponseProvider.notifier).editSocials(
-          context: context,
-          payload: payload,
-        );
-
-        // Reload updated user info
-        await ref.read(userProvider.notifier).loadUserProfile();
-
-        showCustomAlert(
-          context: context,
-          isSuccess: true,
-          title: 'Success',
-          message: 'Socials updated successfully',
-        );
-
-      } catch (error) {
-        String errorMessage = 'An unexpected error occurred';
-
-        if (error is DioException) {
-          if (error.response?.data != null) {
-            try {
-              final apiResponse = ApiResponseModel.fromJson(error.response?.data);
-              errorMessage = apiResponse.message;
-            } catch (e) {
-              errorMessage = 'Failed to parse error message';
-            }
-          } else {
-            errorMessage = error.message ?? 'Network error occurred';
-          }
-        }
-
-        print("Error: $errorMessage");
-        showCustomAlert(
-          context: context,
-          isSuccess: false,
-          title: 'Error',
-          message: errorMessage,
-        );
-      }
-    }
-    void showEditJobTitleSheet(BuildContext context, String currentJobTitle) {
-      showModalBottomSheet(
-        context: context,
-        isScrollControlled: true,
-        backgroundColor: Colors.transparent,
-        builder: (BuildContext context) {
-          return EditTextFieldBottomSheet(
-            title: 'Edit Job Title',
-            initialValue: currentJobTitle,
-            hintText: 'Voice Over Artist',
-            isMultiline: true,
-            onSave: (newValue) {
-              if (newValue.trim().isEmpty) return;
-              editJobTitle(newValue);
-              Navigator.pop(context);
-            },
-          );
-        },
-      );
-    }
-
-    void showEditBioDescriptionSheet(BuildContext context, String currentBio) {
-      showModalBottomSheet(
-        context: context,
-        isScrollControlled: true,
-        backgroundColor: Colors.transparent,
-        builder: (BuildContext context) {
-          return EditTextFieldBottomSheet(
-            title: 'Edit Bio Description',
-            initialValue: currentBio,
-            hintText: 'I am a professional voice-over artist...',
-            isMultiline: true,
-            onSave: (newValue) {
-              if (newValue.trim().isEmpty) return;
-              editDescription(newValue);
-              Navigator.pop(context);
-            },
-          );
-        },
-      );
-    }
-
-    void showLocationBottomSheet(BuildContext context, String currentBio) {
-      showModalBottomSheet(
-        context: context,
-        isScrollControlled: true,
-        backgroundColor: Colors.transparent,
-        builder: (BuildContext context) {
-          return EditTextFieldBottomSheet(
-            title: 'Edit Location',
-            initialValue: currentBio,
-            hintText: '',
-            isMultiline: true,
-            onSave: (newValue) {
-              if (newValue.trim().isEmpty) return;
-              editLocation(newValue);
-              Navigator.pop(context);
-            },
-          );
-        },
-      );
-    }
-
-    void showEditSocialsSheet(BuildContext context, Map<String, String> currentSocials) {
-      showModalBottomSheet(
-        context: context,
-        isScrollControlled: true, // Allows the bottom sheet to take full height if needed
-        backgroundColor: Colors.transparent, // Make background transparent to show custom shape
-        builder: (BuildContext context) {
-          return EditSocialsBottomSheet(
-            initialSocials: currentSocials,
-            onSave: (newSocials) {
-              if (newSocials.isEmpty) return;
-              editSocials(newSocials);
-              Navigator.pop(context);
-            },
-          );
-        },
-      );
-    }
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
     final user = ref.watch(userProvider);
     final creator = user.value?.user?.creator;
 
@@ -393,12 +401,11 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
     };
 
     return Scaffold(
-      backgroundColor: AppColors.BACKGROUNDCOLOR,
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios, color: textColor),
+          icon: Icon(Icons.arrow_back_ios, color: theme.colorScheme.onSurface),
           onPressed: () {
             Navigator.pop(context);
           },
@@ -411,20 +418,20 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
           children: [
             Container(
               alignment: Alignment.topLeft,
-              child: const Text(
+              child: Text(
                 'My Profile',
                 style: TextStyle(
                   fontSize: 24,
                   fontWeight: FontWeight.w400,
-                  color: Colors.white,
+                  color: theme.colorScheme.onSurface,
                 ),
               ),
             ),
-            const SizedBox(height: 10,),
+            const SizedBox(height: 10),
             // Profile Picture Section
             CircleAvatar(
               radius: 50,
-              backgroundColor: AppColors.BUTTONCOLOR,
+              backgroundColor: AppColors.BUTTONCOLOR.withOpacity(0.8),
               backgroundImage: (user.value?.user?.image != null)
                   ? NetworkImage(user.value!.user!.image!)
                   : null,
@@ -433,16 +440,15 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                 widget.user.user!.firstName.isNotEmpty
                     ? widget.user.user!.firstName[0].toUpperCase()
                     : '',
-                style: const TextStyle(fontSize: 24, color: Colors.white),
+                style: TextStyle(fontSize: 24, color: Colors.white),
               )
                   : null,
             ),
-
             const SizedBox(height: 12),
             Text(
               "${widget.user.user!.firstName} ${widget.user.user!.lastName}",
-              style: const TextStyle(
-                color: textColor,
+              style: TextStyle(
+                color: theme.colorScheme.onSurface,
                 fontSize: 18,
                 fontWeight: FontWeight.w400,
               ),
@@ -450,13 +456,20 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
             const SizedBox(height: 16),
             OutlinedButton.icon(
               onPressed: _pickAndUploadImage,
-              icon: const Icon(Icons.camera_alt_outlined, color: Color(0xFFB0B0B6), size: 12),
-              label: const Text(
+              icon: Icon(
+                Icons.camera_alt_outlined,
+                color: theme.colorScheme.onSurface.withOpacity(0.6),
+                size: 12,
+              ),
+              label: Text(
                 'Change profile picture',
-                style: TextStyle(color: Color(0xFFB0B0B6), fontSize: 12),
+                style: TextStyle(
+                  color: theme.colorScheme.onSurface.withOpacity(0.6),
+                  fontSize: 12,
+                ),
               ),
               style: OutlinedButton.styleFrom(
-                side: const BorderSide(color: Color(0xFF2C2C2C)),
+                side: BorderSide(color: theme.dividerColor),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(20),
                 ),
@@ -468,14 +481,18 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
             // Job Title Card
             _buildInfoCard(
               label: 'Job Title',
-              value: user.value?.user?.creator?.jobTitle?? 'Not specified',
+              value: user.value?.user?.creator?.jobTitle ?? 'Not specified',
               hasEdit: true,
               onEdit: () {
-                showEditJobTitleSheet(context, user.value?.user?.creator?.jobTitle ?? '');
+                showEditJobTitleSheet(
+                  context,
+                  user.value?.user?.creator?.jobTitle ?? '',
+                  theme,
+                  isDark,
+                );
               },
-              cardBackgroundColor: cardBackgroundColor,
-              textColor: textColor,
-              hintTextColor: hintTextColor,
+              theme: theme,
+              isDark: isDark,
             ),
             const SizedBox(height: 16),
 
@@ -485,11 +502,15 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
               value: user.value?.user?.creator?.bio ?? 'No bio provided.',
               hasEdit: true,
               onEdit: () {
-                showEditBioDescriptionSheet(context, user.value?.user?.creator?.bio ?? 'No bio provided.');
+                showEditBioDescriptionSheet(
+                  context,
+                  user.value?.user?.creator?.bio ?? 'No bio provided.',
+                  theme,
+                  isDark,
+                );
               },
-              cardBackgroundColor: cardBackgroundColor,
-              textColor: textColor,
-              hintTextColor: hintTextColor,
+              theme: theme,
+              isDark: isDark,
             ),
             const SizedBox(height: 16),
 
@@ -499,33 +520,28 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
               value: user.value?.user?.creator?.location ?? 'Not specified',
               hasEdit: true,
               onEdit: () {
-                showLocationBottomSheet(context, user.value?.user?.creator?.location ?? '');
+                showLocationBottomSheet(
+                  context,
+                  user.value?.user?.creator?.location ?? '',
+                  theme,
+                  isDark,
+                );
               },
-              cardBackgroundColor: cardBackgroundColor,
-              textColor: textColor,
-              hintTextColor: hintTextColor,
+              theme: theme,
+              isDark: isDark,
             ),
             const SizedBox(height: 16),
 
             // Socials Card
-          _buildSocialsCard(
-            socials: socials,
-            onEdit: () {
-              showEditSocialsSheet(context, socials);
-            },
-            cardBackgroundColor: cardBackgroundColor,
-            textColor: textColor,
-            hintTextColor: hintTextColor,
-          ),
-          const SizedBox(height: 16),
-
-            // Other Information Card
-            Utils.buildOtherInfoCard(
-              user: widget.user,
-              cardBackgroundColor: cardBackgroundColor,
-              textColor: textColor,
-              hintTextColor: hintTextColor,
+            _buildSocialsCard(
+              socials: socials,
+              onEdit: () {
+                showEditSocialsSheet(context, socials, theme, isDark);
+              },
+              theme: theme,
+              isDark: isDark,
             ),
+            const SizedBox(height: 16),
           ],
         ),
       ),
@@ -537,17 +553,19 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
     required String label,
     required String value,
     required bool hasEdit,
-    VoidCallback? onEdit,
-    required Color cardBackgroundColor,
-    required Color textColor,
-    required Color hintTextColor,
+    required VoidCallback onEdit,
+    required ThemeData theme,
+    required bool isDark,
   }) {
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(16.0),
       decoration: BoxDecoration(
-        color: cardBackgroundColor,
+        color: isDark ? const Color(0xFF1A191E) : Colors.grey[100],
         borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: theme.dividerColor.withOpacity(0.1),
+        ),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -558,14 +576,18 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
               Text(
                 label,
                 style: TextStyle(
-                  color: hintTextColor,
+                  color: theme.colorScheme.onSurface.withOpacity(0.7),
                   fontSize: 14,
                 ),
               ),
               if (hasEdit)
                 GestureDetector(
                   onTap: onEdit,
-                  child: Icon(Icons.edit, color: hintTextColor, size: 18),
+                  child: Icon(
+                    Icons.edit,
+                    color: theme.colorScheme.onSurface.withOpacity(0.6),
+                    size: 18,
+                  ),
                 ),
             ],
           ),
@@ -573,9 +595,9 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
           Text(
             value,
             style: TextStyle(
-              color: textColor,
+              color: theme.colorScheme.onSurface,
               fontSize: 14,
-              fontWeight: FontWeight.w300,
+              fontWeight: FontWeight.w400,
             ),
           ),
         ],
@@ -586,17 +608,19 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
   // Helper widget to build the socials card
   Widget _buildSocialsCard({
     required Map<String, String>? socials,
-    VoidCallback? onEdit,
-    required Color cardBackgroundColor,
-    required Color textColor,
-    required Color hintTextColor,
+    required VoidCallback onEdit,
+    required ThemeData theme,
+    required bool isDark,
   }) {
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(16.0),
       decoration: BoxDecoration(
-        color: cardBackgroundColor,
+        color: isDark ? const Color(0xFF1A191E) : Colors.grey[100],
         borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: theme.dividerColor.withOpacity(0.1),
+        ),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -607,13 +631,17 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
               Text(
                 'Socials',
                 style: TextStyle(
-                  color: hintTextColor,
+                  color: theme.colorScheme.onSurface.withOpacity(0.7),
                   fontSize: 14,
                 ),
               ),
               GestureDetector(
                 onTap: onEdit,
-                child: Icon(Icons.edit_outlined, color: hintTextColor, size: 18),
+                child: Icon(
+                  Icons.edit_outlined,
+                  color: theme.colorScheme.onSurface.withOpacity(0.6),
+                  size: 18,
+                ),
               ),
             ],
           ),
@@ -626,9 +654,9 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                   Expanded(
                     flex: 2,
                     child: Text(
-                      entry.key, // Capitalize the social media name
+                      entry.key.capitalize(),
                       style: TextStyle(
-                        color: hintTextColor,
+                        color: theme.colorScheme.onSurface.withOpacity(0.7),
                         fontSize: 14,
                         fontWeight: FontWeight.w500,
                       ),
@@ -639,7 +667,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                     child: Text(
                       entry.value,
                       style: TextStyle(
-                        color: textColor,
+                        color: theme.colorScheme.onSurface,
                         fontSize: 14,
                       ),
                       textAlign: TextAlign.right,
@@ -652,16 +680,14 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
             Text(
               'No social links added.',
               style: TextStyle(
-                color: hintTextColor,
-                fontSize: 16,
+                color: theme.colorScheme.onSurface.withOpacity(0.6),
+                fontSize: 14,
               ),
             ),
         ],
       ),
     );
   }
-
-
 }
 
 // Extension to capitalize strings for social media names
@@ -675,11 +701,15 @@ class EditSocialsBottomSheet extends StatefulWidget {
   // Initial socials map: { 'linkedin': 'bit.ly/johnnyboy', 'x': '', 'instagram': '...' }
   final Map<String, String> initialSocials;
   final Function(Map<String, String> newSocials) onSave;
+  final ThemeData? theme;
+  final bool? isDark;
 
   const EditSocialsBottomSheet({
     super.key,
     required this.initialSocials,
     required this.onSave,
+    this.theme,
+    this.isDark,
   });
 
   @override
@@ -717,10 +747,13 @@ class _EditSocialsBottomSheetState extends State<EditSocialsBottomSheet> {
 
   @override
   Widget build(BuildContext context) {
+    final theme = widget.theme ?? Theme.of(context);
+    final isDark = widget.isDark ?? theme.brightness == Brightness.dark;
+
     return Container(
-      decoration: const BoxDecoration(
-        color: Color(0xFF1A191E),
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      decoration: BoxDecoration(
+        color: isDark ? const Color(0xFF1A191E) : Colors.white,
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
       ),
       padding: const EdgeInsets.all(20.0),
       child: Column(
@@ -731,16 +764,19 @@ class _EditSocialsBottomSheetState extends State<EditSocialsBottomSheet> {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              const Text(
+              Text(
                 'Edit Socials',
                 style: TextStyle(
-                  color: Colors.white,
+                  color: theme.colorScheme.onSurface,
                   fontSize: 18,
                   fontWeight: FontWeight.w400,
                 ),
               ),
               IconButton(
-                icon: const Icon(Icons.close, color: Colors.white),
+                icon: Icon(
+                  Icons.close,
+                  color: theme.colorScheme.onSurface.withOpacity(0.6),
+                ),
                 onPressed: () {
                   Navigator.pop(context);
                 },
@@ -757,9 +793,9 @@ class _EditSocialsBottomSheetState extends State<EditSocialsBottomSheet> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    platform,
-                    style: const TextStyle(
-                      color: Colors.white,
+                    platform.capitalize(),
+                    style: TextStyle(
+                      color: theme.colorScheme.onSurface,
                       fontSize: 16,
                       fontWeight: FontWeight.w500,
                     ),
@@ -767,30 +803,31 @@ class _EditSocialsBottomSheetState extends State<EditSocialsBottomSheet> {
                   const SizedBox(height: 8),
                   TextField(
                     controller: _controllers[platform],
-                    style: const TextStyle(color: Colors.white),
+                    style: TextStyle(color: theme.colorScheme.onSurface),
                     decoration: InputDecoration(
                       hintText: 'Enter link',
-                      hintStyle: const TextStyle(color: Color(0xFF7C7C88)),
+                      hintStyle: TextStyle(color: theme.colorScheme.onSurface.withOpacity(0.5)),
                       filled: true,
-                      fillColor: Colors.transparent,
+                      fillColor: isDark ? Colors.transparent : Colors.grey[50],
                       border: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(8),
-                        borderSide: const BorderSide(
-                          color:  AppColors.FORMGREYCOLOR,
+                        borderSide: BorderSide(
+                          color: theme.dividerColor,
                         ),
                       ),
                       focusedBorder: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(12),
-                        borderSide: const BorderSide(color: Color(0xFF7C7C88), width: 1.5),
+                        borderSide: BorderSide(
+                            color: theme.colorScheme.onSurface.withOpacity(0.5), width: 1.5),
                       ),
                       contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                     ),
-                    cursorColor: Color(0xFF7C7C88),
+                    cursorColor: theme.colorScheme.onSurface.withOpacity(0.5),
                   ),
                 ],
               ),
             );
-          }).toList(),
+          }),
           const SizedBox(height: 30),
 
           RoundedButton(
@@ -829,6 +866,8 @@ class EditTextFieldBottomSheet extends StatefulWidget {
   final String? buttonText;
   final TextInputType? inputType;
   final Function(String newValue) onSave;
+  final ThemeData? theme;
+  final bool? isDark;
 
   const EditTextFieldBottomSheet({
     super.key,
@@ -839,7 +878,9 @@ class EditTextFieldBottomSheet extends StatefulWidget {
     required this.onSave,
     this.buttonText,
     this.inputType,
-    this.isCurrency = false
+    this.isCurrency = false,
+    this.theme,
+    this.isDark,
   });
 
   @override
@@ -863,15 +904,17 @@ class _EditTextFieldBottomSheetState extends State<EditTextFieldBottomSheet> {
 
   @override
   Widget build(BuildContext context) {
+    final theme = widget.theme ?? Theme.of(context);
+    final isDark = widget.isDark ?? theme.brightness == Brightness.dark;
+
     return Container(
-      // Apply consistent background color and top rounded corners
-      decoration: const BoxDecoration(
-        color: Color(0xFF1A191E),
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      decoration: BoxDecoration(
+        color: isDark ? const Color(0xFF1A191E) : Colors.white,
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
       ),
       padding: const EdgeInsets.all(20.0),
       child: Column(
-        mainAxisSize: MainAxisSize.min, // Make the column take minimum space
+        mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           // Header with title and close button
@@ -880,28 +923,31 @@ class _EditTextFieldBottomSheetState extends State<EditTextFieldBottomSheet> {
             children: [
               Text(
                 widget.title,
-                style: const TextStyle(
-                  color: Colors.white,
+                style: TextStyle(
+                  color: theme.colorScheme.onSurface,
                   fontSize: 18,
                   fontWeight: FontWeight.w400,
                 ),
               ),
               IconButton(
-                icon: const Icon(Icons.close, color: Colors.white),
+                icon: Icon(
+                  Icons.close,
+                  color: theme.colorScheme.onSurface.withOpacity(0.6),
+                ),
                 onPressed: () {
-                  Navigator.pop(context); // Close the bottom sheet
+                  Navigator.pop(context);
                 },
               ),
             ],
           ),
           const SizedBox(height: 20),
           // Text input field
-          if(widget.isCurrency)...[
+          if (widget.isCurrency) ...[
             CurrencyInputField(
               label: "",
               controller: _controller,
               onChanged: (value) {
-                print('Input changed to: $value');
+                debugPrint('Input changed to: $value');
               },
               validator: (value) {
                 if (value == null || value.isEmpty || double.tryParse(value) == null) {
@@ -909,25 +955,26 @@ class _EditTextFieldBottomSheetState extends State<EditTextFieldBottomSheet> {
                 }
                 return null;
               },
+              theme: theme,
+              isDark: isDark,
             ),
-          ]else... [
+          ] else ... [
             LabeledTextField(
               label: '',
               controller: _controller,
               hintText: widget.hintText,
               keyboardType: widget.inputType ?? TextInputType.text,
               maxLines: widget.isMultiline ? 4 : 1,
-
             ),
           ],
 
           const SizedBox(height: 30),
           RoundedButton(
-              title: widget.buttonText ?? 'Save changes',
+            title: widget.buttonText ?? 'Save changes',
             color: AppColors.BUTTONCOLOR,
             onPressed: () {
-              widget.onSave(_controller.text); // Call the onSave callback
-              Navigator.pop(context); // Close the bottom sheet after saving
+              widget.onSave(_controller.text);
+              Navigator.pop(context);
             },
           ),
           Padding(

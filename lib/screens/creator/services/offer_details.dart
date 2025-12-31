@@ -294,7 +294,7 @@ class _OfferDetailScreenState extends ConsumerState<OfferDetailScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.BACKGROUNDCOLOR,
+     
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,

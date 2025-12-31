@@ -142,22 +142,36 @@ class _BottomOption extends StatelessWidget {
 
 // ========== UTILITY CLASSES ==========
 
+
 class BottomSheetHelper {
   static Widget buildBottomSheetWrapper({
     required BuildContext context,
     required Widget child,
     EdgeInsets padding = const EdgeInsets.only(top: 16),
+    ThemeData? theme,
   }) {
-    return Padding(
+    final currentTheme = theme ?? Theme.of(context);
+
+    return Container(
+      decoration: BoxDecoration(
+        color: currentTheme.cardColor,
+        borderRadius: const BorderRadius.vertical(
+          top: Radius.circular(16),
+        ),
+      ),
       padding: padding,
       child: child,
     );
   }
 
   static Widget buildBottomSheetHeader({
+    required BuildContext context,
     required String title,
     required VoidCallback onClose,
+    ThemeData? theme,
   }) {
+    final currentTheme = theme ?? Theme.of(context);
+
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 20),
       child: Row(
@@ -165,15 +179,18 @@ class BottomSheetHelper {
         children: [
           Text(
             title,
-            style: const TextStyle(
-              color: Colors.white,
+            style: TextStyle(
+              color: currentTheme.colorScheme.onSurface,
               fontSize: 18,
               fontWeight: FontWeight.w600,
             ),
           ),
           GestureDetector(
             onTap: onClose,
-            child: const Icon(Icons.close, color: Colors.white54),
+            child: Icon(
+              Icons.close,
+              color: currentTheme.colorScheme.onSurface.withOpacity(0.6),
+            ),
           ),
         ],
       ),
@@ -184,11 +201,15 @@ class BottomSheetHelper {
     required BuildContext context,
     required WidgetBuilder builder,
     bool isScrollControlled = false,
+    Color? backgroundColor,
+    ThemeData? theme,
   }) {
+    final currentTheme = theme ?? Theme.of(context);
+
     showModalBottomSheet(
       context: context,
       isScrollControlled: isScrollControlled,
-      backgroundColor: AppColors.BACKGROUNDCOLOR,
+      backgroundColor: backgroundColor ?? currentTheme.cardColor,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
       ),
@@ -409,7 +430,7 @@ class _PlayMusicState extends ConsumerState<PlayMusic> {
         children: [
           BottomSheetHelper.buildBottomSheetHeader(
             title: "Add to playlist",
-            onClose: () => Navigator.pop(context),
+            onClose: () => Navigator.pop(context), context: context,
           ),
           const SizedBox(height: 20),
           _buildPlaylistList(songToAdd),
@@ -644,7 +665,7 @@ class _PlayMusicState extends ConsumerState<PlayMusic> {
           children: [
             BottomSheetHelper.buildBottomSheetHeader(
               title: title,
-              onClose: () => Navigator.pop(context),
+              onClose: () => Navigator.pop(context), context: context,
             ),
             const SizedBox(height: 20),
             LabeledTextField(

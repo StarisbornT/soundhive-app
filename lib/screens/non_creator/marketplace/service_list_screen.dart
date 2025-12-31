@@ -67,7 +67,7 @@ class _ServicesListScreenState extends ConsumerState<ServicesListScreen>
     return PopScope(
       canPop: false,
       child: Scaffold(
-        backgroundColor: AppColors.BACKGROUNDCOLOR,
+       
         appBar: AppBar(
           backgroundColor: Colors.transparent,
           elevation: 0,

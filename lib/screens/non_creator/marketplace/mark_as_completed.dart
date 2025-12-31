@@ -5,25 +5,25 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:soundhive2/lib/dashboard_provider/get_current_user_dispute_provider.dart';
+import 'package:soundhive2/lib/dashboard_provider/user_provider.dart';
 import 'package:soundhive2/model/active_investment_model.dart';
 import 'package:soundhive2/screens/chats/chat_screen.dart';
 import 'package:soundhive2/screens/non_creator/disputes/cancel_disputes.dart';
 import 'package:soundhive2/screens/non_creator/disputes/dispute_chat_screen.dart';
 import 'package:soundhive2/screens/non_creator/non_creator.dart';
+import 'package:soundhive2/utils/app_colors.dart';
+import 'package:soundhive2/utils/utils.dart';
 import '../../../components/image_picker.dart';
 import '../../../components/rounded_button.dart';
 import '../../../components/success.dart';
 import 'package:soundhive2/lib/dashboard_provider/apiresponseprovider.dart';
-import 'package:soundhive2/lib/navigator_provider.dart';
 import '../../../model/apiresponse_model.dart';
-import '../../../model/user_model.dart';
 import '../../../utils/alert_helper.dart';
-import '../../../utils/app_colors.dart';
 
 class MarkAsCompletedScreen extends ConsumerStatefulWidget {
   final ActiveInvestment services;
-  final User user;
-  const MarkAsCompletedScreen({super.key, required this.services, required this.user});
+
+  const MarkAsCompletedScreen({super.key, required this.services});
 
   @override
   ConsumerState<MarkAsCompletedScreen> createState() => _MarkAsCompletedScreenState();
@@ -40,22 +40,30 @@ class _MarkAsCompletedScreenState extends ConsumerState<MarkAsCompletedScreen> {
       }
     });
   }
+
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+
     final services = widget.services;
     final disputeState = ref.watch(getCurrentUserDisputeProvider);
+    final user = ref.watch(userProvider).value?.user;
+
     return PopScope(
       canPop: false,
       child: Scaffold(
-        backgroundColor: Colors.black,
+        backgroundColor: theme.colorScheme.surface,
         appBar: AppBar(
-          backgroundColor: Colors.black,
+          backgroundColor: Colors.transparent,
           elevation: 0,
           leading: IconButton(
-            icon: const Icon(Icons.arrow_back_ios, color: Colors.white),
+            icon: Icon(
+              Icons.arrow_back_ios,
+              color: theme.colorScheme.onSurface,
+            ),
             onPressed: () {
-              ref.read(bottomNavigationProvider.notifier).state = 0;
-              Navigator.popUntil(context, ModalRoute.withName(NonCreatorDashboard.id));
+            Navigator.pushNamed(context, NonCreatorDashboard.id);
             },
           ),
         ),
@@ -66,22 +74,28 @@ class _MarkAsCompletedScreenState extends ConsumerState<MarkAsCompletedScreen> {
             children: [
               Text(
                 "${services.service?.serviceName}\nrequest initiated",
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 22,
                   fontWeight: FontWeight.bold,
-                  color: Colors.white,
+                  color: theme.colorScheme.onSurface,
                 ),
               ),
               const SizedBox(height: 10),
               Text(
-                "The payment you made for the ${services.service?.serviceName} has been withheld by Cre8Hive and won’t be released until you mark ${services.service?.user?.firstName}'s job as “Completed”.",
-                style: const TextStyle(color: Colors.white70, fontSize: 14),
+                "The payment you made for the ${services.service?.serviceName} has been withheld by Cre8Hive and won't be released until you mark ${services.service?.user?.firstName}'s job as \"Completed\".",
+                style: TextStyle(
+                    color: theme.colorScheme.onSurface.withOpacity(0.7),
+                    fontSize: 14
+                ),
               ),
               const SizedBox(height: 20),
               Container(
                 decoration: BoxDecoration(
-                  color: const Color(0xFF1E1E1E),
+                  color: isDark ? AppColors.BACKGROUNDCOLOR : Colors.grey[100],
                   borderRadius: BorderRadius.circular(12),
+                  border: Border.all(
+                    color: theme.dividerColor,
+                  ),
                 ),
                 padding: const EdgeInsets.all(16),
                 child: Column(
@@ -103,27 +117,22 @@ class _MarkAsCompletedScreenState extends ConsumerState<MarkAsCompletedScreen> {
                             : Container(
                           width: 30,
                           height: 30,
-                          decoration: const BoxDecoration(
+                          decoration: BoxDecoration(
                             shape: BoxShape.circle,
-                            color: AppColors.BUTTONCOLOR,
+                            color: theme.colorScheme.primary,
                           ),
                           alignment: Alignment.center,
                           child: Text(
                             services.service!.user!.firstName.isNotEmpty
                                 ? services.service!.user!.firstName[0].toUpperCase()
                                 : "?",
-                            style: const TextStyle(
+                            style: TextStyle(
                               fontSize: 10,
                               fontWeight: FontWeight.bold,
-                              color: Colors.white,
+                              color: theme.colorScheme.onPrimary,
                             ),
                           ),
                         ),
-                       // const CircleAvatar(
-                       //    radius: 22,
-                       //    backgroundImage:  AssetImage("images/logo.png")
-                       //  ),
-
                         const SizedBox(width: 10),
                         Expanded(
                           child: Column(
@@ -131,15 +140,29 @@ class _MarkAsCompletedScreenState extends ConsumerState<MarkAsCompletedScreen> {
                             children: [
                               Text(
                                 "${services.service?.user?.firstName} ${services.service?.user?.lastName}",
-                                style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w600),
+                                style: TextStyle(
+                                    color: theme.colorScheme.onSurface,
+                                    fontWeight: FontWeight.w600
+                                ),
                               ),
-                            const  Row(
+                              Row(
                                 children: [
-                                  Icon(Icons.star, color: Colors.amber, size: 14),
-                                   SizedBox(width: 4),
+                                  const Icon(
+                                      Icons.star,
+                                      color: Colors.amber,
+                                      size: 14
+                                  ),
+                                  const SizedBox(width: 4),
                                   Text(
-                                    ' 4.5 rating',
-                                    style: TextStyle(color: Colors.white70, fontSize: 12),
+                                    services.service?.user?.creator != null
+                                        ? Utils.getOverallRating(
+                                      services.service!.user!.creator!,
+                                    ).toString()
+                                        : "0",
+                                    style: TextStyle(
+                                        color: theme.colorScheme.onSurface.withOpacity(0.7),
+                                        fontSize: 12
+                                    ),
                                   ),
                                 ],
                               ),
@@ -152,17 +175,23 @@ class _MarkAsCompletedScreenState extends ConsumerState<MarkAsCompletedScreen> {
                               children: [
                                 IconButton(
                                   onPressed: () {
-                                    Navigator.push(context,  MaterialPageRoute(
-                                      builder: (context) => ChatScreen(
-                                        sellerId: widget.services.service!.user!.id.toString(),
-                                        sellerName: "${widget.services.service?.user?.firstName} ${widget.services.service?.user?.lastName}",
-                                        receiverId: widget.user.id.toString(),
-                                        senderName: "${widget.user.firstName} ${widget.user.lastName}",
-                                        sellerService: widget.services.service!.serviceName,
+                                    Navigator.push(
+                                      context,
+                                      MaterialPageRoute(
+                                        builder: (context) => ChatScreen(
+                                          sellerId: widget.services.service!.user!.id.toString(),
+                                          sellerName: "${widget.services.service?.user?.firstName} ${widget.services.service?.user?.lastName}",
+                                          receiverId: user?.id.toString() ?? "",
+                                          senderName: "${user?.firstName} ${user?.lastName}",
+                                          sellerService: widget.services.service!.serviceName,
+                                        ),
                                       ),
-                                    ),);
+                                    );
                                   },
-                                  icon: const Icon(Icons.chat_bubble, color: Color(0xFFA585F9),),
+                                  icon: Icon(
+                                    Icons.chat_bubble,
+                                    color: theme.colorScheme.primary,
+                                  ),
                                 ),
                                 Positioned(
                                   right: 6,
@@ -178,37 +207,58 @@ class _MarkAsCompletedScreenState extends ConsumerState<MarkAsCompletedScreen> {
                                 ),
                               ],
                             ),
-                            const Text(
+                            Text(
                               "Chat",
                               style: TextStyle(
-                                color: Color(0xFFA585F9),
+                                color: theme.colorScheme.primary,
                                 fontWeight: FontWeight.w500,
                               ),
                             ),
                           ],
                         )
-
                       ],
                     ),
                     const SizedBox(height: 20),
-                    _buildStepItem("1", "${services.service?.user?.firstName} has been notified of your service request. Reach out to the service provider via the chat button beside his/her name, and discuss the modalities of how you want your project handled."),
+                    _buildStepItem(
+                      "1",
+                      "${services.service?.user?.firstName} has been notified of your service request. Reach out to the service provider via the chat button beside his/her name, and discuss the modalities of how you want your project handled.",
+                      theme: theme,
+                    ),
                     const SizedBox(height: 16),
-                    _buildStepItem("2", "Once the project or service has been fully rendered, click the “Mark as completed” button below to release the service provider’s payment."),
+                    _buildStepItem(
+                      "2",
+                      "Once the project or service has been fully rendered, click the \"Mark as completed\" button below to release the service provider's payment.",
+                      theme: theme,
+                    ),
                     const SizedBox(height: 10),
                     Container(
                       padding: const EdgeInsets.all(8),
                       decoration: BoxDecoration(
-                        color: const Color.fromRGBO(255, 221, 118, 0.1),
+                        color: isDark
+                            ? const Color.fromRGBO(255, 221, 118, 0.1)
+                            : const Color.fromRGBO(217, 119, 6, 0.1),
                         borderRadius: BorderRadius.circular(6),
+                        border: Border.all(
+                          color: isDark
+                              ? const Color(0xFFFFDD76).withOpacity(0.3)
+                              : const Color(0xFFD97706).withOpacity(0.3),
+                        ),
                       ),
-                      child: const Row(
+                      child: Row(
                         children: [
-                          Icon(Icons.info_outline, color: Colors.amber, size: 16),
-                          SizedBox(width: 8),
+                          Icon(
+                              Icons.info_outline,
+                              color: isDark ? const Color(0xFFFFDD76) : const Color(0xFFD97706),
+                              size: 16
+                          ),
+                          const SizedBox(width: 8),
                           Expanded(
                             child: Text(
                               "Do not do this if your job has not been completed",
-                              style: TextStyle(color: Color(0xFFFFDD76), fontSize: 10),
+                              style: TextStyle(
+                                  color: isDark ? const Color(0xFFFFDD76) : const Color(0xFFD97706),
+                                  fontSize: 10
+                              ),
                             ),
                           ),
                         ],
@@ -220,7 +270,7 @@ class _MarkAsCompletedScreenState extends ConsumerState<MarkAsCompletedScreen> {
               const SizedBox(height: 20),
               RoundedButton(
                 title: 'Mark as completed',
-                color: const Color(0xFF4D3490),
+                color: theme.colorScheme.primary,
                 borderWidth: 0,
                 borderRadius: 25.0,
                 onPressed: () {
@@ -240,36 +290,38 @@ class _MarkAsCompletedScreenState extends ConsumerState<MarkAsCompletedScreen> {
                                 Navigator.push(
                                   context,
                                   MaterialPageRoute(
-                                    builder: (context) =>  CancelRequest(disputeId: dispute.data!.id,),
+                                    builder: (context) =>  CancelRequest(disputeId: dispute.data!.id),
                                   ),
                                 );
                               },
                               style: OutlinedButton.styleFrom(
-                                foregroundColor: Colors.white,
-                                side: const BorderSide(color: Colors.white24),
+                                foregroundColor: theme.colorScheme.onSurface,
+                                side: BorderSide(color: theme.dividerColor),
                                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
                               ),
                               child: const Text("Cancel request"),
                             ),
                           ),
                           const SizedBox(width: 12),
-
                           Expanded(
                             child: OutlinedButton(
                               onPressed: () {
-                                Navigator.push(context,  MaterialPageRoute(
-                                  builder: (context) => DisputeChatScreen(
-                                    sellerId: widget.services.service!.user!.id.toString(),
-                                    sellerName: "${widget.services.service?.user?.firstName} ${widget.services.service?.user?.lastName}",
-                                    userId: widget.user.id.toString(),
-                                    senderName: "${widget.user.firstName} ${widget.user.lastName}",
-                                    disputeId: dispute.data!.id.toString(),
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (context) => DisputeChatScreen(
+                                      sellerId: widget.services.service!.user!.id.toString(),
+                                      sellerName: "${widget.services.service?.user?.firstName} ${widget.services.service?.user?.lastName}",
+                                      userId: user?.id.toString() ?? "",
+                                      senderName: "${user?.firstName} ${user?.lastName}",
+                                      disputeId: dispute.data!.id.toString(),
+                                    ),
                                   ),
-                                ),);
+                                );
                               },
                               style: OutlinedButton.styleFrom(
-                                foregroundColor: Colors.white,
-                                side: const BorderSide(color: Colors.white24),
+                                foregroundColor: theme.colorScheme.onSurface,
+                                side: BorderSide(color: theme.dividerColor),
                                 shape: RoundedRectangleBorder(
                                   borderRadius: BorderRadius.circular(30),
                                 ),
@@ -279,72 +331,91 @@ class _MarkAsCompletedScreenState extends ConsumerState<MarkAsCompletedScreen> {
                           ),
                         ],
                       );
-                    }else {
+                    } else {
                       return SizedBox(
                         width: double.infinity,
                         child: OutlinedButton(
                           onPressed: () {
-                            dispute.data?.status != "CLOSED" ?   disputeBottomSheet(context) : null;
+                            dispute.data?.status != "CLOSED" ? disputeBottomSheet(context) : null;
                           },
                           style: OutlinedButton.styleFrom(
-                            foregroundColor: Colors.white,
-                            side: const BorderSide(color: Colors.white24),
+                            foregroundColor: theme.colorScheme.onSurface,
+                            side: BorderSide(color: theme.dividerColor),
                             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
                           ),
-                          child: Text(dispute.data?.status != "CLOSED" ? "Initiate dispute" : "Dispute has been closed"),
+                          child: Text(
+                            dispute.data?.status != "CLOSED"
+                                ? "Initiate dispute"
+                                : "Dispute has been closed",
+                          ),
                         ),
                       );
                     }
-
-                  }else {
+                  } else {
                     return SizedBox(
                       width: double.infinity,
                       child: OutlinedButton(
                         onPressed: () {
-                          dispute.data?.status != "CLOSED" ?   disputeBottomSheet(context) : null;
+                          dispute.data?.status != "CLOSED" ? disputeBottomSheet(context) : null;
                         },
                         style: OutlinedButton.styleFrom(
-                          foregroundColor: Colors.white,
-                          side: const BorderSide(color: Colors.white24),
+                          foregroundColor: theme.colorScheme.onSurface,
+                          side: BorderSide(color: theme.dividerColor),
                           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
                         ),
-                        child: Text(dispute.data?.status != "CLOSED" ? "Initiate dispute" : "Dispute has been closed"),
+                        child: Text(
+                          dispute.data?.status != "CLOSED"
+                              ? "Initiate dispute"
+                              : "Dispute has been closed",
+                        ),
                       ),
                     );
                   }
-                },  error: (err, stack) => Text(
-                "Error: $err",
-                style: const TextStyle(color: Colors.red),
-              ),
-                loading: () => const Center(
-                  child: CircularProgressIndicator(),
+                },
+                error: (err, stack) => Text(
+                  "Error: $err",
+                  style: TextStyle(color: theme.colorScheme.error),
+                ),
+                loading: () => Center(
+                  child: CircularProgressIndicator(
+                    color: theme.colorScheme.primary,
+                  ),
                 ),
               )
-
             ],
           ),
         ),
       ),
     );
   }
+
   void reviewBottomSheet(BuildContext context) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
-      backgroundColor: const Color(0xFF0F0F10),
+      backgroundColor: isDark ? const Color(0xFF0F0F10) : Colors.white,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(22)),
       ),
       builder: (BuildContext context) {
-        return _ReviewBottomSheetContent(submitInvestment: _submitInvestment,services: widget.services,);
+        return _ReviewBottomSheetContent(
+          submitInvestment: _submitInvestment,
+          services: widget.services,
+        );
       },
     );
   }
 
   void disputeBottomSheet(BuildContext context) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+
     showModalBottomSheet(
       context: context,
-      backgroundColor: Colors.black,
+      backgroundColor: isDark ? Colors.black : Colors.white,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
       ),
@@ -355,15 +426,19 @@ class _MarkAsCompletedScreenState extends ConsumerState<MarkAsCompletedScreen> {
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.center,
             children: [
-              const SizedBox(height: 20,),
-              Image.asset('images/dispute.png'),
+              const SizedBox(height: 20),
+              Image.asset(
+                'images/dispute.png',
+                color: isDark ? null : theme.colorScheme.onSurface.withOpacity(0.8),
+              ),
               const SizedBox(height: 12),
-              const Text(
+              Text(
                 'Are you sure you want to initiate a dispute resolution with this service provider?',
                 textAlign: TextAlign.center,
                 style: TextStyle(
-                    fontSize: 14,
-                    color: Color(0xFFB0B0B6)),
+                  fontSize: 14,
+                  color: theme.colorScheme.onSurface.withOpacity(0.7),
+                ),
               ),
               const SizedBox(height: 50),
               Row(
@@ -375,17 +450,17 @@ class _MarkAsCompletedScreenState extends ConsumerState<MarkAsCompletedScreen> {
                       padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(100),
-                        side: const BorderSide(color: Colors.grey),
+                        side: BorderSide(color: theme.dividerColor),
                       ),
                     ),
-                    child: const Text(
+                    child: Text(
                       'Cancel',
-                      style: TextStyle(color: Colors.white),
+                      style: TextStyle(color: theme.colorScheme.onSurface),
                     ),
                   ),
                   RoundedButton(
                     title: 'Initiate Dispute',
-                    color: const Color(0xFF4D3490),
+                    color: theme.colorScheme.primary,
                     borderWidth: 0,
                     borderRadius: 100.0,
                     minWidth: 90,
@@ -401,10 +476,14 @@ class _MarkAsCompletedScreenState extends ConsumerState<MarkAsCompletedScreen> {
       },
     );
   }
+
   void markAsCompleted(BuildContext context) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+
     showModalBottomSheet(
       context: context,
-      backgroundColor: Colors.black,
+      backgroundColor: isDark ? Colors.black : Colors.white,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
       ),
@@ -416,20 +495,20 @@ class _MarkAsCompletedScreenState extends ConsumerState<MarkAsCompletedScreen> {
             crossAxisAlignment: CrossAxisAlignment.center,
             children: [
               const SizedBox(height: 40),
-              const Text(
+              Text(
                 'Mark as completed?',
                 style: TextStyle(
                   fontSize: 18,
                   fontWeight: FontWeight.w400,
-                  color: Colors.white,
+                  color: theme.colorScheme.onSurface,
                 ),
               ),
               const SizedBox(height: 12),
-              const Text(
+              Text(
                 'Are you sure this job has been completed?',
                 style: TextStyle(
                   fontSize: 14,
-                  color: Color(0xFFB0B0B6),
+                  color: theme.colorScheme.onSurface.withOpacity(0.7),
                 ),
               ),
               const SizedBox(height: 50),
@@ -442,18 +521,18 @@ class _MarkAsCompletedScreenState extends ConsumerState<MarkAsCompletedScreen> {
                       padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(100),
-                        side: const BorderSide(color: Colors.grey),
+                        side: BorderSide(color: theme.dividerColor),
                       ),
                     ),
-                    child: const Text(
+                    child: Text(
                       'Cancel',
-                      style: TextStyle(color: Colors.white),
+                      style: TextStyle(color: theme.colorScheme.onSurface),
                     ),
                   ),
                   const SizedBox(width: 16),
                   RoundedButton(
                     title: 'Confirm',
-                    color: const Color(0xFF4D3490),
+                    color: theme.colorScheme.primary,
                     borderWidth: 0,
                     borderRadius: 100.0,
                     minWidth: 90,
@@ -479,9 +558,8 @@ class _MarkAsCompletedScreenState extends ConsumerState<MarkAsCompletedScreen> {
   }
 
   void initiateDispute() async {
-
     try {
-      final response =  await ref.read(apiresponseProvider.notifier).initiateDispute(
+      final response = await ref.read(apiresponseProvider.notifier).initiateDispute(
         context: context,
         payload: {
           "booking_id": widget.services.id,
@@ -503,7 +581,6 @@ class _MarkAsCompletedScreenState extends ConsumerState<MarkAsCompletedScreen> {
           ),
         );
       }
-
     } catch (error) {
       String errorMessage = 'An unexpected error occurred';
 
@@ -532,9 +609,8 @@ class _MarkAsCompletedScreenState extends ConsumerState<MarkAsCompletedScreen> {
   }
 
   void _submitInvestment() async {
-
     try {
-      final response =  await ref.read(apiresponseProvider.notifier).markAsCompleted(
+      final response = await ref.read(apiresponseProvider.notifier).markAsCompleted(
         context: context,
         memberServiceId: widget.services.id,
       );
@@ -547,13 +623,12 @@ class _MarkAsCompletedScreenState extends ConsumerState<MarkAsCompletedScreen> {
               title: 'Your service marked as completed',
               subtitle: 'You service has successfully marked as completed',
               onButtonPressed: () {
-               Navigator.pushNamed(context, NonCreatorDashboard.id);
+                Navigator.pushNamed(context, NonCreatorDashboard.id);
               },
             ),
           ),
         );
       }
-
     } catch (error) {
       String errorMessage = 'An unexpected error occurred';
 
@@ -581,19 +656,25 @@ class _MarkAsCompletedScreenState extends ConsumerState<MarkAsCompletedScreen> {
     }
   }
 
-  Widget _buildStepItem(String step, String text) {
+  Widget _buildStepItem(String step, String text, {required ThemeData theme}) {
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
           "$step.",
-          style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+          style: TextStyle(
+              color: theme.colorScheme.onSurface,
+              fontWeight: FontWeight.bold
+          ),
         ),
         const SizedBox(width: 8),
         Expanded(
           child: Text(
             text,
-            style: const TextStyle(color: Colors.white70, fontSize: 13),
+            style: TextStyle(
+                color: theme.colorScheme.onSurface.withOpacity(0.7),
+                fontSize: 13
+            ),
           ),
         ),
       ],
@@ -604,7 +685,10 @@ class _MarkAsCompletedScreenState extends ConsumerState<MarkAsCompletedScreen> {
 class _ReviewBottomSheetContent extends ConsumerStatefulWidget {
   final Function submitInvestment;
   final ActiveInvestment services;
-  const _ReviewBottomSheetContent({required this.submitInvestment, required this.services});
+  const _ReviewBottomSheetContent({
+    required this.submitInvestment,
+    required this.services,
+  });
 
   @override
   ConsumerState<_ReviewBottomSheetContent> createState() =>
@@ -641,15 +725,14 @@ class _ReviewBottomSheetContentState extends ConsumerState<_ReviewBottomSheetCon
       preset: 'soundhive',
     );
 
-
     _uploadedImageUrl = imageUrl; // For ID image
   }
 
-
-  Future<String> _uploadFileToCloudinary(
-      {required File file,
-        required String resourceType,
-        required String preset}) async {
+  Future<String> _uploadFileToCloudinary({
+    required File file,
+    required String resourceType,
+    required String preset,
+  }) async {
     final formData = FormData.fromMap({
       'file': await MultipartFile.fromFile(file.path),
       'upload_preset': preset,
@@ -756,7 +839,6 @@ class _ReviewBottomSheetContentState extends ConsumerState<_ReviewBottomSheetCon
           );
         }
       }
-
     } catch (error) {
       print('FULL ERROR DETAILS: $error');
 
@@ -794,7 +876,6 @@ class _ReviewBottomSheetContentState extends ConsumerState<_ReviewBottomSheetCon
     // Get the creator ID safely
     String? creatorId = widget.services.service?.userId.toString();
 
-
     final response = await ref.read(apiresponseProvider.notifier).makeReview(
       context: context,
       payload: {
@@ -810,9 +891,11 @@ class _ReviewBottomSheetContentState extends ConsumerState<_ReviewBottomSheetCon
     return response;
   }
 
-
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+
     return DraggableScrollableSheet(
       expand: false,
       initialChildSize: 0.85, // Reduced from 0.92 to prevent overflow
@@ -820,9 +903,9 @@ class _ReviewBottomSheetContentState extends ConsumerState<_ReviewBottomSheetCon
       minChildSize: 0.5,
       builder: (_, scrollController) {
         return Container(
-          decoration: const BoxDecoration(
-            color: Color(0xFF0F0F10),
-            borderRadius: BorderRadius.vertical(top: Radius.circular(22)),
+          decoration: BoxDecoration(
+            color: isDark ? const Color(0xFF0F0F10) : Colors.white,
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(22)),
           ),
           child: Padding(
             padding: const EdgeInsets.all(20),
@@ -835,7 +918,7 @@ class _ReviewBottomSheetContentState extends ConsumerState<_ReviewBottomSheetCon
                     width: 40,
                     height: 4,
                     decoration: BoxDecoration(
-                      color: Colors.grey.shade700,
+                      color: theme.dividerColor,
                       borderRadius: BorderRadius.circular(2),
                     ),
                   ),
@@ -843,18 +926,21 @@ class _ReviewBottomSheetContentState extends ConsumerState<_ReviewBottomSheetCon
                 const SizedBox(height: 16),
 
                 // Title section
-                const Text(
+                Text(
                   "Hurray🎉!!! Drop a review",
                   style: TextStyle(
                     fontSize: 18,
                     fontWeight: FontWeight.w400,
-                    color: Colors.white,
+                    color: theme.colorScheme.onSurface,
                   ),
                 ),
                 const SizedBox(height: 6),
-                const Text(
+                Text(
                   "Kindly tell us your experience with this service provider",
-                  style: TextStyle(color: Colors.grey, fontSize: 14),
+                  style: TextStyle(
+                      color: theme.colorScheme.onSurface.withOpacity(0.7),
+                      fontSize: 14
+                  ),
                 ),
                 const SizedBox(height: 20),
 
@@ -877,7 +963,7 @@ class _ReviewBottomSheetContentState extends ConsumerState<_ReviewBottomSheetCon
                               icon: Icon(
                                 index < rating ? Icons.star : Icons.star_border,
                                 size: 32,
-                                color: index < rating ? Colors.amber : Colors.grey[700],
+                                color: index < rating ? Colors.amber : theme.colorScheme.onSurface.withOpacity(0.3),
                               ),
                             ),
                           ),
@@ -888,17 +974,21 @@ class _ReviewBottomSheetContentState extends ConsumerState<_ReviewBottomSheetCon
                         Container(
                           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                           decoration: BoxDecoration(
-                            color: Colors.black45,
+                            color: isDark ? Colors.black45 : Colors.grey[100],
                             borderRadius: BorderRadius.circular(10),
-                            border: Border.all(color: Colors.grey.shade800),
+                            border: Border.all(
+                              color: theme.dividerColor,
+                            ),
                           ),
                           child: TextField(
                             controller: reviewController,
                             maxLines: 4,
-                            style: const TextStyle(color: Colors.white),
-                            decoration: const InputDecoration(
+                            style: TextStyle(color: theme.colorScheme.onSurface),
+                            decoration: InputDecoration(
                               hintText: "Enter your review",
-                              hintStyle: TextStyle(color: Colors.grey),
+                              hintStyle: TextStyle(
+                                  color: theme.colorScheme.onSurface.withOpacity(0.5)
+                              ),
                               border: InputBorder.none,
                             ),
                           ),
@@ -906,9 +996,12 @@ class _ReviewBottomSheetContentState extends ConsumerState<_ReviewBottomSheetCon
                         const SizedBox(height: 25),
 
                         // 🏷 TAGS
-                        const Text(
+                        Text(
                           "Select at least one of the tags below that best describes the service provider's performance.",
-                          style: TextStyle(color: Colors.grey, fontSize: 13),
+                          style: TextStyle(
+                              color: theme.colorScheme.onSurface.withOpacity(0.7),
+                              fontSize: 13
+                          ),
                         ),
                         const SizedBox(height: 15),
 
@@ -935,18 +1028,20 @@ class _ReviewBottomSheetContentState extends ConsumerState<_ReviewBottomSheetCon
                                 decoration: BoxDecoration(
                                   borderRadius: BorderRadius.circular(20),
                                   color: isSelected
-                                      ? Colors.deepPurple.shade600
+                                      ? theme.colorScheme.primary
                                       : Colors.transparent,
                                   border: Border.all(
                                     color: isSelected
-                                        ? Colors.deepPurple.shade400
-                                        : Colors.grey.shade700,
+                                        ? theme.colorScheme.primary
+                                        : theme.dividerColor,
                                   ),
                                 ),
                                 child: Text(
                                   tag,
                                   style: TextStyle(
-                                    color: isSelected ? Colors.white : Colors.grey,
+                                    color: isSelected
+                                        ? theme.colorScheme.onPrimary
+                                        : theme.colorScheme.onSurface.withOpacity(0.7),
                                     fontSize: 12,
                                   ),
                                 ),
@@ -980,7 +1075,8 @@ class _ReviewBottomSheetContentState extends ConsumerState<_ReviewBottomSheetCon
                   child: ElevatedButton(
                     onPressed: _submitForm,
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFF8A3FFC),
+                      backgroundColor: theme.colorScheme.primary,
+                      foregroundColor: theme.colorScheme.onPrimary,
                       padding: const EdgeInsets.symmetric(vertical: 16),
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(25),
@@ -988,7 +1084,7 @@ class _ReviewBottomSheetContentState extends ConsumerState<_ReviewBottomSheetCon
                     ),
                     child: const Text(
                       "Submit review",
-                      style: TextStyle(fontSize: 16, color: Colors.white),
+                      style: TextStyle(fontSize: 16),
                     ),
                   ),
                 ),

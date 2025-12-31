@@ -143,7 +143,7 @@ class _ServiceScreenState extends ConsumerState<ServiceDetailsScreen>
     return DefaultTabController(
       length: 4, // About, Portfolio, Reviews
       child: Scaffold(
-        backgroundColor: AppColors.BACKGROUNDCOLOR,
+       
         appBar: AppBar(
           backgroundColor: Colors.transparent,
           elevation: 0,

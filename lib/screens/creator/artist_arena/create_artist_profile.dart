@@ -22,7 +22,7 @@ class CreateArtistProfile extends ConsumerStatefulWidget {
   const CreateArtistProfile({super.key, required this.user});
 
   @override
-  _CreateArtistProfileScreenState createState() => _CreateArtistProfileScreenState();
+  ConsumerState<CreateArtistProfile> createState() => _CreateArtistProfileScreenState();
 }
 
 class _CreateArtistProfileScreenState extends ConsumerState<CreateArtistProfile> {
@@ -236,7 +236,7 @@ class _CreateArtistProfileScreenState extends ConsumerState<CreateArtistProfile>
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.BACKGROUNDCOLOR,
+     
       body: SafeArea(
         child: LayoutBuilder(
           builder: (context, constraints) {
@@ -251,7 +251,6 @@ class _CreateArtistProfileScreenState extends ConsumerState<CreateArtistProfile>
                       IconButton(
                         icon: const Icon(
                           Icons.arrow_back_ios_new,
-                          color: Color(0xFFB0B0B6),
                         ),
                         onPressed: () => Navigator.pop(context),
                       ),
@@ -261,7 +260,6 @@ class _CreateArtistProfileScreenState extends ConsumerState<CreateArtistProfile>
                         style: TextStyle(
                           fontSize: 24,
                           fontWeight: FontWeight.w400,
-                          color: Colors.white,
                         ),
                       ),
                       const SizedBox(height: 40),
@@ -300,6 +298,7 @@ class _CreateArtistProfileScreenState extends ConsumerState<CreateArtistProfile>
                     title: 'Submit',
                     onPressed: _submitForm,
                     color: AppColors.PRIMARYCOLOR,
+                    borderWidth: 0,
                   ),
                 ),
               ],

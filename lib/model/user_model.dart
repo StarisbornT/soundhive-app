@@ -1,3 +1,5 @@
+import 'package:soundhive2/model/creator_model.dart';
+
 class MemberCreatorResponse {
   final User? user;
 
@@ -49,7 +51,7 @@ class User {
   final bool? acceptedTerms;
   final String createdAt;
   final String updatedAt;
-  final Creator? creator;
+  final CreatorData? creator;
   final Wallet? wallet;
   final Artist? artist;
   final List<dynamic>? interests;
@@ -144,7 +146,7 @@ class User {
           : (json['interests'] is String && json['interests'].isNotEmpty)
           ? [json['interests']]
           : [],
-      creator: json['creator'] != null ? Creator.fromJson(json['creator']) : null,
+      creator: json['creator'] != null ? CreatorData.fromJson(json['creator']) : null,
       wallet: json['wallet'] != null ? Wallet.fromJson(json['wallet']) : null,
       artist: json['artist'] != null ? Artist.fromJson(json['artist']) : null,
     );

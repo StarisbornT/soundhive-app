@@ -7,6 +7,7 @@ import '../../../components/widgets.dart';
 import '../../../model/user_model.dart';
 import '../../../utils/alert_helper.dart';
 import 'creative_form_screen.dart';
+import 'live_test_intro_screen.dart';
 
 class SetupScreen extends ConsumerStatefulWidget {
   final MemberCreatorResponse user;
@@ -166,7 +167,10 @@ class _SetupScreenState extends ConsumerState<SetupScreen> {
 
   void _handleLivelinessTap() {
     if (_creator?.hasVerifiedIdentity == true) {
-      _navigateToCreativeForm();
+      Navigator.push(
+        context,
+        MaterialPageRoute(builder: (_) => const LiveTestIntroScreen()),
+      );
     } else {
       _showVerificationRequiredAlert();
     }

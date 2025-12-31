@@ -4,12 +4,12 @@ import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
 import 'package:soundhive2/utils/app_colors.dart';
-
 import 'package:soundhive2/lib/dashboard_provider/get_creator_services.dart';
 import '../../../model/creator_model.dart';
 import '../../../model/market_orders_service_model.dart';
 import '../../../utils/utils.dart';
 import 'creator_portfolio.dart';
+
 class CreatorProfile extends ConsumerStatefulWidget {
   final CreatorData creator;
   const CreatorProfile({super.key, required this.creator});
@@ -29,7 +29,10 @@ class _CreatorProfileState extends ConsumerState<CreatorProfile> {
       }
     });
   }
+
   Widget _buildReviewSection() {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
     final reviews = widget.creator.reviews;
     final count = reviews.length;
 
@@ -49,8 +52,8 @@ class _CreatorProfileState extends ConsumerState<CreatorProfile> {
           },
           child: Text(
             "View all reviews here ($count) >",
-            style: const TextStyle(
-              color: Color(0xFFC5AFFF),
+            style: TextStyle(
+              color: isDark ? const Color(0xFFC5AFFF) : AppColors.BUTTONCOLOR,
               fontSize: 12,
               decoration: TextDecoration.underline,
             ),
@@ -61,50 +64,32 @@ class _CreatorProfileState extends ConsumerState<CreatorProfile> {
     );
   }
 
-  double getOverallRating() {
-    final reviews = widget.creator.reviews;
-
-    if (reviews.isEmpty) return 0.0;
-
-    double total = 0;
-    for (var r in reviews) {
-      total += r.rating;
-    }
-
-    return total / reviews.length;
-  }
-
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+
     return Scaffold(
-      backgroundColor: AppColors.BACKGROUNDCOLOR,
       body: SingleChildScrollView(
         child: Padding(
           padding: const EdgeInsets.all(16.0),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              _buildAppBar(context),
+              _buildAppBar(context, theme),
               const SizedBox(height: 20),
-              _buildProfileHeader(),
+              _buildProfileHeader(theme, isDark),
               const SizedBox(height: 30),
-              _buildAboutSection(),
+              _buildAboutSection(theme),
               const SizedBox(height: 10),
               _buildReviewSection(),
               const SizedBox(height: 30),
-              _buildSocialIcons(),
+              _buildSocialIcons(theme, isDark),
               const SizedBox(height: 20),
-              _buildLocation(),
+              _buildLocation(theme),
               const SizedBox(height: 30),
-              _buildServicesSection(),
+              _buildServicesSection(theme),
               const SizedBox(height: 30),
-              // AvailabilityCalendar(
-              //   creator: widget.creator,
-              //   onDateSelected: (selectedDate) {
-              //     // Handle date selection
-              //     print('Selected date: $selectedDate');
-              //   },
-              // )
             ],
           ),
         ),
@@ -112,15 +97,15 @@ class _CreatorProfileState extends ConsumerState<CreatorProfile> {
     );
   }
 
-  Widget _buildAppBar(BuildContext context) {
+  Widget _buildAppBar(BuildContext context, ThemeData theme) {
     return Padding(
       padding: const EdgeInsets.only(top: 40.0),
       child: Row(
         children: [
           IconButton(
-            icon: const Icon(Icons.arrow_back_ios, color: Colors.white),
+            icon: Icon(Icons.arrow_back_ios,
+                color: theme.colorScheme.onSurface),
             onPressed: () {
-              // Handle back button press
               Navigator.pop(context);
             },
           ),
@@ -129,7 +114,7 @@ class _CreatorProfileState extends ConsumerState<CreatorProfile> {
     );
   }
 
-  Widget _buildProfileHeader() {
+  Widget _buildProfileHeader(ThemeData theme, bool isDark) {
     return Row(
       children: [
         widget.creator.user?.image != null
@@ -142,14 +127,24 @@ class _CreatorProfileState extends ConsumerState<CreatorProfile> {
               image: NetworkImage(widget.creator.user?.image ?? ''),
               fit: BoxFit.cover,
             ),
+            border: Border.all(
+              color: AppColors.BUTTONCOLOR.withOpacity(0.3),
+              width: 2,
+            ),
           ),
         )
             : Container(
           width: 80,
           height: 80,
-          decoration: const BoxDecoration(
+          decoration: BoxDecoration(
             shape: BoxShape.circle,
-            color: AppColors.BUTTONCOLOR,
+            color: AppColors.BUTTONCOLOR.withOpacity(
+              isDark ? 0.8 : 0.6,
+            ),
+            border: Border.all(
+              color: AppColors.BUTTONCOLOR.withOpacity(0.3),
+              width: 2,
+            ),
           ),
           alignment: Alignment.center,
           child: Text(
@@ -170,27 +165,27 @@ class _CreatorProfileState extends ConsumerState<CreatorProfile> {
             children: [
               Text(
                 "${widget.creator.user?.firstName} ${widget.creator.user?.lastName}",
-                style: const TextStyle(
-                  color: Colors.white,
+                style: TextStyle(
+                  color: theme.colorScheme.onSurface,
                   fontSize: 18,
                   fontWeight: FontWeight.w400,
                 ),
-                overflow: TextOverflow.ellipsis, // Optional
+                overflow: TextOverflow.ellipsis,
               ),
               const SizedBox(height: 5),
               Text(
                 widget.creator.jobTitle ?? '',
-                style: const TextStyle(
-                  color: Colors.white70,
+                style: TextStyle(
+                  color: theme.colorScheme.onSurface.withOpacity(0.7),
                   fontSize: 12,
                 ),
-                overflow: TextOverflow.ellipsis, // Optional
+                overflow: TextOverflow.ellipsis,
               ),
               const SizedBox(height: 5),
-              const Text(
+              Text(
                 '10 services • 200 clients',
                 style: TextStyle(
-                  color: Colors.white70,
+                  color: theme.colorScheme.onSurface.withOpacity(0.7),
                   fontSize: 12,
                 ),
               ),
@@ -200,16 +195,14 @@ class _CreatorProfileState extends ConsumerState<CreatorProfile> {
                   const Icon(Icons.star, color: Colors.amber, size: 16),
                   const SizedBox(width: 5),
                   Text(
-                    '${getOverallRating().toStringAsFixed(1)} overall rating',
-                    style: const TextStyle(
-                      color: Colors.white70,
+                    '${Utils.getOverallRating(widget.creator).toStringAsFixed(1)} overall rating',
+                    style: TextStyle(
+                      color: theme.colorScheme.onSurface.withOpacity(0.7),
                       fontSize: 12,
                     ),
                   ),
                 ],
               ),
-
-
             ],
           ),
         ),
@@ -217,14 +210,14 @@ class _CreatorProfileState extends ConsumerState<CreatorProfile> {
     );
   }
 
-  Widget _buildAboutSection() {
+  Widget _buildAboutSection(ThemeData theme) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
           'About ${widget.creator.user?.firstName} ${widget.creator.user?.lastName}',
-          style: const TextStyle(
-            color: Colors.white,
+          style: TextStyle(
+            color: theme.colorScheme.onSurface,
             fontSize: 14,
             fontWeight: FontWeight.w400,
           ),
@@ -232,8 +225,8 @@ class _CreatorProfileState extends ConsumerState<CreatorProfile> {
         const SizedBox(height: 10),
         Text(
           widget.creator.bio ?? '',
-          style: const TextStyle(
-            color: Colors.white70,
+          style: TextStyle(
+            color: theme.colorScheme.onSurface.withOpacity(0.7),
             fontSize: 12,
             height: 1.5,
           ),
@@ -242,38 +235,42 @@ class _CreatorProfileState extends ConsumerState<CreatorProfile> {
     );
   }
 
-  Widget _buildSocialIcons() {
+  Widget _buildSocialIcons(ThemeData theme, bool isDark) {
     return Row(
       children: [
-        _buildSocialIcon(FontAwesomeIcons.x),
+        _buildSocialIcon(FontAwesomeIcons.x, theme, isDark),
         const SizedBox(width: 15),
-        _buildSocialIcon(Icons.facebook),
+        _buildSocialIcon(Icons.facebook, theme, isDark),
         const SizedBox(width: 15),
-        _buildSocialIcon(FontAwesomeIcons.instagram),
+        _buildSocialIcon(FontAwesomeIcons.instagram, theme, isDark),
       ],
     );
   }
 
-  Widget _buildSocialIcon(IconData icon) {
+  Widget _buildSocialIcon(IconData icon, ThemeData theme, bool isDark) {
     return Container(
       padding: const EdgeInsets.all(10),
       decoration: BoxDecoration(
-        color: Colors.white12,
+        color: isDark ? Colors.white12 : Colors.grey[200],
         borderRadius: BorderRadius.circular(8),
       ),
-      child: Icon(icon, color: Colors.white, size: 24),
+      child: Icon(icon,
+          color: isDark ? Colors.white : Colors.grey[700],
+          size: 24),
     );
   }
 
-  Widget _buildLocation() {
+  Widget _buildLocation(ThemeData theme) {
     return Row(
       children: [
-        const Icon(Icons.location_on_outlined, color: Colors.white, size: 20),
+        Icon(Icons.location_on_outlined,
+            color: theme.colorScheme.onSurface.withOpacity(0.7),
+            size: 20),
         const SizedBox(width: 10),
         Text(
           widget.creator.location ?? '',
-          style: const TextStyle(
-            color: Colors.white70,
+          style: TextStyle(
+            color: theme.colorScheme.onSurface.withOpacity(0.7),
             fontSize: 14,
           ),
         ),
@@ -281,16 +278,17 @@ class _CreatorProfileState extends ConsumerState<CreatorProfile> {
     );
   }
 
-  Widget _buildServicesSection() {
+  Widget _buildServicesSection(ThemeData theme) {
     final serviceState = ref.watch(getCreatorServiceProvider);
+    final isDark = theme.brightness == Brightness.dark;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text(
+        Text(
           'Services',
           style: TextStyle(
-            color: Colors.white,
+            color: theme.colorScheme.onSurface,
             fontSize: 14,
             fontWeight: FontWeight.w400,
           ),
@@ -299,9 +297,9 @@ class _CreatorProfileState extends ConsumerState<CreatorProfile> {
         serviceState.when(
           data: (services) {
             if (services.isEmpty) {
-              return const Text(
+              return Text(
                 "No services available",
-                style: TextStyle(color: Colors.white70),
+                style: TextStyle(color: theme.colorScheme.onSurface.withOpacity(0.6)),
               );
             }
 
@@ -319,7 +317,9 @@ class _CreatorProfileState extends ConsumerState<CreatorProfile> {
                       service.serviceImage ?? '',
                       service.serviceName,
                       ref.formatUserCurrency(service.convertedRate),
-                      service
+                      service,
+                      theme,
+                      isDark,
                     ),
                   );
                 },
@@ -328,18 +328,24 @@ class _CreatorProfileState extends ConsumerState<CreatorProfile> {
           },
           error: (err, stack) => Text(
             "Error: $err",
-            style: const TextStyle(color: Colors.red),
+            style: TextStyle(color: theme.colorScheme.error),
           ),
-          loading: () => const Center(
-            child: CircularProgressIndicator(),
+          loading: () => Center(
+            child: CircularProgressIndicator(color: theme.colorScheme.primary),
           ),
         ),
       ],
     );
   }
 
-
-  Widget _buildServiceCard(String imageUrl, String title, String price, MarketOrder service) {
+  Widget _buildServiceCard(
+      String imageUrl,
+      String title,
+      String price,
+      MarketOrder service,
+      ThemeData theme,
+      bool isDark,
+      ) {
     return Container(
       width: 300,
       decoration: BoxDecoration(
@@ -347,7 +353,10 @@ class _CreatorProfileState extends ConsumerState<CreatorProfile> {
         image: DecorationImage(
           image: NetworkImage(imageUrl),
           fit: BoxFit.cover,
-          colorFilter: ColorFilter.mode(Colors.black.withOpacity(0.4), BlendMode.darken),
+          colorFilter: ColorFilter.mode(
+            Colors.black.withOpacity(0.4),
+            BlendMode.darken,
+          ),
         ),
       ),
       child: Stack(
@@ -365,7 +374,9 @@ class _CreatorProfileState extends ConsumerState<CreatorProfile> {
                 );
               },
               style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFF1A1429),
+                backgroundColor: isDark
+                    ? const Color(0xFF1A1429)
+                    : AppColors.BUTTONCOLOR.withOpacity(0.9),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(20),
                 ),
@@ -373,7 +384,10 @@ class _CreatorProfileState extends ConsumerState<CreatorProfile> {
               ),
               child: const Text(
                 'View portfolio',
-                style: TextStyle(color: Colors.white, fontSize: 12),
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 12,
+                ),
               ),
             ),
           ),
@@ -387,7 +401,7 @@ class _CreatorProfileState extends ConsumerState<CreatorProfile> {
                 Flexible(
                   child: Text(
                     title,
-                    maxLines: 2, // or more if you want
+                    maxLines: 2,
                     overflow: TextOverflow.ellipsis,
                     style: const TextStyle(
                       color: Colors.white,
@@ -399,22 +413,20 @@ class _CreatorProfileState extends ConsumerState<CreatorProfile> {
                 Text(
                   price,
                   style: GoogleFonts.roboto(
-                      textStyle: const TextStyle(
-                        color: Colors.white,
-                        fontSize: 14,
-                        fontWeight: FontWeight.w400,
-                      )
+                    textStyle: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 14,
+                      fontWeight: FontWeight.w400,
+                    ),
                   ),
                 ),
               ],
             ),
           ),
-
         ],
       ),
     );
   }
-
 }
 class AvailabilityCalendar extends StatefulWidget {
   final CreatorData creator;
@@ -723,9 +735,9 @@ class CreatorAllReviewsScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.BACKGROUNDCOLOR,
+     
       appBar: AppBar(
-        backgroundColor: AppColors.BACKGROUNDCOLOR,
+       
         title: Text(
           "Reviews (${creator.reviews.length})",
           style: const TextStyle(color: Colors.white),

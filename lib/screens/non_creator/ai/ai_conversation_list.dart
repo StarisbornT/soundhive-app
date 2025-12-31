@@ -112,7 +112,7 @@ class _AiChatConversationScreenState extends ConsumerState<AiChatConversationScr
     final conversationsState = ref.watch(getConversationProvider);
 
     return Scaffold(
-      backgroundColor: AppColors.BACKGROUNDCOLOR,
+     
       body: SafeArea(
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,

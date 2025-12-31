@@ -85,12 +85,12 @@ class _CreatorsListState extends ConsumerState<CreatorsList> {
     final creatorState = ref.watch(creatorProvider);
 
     return Scaffold(
-      backgroundColor: AppColors.BACKGROUNDCOLOR,
+     
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios, color: Colors.white),
+          icon: const Icon(Icons.arrow_back_ios),
           onPressed: () => Navigator.pop(context),
         ),
       ),
@@ -102,7 +102,6 @@ class _CreatorsListState extends ConsumerState<CreatorsList> {
             const Text(
               'Top performing creatives',
               style: TextStyle(
-                color: Colors.white,
                 fontSize: 24,
                 fontWeight: FontWeight.w600,
               ),
@@ -113,21 +112,19 @@ class _CreatorsListState extends ConsumerState<CreatorsList> {
             Container(
               margin: const EdgeInsets.only(bottom: 16),
               decoration: BoxDecoration(
-                border: Border.all(color: Colors.white24),
+                border: Border.all(),
                 borderRadius: BorderRadius.circular(8),
               ),
               child: TextField(
                 controller: _searchController,
-                style: const TextStyle(color: Colors.white),
                 decoration: InputDecoration(
                   hintText: 'Search creators...',
-                  hintStyle: const TextStyle(color: Colors.white38),
-                  prefixIcon: const Icon(Icons.search, color: Colors.white38),
+                  prefixIcon: const Icon(Icons.search),
                   border: InputBorder.none,
                   contentPadding: const EdgeInsets.all(16),
                   suffixIcon: _searchController.text.isNotEmpty
                       ? IconButton(
-                    icon: const Icon(Icons.clear, color: Colors.white38),
+                    icon: const Icon(Icons.clear),
                     onPressed: () {
                       _searchController.clear();
                       ref.read(creatorProvider.notifier).getCreators(page: 1);
@@ -142,7 +139,7 @@ class _CreatorsListState extends ConsumerState<CreatorsList> {
             Expanded(
               child: creatorState.when(
                 loading: () => const Center(
-                  child: CircularProgressIndicator(color: Colors.white),
+                  child: CircularProgressIndicator(),
                 ),
                 error: (error, stack) => Center(
                   child: Column(
@@ -151,7 +148,6 @@ class _CreatorsListState extends ConsumerState<CreatorsList> {
                       const Text(
                         'Failed to load creators',
                         style: TextStyle(
-                          color: Colors.white60,
                           fontSize: 16,
                         ),
                       ),
@@ -175,7 +171,6 @@ class _CreatorsListState extends ConsumerState<CreatorsList> {
                         children: [
                           const Icon(
                             Icons.search_off,
-                            color: Colors.white38,
                             size: 64,
                           ),
                           const SizedBox(height: 16),
@@ -184,7 +179,7 @@ class _CreatorsListState extends ConsumerState<CreatorsList> {
                                 ? 'No creators found'
                                 : 'No creators found for "${_searchController.text}"',
                             style: const TextStyle(
-                              color: Colors.white60,
+
                               fontSize: 16,
                             ),
                           ),
@@ -197,7 +192,6 @@ class _CreatorsListState extends ConsumerState<CreatorsList> {
                               },
                               child: const Text(
                                 'Clear search',
-                                style: TextStyle(color: Colors.blue),
                               ),
                             ),
                           ],
@@ -222,7 +216,7 @@ class _CreatorsListState extends ConsumerState<CreatorsList> {
                         final hasMorePages = creatorResponse.user?.nextPageUrl != null;
                         if (hasMorePages) {
                           return const Center(
-                            child: CircularProgressIndicator(color: Colors.white),
+                            child: CircularProgressIndicator(),
                           );
                         } else {
                           return const SizedBox.shrink();

@@ -159,9 +159,12 @@ class SongDetailBottomSheet extends StatefulWidget {
     required String status,
     String? feedback,
   }) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+
     showModalBottomSheet(
       context: context,
-      backgroundColor: const Color(0xFF1A1A1E),
+      backgroundColor: isDark ? const Color(0xFF1A1A1E) : Colors.white,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
@@ -212,6 +215,8 @@ class _SongDetailBottomSheetState extends State<SongDetailBottomSheet> {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
     final isPlaying = _player.playing;
     final formattedDate = DateFormat('dd/MM/yyyy')
         .format(DateTime.parse(widget.song.createdAt));
@@ -227,7 +232,7 @@ class _SongDetailBottomSheetState extends State<SongDetailBottomSheet> {
               width: 40,
               height: 4,
               decoration: BoxDecoration(
-                color: Colors.grey[600],
+                color: isDark ? Colors.grey[600] : Colors.grey[400],
                 borderRadius: BorderRadius.circular(2),
               ),
             ),
@@ -235,8 +240,8 @@ class _SongDetailBottomSheetState extends State<SongDetailBottomSheet> {
           const SizedBox(height: 20),
           Text(
             '${widget.status} $formattedDate',
-            style: const TextStyle(
-              color: Color(0xFFB0B0B6),
+            style: TextStyle(
+              color: isDark ? const Color(0xFFB0B0B6) : Colors.grey[600],
               fontSize: 14,
               fontWeight: FontWeight.w500,
             ),
@@ -252,7 +257,15 @@ class _SongDetailBottomSheetState extends State<SongDetailBottomSheet> {
                   height: 60,
                   fit: BoxFit.cover,
                   errorBuilder: (_, __, ___) =>
-                      Container(color: Colors.grey, width: 60, height: 60),
+                      Container(
+                        color: isDark ? Colors.grey[800] : Colors.grey[300],
+                        width: 60,
+                        height: 60,
+                        child: Icon(
+                          Icons.music_note,
+                          color: isDark ? Colors.grey[600] : Colors.grey[500],
+                        ),
+                      ),
                 ),
               ),
               const SizedBox(width: 12),
@@ -262,16 +275,19 @@ class _SongDetailBottomSheetState extends State<SongDetailBottomSheet> {
                   children: [
                     Text(
                       widget.song.title,
-                      style: const TextStyle(
-                        color: Colors.white,
+                      style: TextStyle(
+                        color: theme.colorScheme.onSurface,
                         fontSize: 18,
                         fontWeight: FontWeight.w600,
                       ),
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
                     ),
+                    const SizedBox(height: 4),
                     Text(
                       widget.song.artist?.userName!.capitalize() ?? '',
-                      style: const TextStyle(
-                        color: Color(0xFFB0B0B6),
+                      style: TextStyle(
+                        color: theme.colorScheme.onSurface.withOpacity(0.7),
                         fontSize: 14,
                       ),
                     ),
@@ -286,7 +302,7 @@ class _SongDetailBottomSheetState extends State<SongDetailBottomSheet> {
               IconButton(
                 icon: Icon(
                   isPlaying ? Icons.pause_circle : Icons.play_circle,
-                  color: Colors.white,
+                  color: theme.colorScheme.primary,
                   size: 36,
                 ),
                 onPressed: () async {
@@ -303,11 +319,11 @@ class _SongDetailBottomSheetState extends State<SongDetailBottomSheet> {
                   progress: _position,
                   total: _duration,
                   onSeek: _player.seek,
-                  progressBarColor: const Color(0xFF8C52FF),
-                  baseBarColor: Colors.white24,
-                  thumbColor: Colors.white,
-                  timeLabelTextStyle: const TextStyle(
-                    color: Colors.white,
+                  progressBarColor: theme.colorScheme.primary,
+                  baseBarColor: isDark ? Colors.white24 : Colors.grey[300]!,
+                  thumbColor: theme.colorScheme.primary,
+                  timeLabelTextStyle: TextStyle(
+                    color: theme.colorScheme.onSurface.withOpacity(0.7),
                     fontSize: 12,
                   ),
                 ),
@@ -316,21 +332,28 @@ class _SongDetailBottomSheetState extends State<SongDetailBottomSheet> {
           ),
           if (widget.feedback != null && widget.feedback!.isNotEmpty) ...[
             const SizedBox(height: 20),
-            const Text(
+            Text(
               'Feedback',
               style: TextStyle(
-                color: Colors.white,
+                color: theme.colorScheme.onSurface,
                 fontSize: 16,
                 fontWeight: FontWeight.w600,
               ),
             ),
             const SizedBox(height: 8),
-            Text(
-              widget.feedback!,
-              style: const TextStyle(
-                color: Color(0xFFB0B0B6),
-                fontSize: 14,
-                height: 1.4,
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: isDark ? Colors.grey[900] : Colors.grey[100],
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Text(
+                widget.feedback!,
+                style: TextStyle(
+                  color: theme.colorScheme.onSurface.withOpacity(0.8),
+                  fontSize: 14,
+                  height: 1.4,
+                ),
               ),
             ),
           ],

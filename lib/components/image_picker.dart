@@ -67,8 +67,7 @@ class _ImagePickerComponentState extends State<ImagePickerComponent> {
       children: [
         Text(
           widget.labelText,
-          style: TextStyle(
-            color: _errorText != null ? Colors.red : Colors.white,
+          style: const TextStyle(
             fontSize: 16,
           ),
         ),

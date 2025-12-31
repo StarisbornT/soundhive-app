@@ -82,7 +82,7 @@ class _CancelRequestScreenState extends ConsumerState<CancelRequest> {
   Widget build(BuildContext context) {
 
     return Scaffold(
-      backgroundColor: AppColors.BACKGROUNDCOLOR,
+     
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,

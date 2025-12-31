@@ -20,14 +20,22 @@ class SharedBottomSheets {
     required WidgetRef ref,
     required VoidCallback onAddToPlaylist,
     required VoidCallback onArtistProfile,
+    ThemeData? theme,
+    bool? isDark,
   }) {
+    final currentTheme = theme ?? Theme.of(context);
+    final currentIsDark = isDark ?? currentTheme.brightness == Brightness.dark;
+
     BottomSheetHelper.showCommonBottomSheet(
       context: context,
+      backgroundColor: currentTheme.cardColor,
       builder: (context) => _buildSongOptionsContent(
         context: context,
         song: song,
         onAddToPlaylist: onAddToPlaylist,
         onArtistProfile: onArtistProfile,
+        theme: currentTheme,
+        isDark: currentIsDark,
       ),
     );
   }
@@ -37,6 +45,8 @@ class SharedBottomSheets {
     required SongItem song,
     required VoidCallback onAddToPlaylist,
     required VoidCallback onArtistProfile,
+    required ThemeData theme,
+    required bool isDark,
   }) {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
@@ -48,7 +58,10 @@ class SharedBottomSheets {
             alignment: Alignment.topRight,
             child: GestureDetector(
               onTap: () => Navigator.pop(context),
-              child: const Icon(Icons.close, color: Colors.white54),
+              child: Icon(
+                Icons.close,
+                color: theme.colorScheme.onSurface.withOpacity(0.6),
+              ),
             ),
           ),
           const SizedBox(height: 10),
@@ -57,6 +70,8 @@ class SharedBottomSheets {
             song: song,
             onAddToPlaylist: onAddToPlaylist,
             onArtistProfile: onArtistProfile,
+            theme: theme,
+            isDark: isDark,
           ),
           const SizedBox(height: 10),
         ],
@@ -69,6 +84,8 @@ class SharedBottomSheets {
     required SongItem song,
     required VoidCallback onAddToPlaylist,
     required VoidCallback onArtistProfile,
+    required ThemeData theme,
+    required bool isDark,
   }) {
     return [
       _BottomOption(
@@ -78,6 +95,8 @@ class SharedBottomSheets {
           Navigator.pop(context);
           onAddToPlaylist();
         },
+        theme: theme,
+        isDark: isDark,
       ),
       _BottomOption(
         icon: Icons.person_outline,
@@ -86,21 +105,29 @@ class SharedBottomSheets {
           Navigator.pop(context);
           onArtistProfile();
         },
+        theme: theme,
+        isDark: isDark,
       ),
       _BottomOption(
         icon: Icons.work_outline,
         label: "Book artist",
         onTap: () => Navigator.pop(context),
+        theme: theme,
+        isDark: isDark,
       ),
       _BottomOption(
         icon: Icons.mic_none_outlined,
         label: "Play karaoke",
         onTap: () => Navigator.pop(context),
+        theme: theme,
+        isDark: isDark,
       ),
       _BottomOption(
         icon: Icons.share_outlined,
         label: "Share song",
         onTap: () => Navigator.pop(context),
+        theme: theme,
+        isDark: isDark,
       ),
     ];
   }
@@ -114,10 +141,16 @@ class SharedBottomSheets {
     required Function(Playlist, SongItem) onPlaylistTap,
     required Function(Playlist) onPlaylistRename,
     required Function(Playlist) onPlaylistDelete,
+    ThemeData? theme,
+    bool? isDark,
   }) {
+    final currentTheme = theme ?? Theme.of(context);
+    final currentIsDark = isDark ?? currentTheme.brightness == Brightness.dark;
+
     BottomSheetHelper.showCommonBottomSheet(
       context: context,
       isScrollControlled: true,
+      backgroundColor: currentTheme.cardColor,
       builder: (context) => _buildAddToPlaylistContent(
         context: context,
         song: song,
@@ -126,6 +159,8 @@ class SharedBottomSheets {
         onPlaylistTap: onPlaylistTap,
         onPlaylistRename: onPlaylistRename,
         onPlaylistDelete: onPlaylistDelete,
+        theme: currentTheme,
+        isDark: currentIsDark,
       ),
     );
   }
@@ -138,6 +173,8 @@ class SharedBottomSheets {
     required Function(Playlist, SongItem) onPlaylistTap,
     required Function(Playlist) onPlaylistRename,
     required Function(Playlist) onPlaylistDelete,
+    required ThemeData theme,
+    required bool isDark,
   }) {
     return BottomSheetHelper.buildBottomSheetWrapper(
       context: context,
@@ -148,6 +185,7 @@ class SharedBottomSheets {
           BottomSheetHelper.buildBottomSheetHeader(
             title: "Add to playlist",
             onClose: () => Navigator.pop(context),
+            theme: theme, context: context,
           ),
           const SizedBox(height: 20),
           _buildPlaylistList(
@@ -157,8 +195,15 @@ class SharedBottomSheets {
             onPlaylistTap: onPlaylistTap,
             onPlaylistRename: onPlaylistRename,
             onPlaylistDelete: onPlaylistDelete,
+            theme: theme,
+            isDark: isDark,
           ),
-          _buildCreatePlaylistButton(context, onCreatePlaylist),
+          _buildCreatePlaylistButton(
+            context,
+            onCreatePlaylist,
+            theme,
+            isDark,
+          ),
         ],
       ),
     );
@@ -171,6 +216,8 @@ class SharedBottomSheets {
     required Function(Playlist, SongItem) onPlaylistTap,
     required Function(Playlist) onPlaylistRename,
     required Function(Playlist) onPlaylistDelete,
+    required ThemeData theme,
+    required bool isDark,
   }) {
     return Consumer(
       builder: (context, ref, child) {
@@ -187,9 +234,11 @@ class SharedBottomSheets {
               onPlaylistTap: onPlaylistTap,
               onPlaylistRename: onPlaylistRename,
               onPlaylistDelete: onPlaylistDelete,
+              theme: theme,
+              isDark: isDark,
             ),
-            loading: () => _buildLoadingIndicator(),
-            error: (err, stack) => _buildErrorWidget(err),
+            loading: () => _buildLoadingIndicator(theme),
+            error: (err, stack) => _buildErrorWidget(err, theme),
           ),
         );
       },
@@ -204,14 +253,19 @@ class SharedBottomSheets {
     required Function(Playlist, SongItem) onPlaylistTap,
     required Function(Playlist) onPlaylistRename,
     required Function(Playlist) onPlaylistDelete,
+    required ThemeData theme,
+    required bool isDark,
   }) {
     if (playlists.isEmpty) {
-      return const Padding(
-        padding: EdgeInsets.only(top: 50, bottom: 50),
+      return Padding(
+        padding: const EdgeInsets.only(top: 50, bottom: 50),
         child: Center(
           child: Text(
             "You have not created any playlist yet",
-            style: TextStyle(color: Colors.white70, fontSize: 14),
+            style: TextStyle(
+              color: theme.colorScheme.onSurface.withOpacity(0.6),
+              fontSize: 14,
+            ),
           ),
         ),
       );
@@ -230,7 +284,7 @@ class SharedBottomSheets {
         itemCount: playlists.length + 1,
         itemBuilder: (context, index) {
           if (index == playlists.length) {
-            return _buildLoadMoreIndicator();
+            return _buildLoadMoreIndicator(theme);
           }
           return _buildPlaylistTile(
             playlist: playlists[index],
@@ -238,6 +292,8 @@ class SharedBottomSheets {
             onPlaylistTap: onPlaylistTap,
             onPlaylistRename: onPlaylistRename,
             onPlaylistDelete: onPlaylistDelete,
+            theme: theme,
+            isDark: isDark,
           );
         },
       ),
@@ -250,16 +306,20 @@ class SharedBottomSheets {
     required Function(Playlist, SongItem) onPlaylistTap,
     required Function(Playlist) onPlaylistRename,
     required Function(Playlist) onPlaylistDelete,
+    required ThemeData theme,
+    required bool isDark,
   }) {
     return _PlaylistTile(
       playlist: playlist,
       onTap: () => onPlaylistTap(playlist, song),
       onRename: () => onPlaylistRename(playlist),
       onDelete: () => onPlaylistDelete(playlist),
+      theme: theme,
+      isDark: isDark,
     );
   }
 
-  static Widget _buildLoadMoreIndicator() {
+  static Widget _buildLoadMoreIndicator(ThemeData theme) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 16),
       child: Center(
@@ -269,7 +329,7 @@ class SharedBottomSheets {
             final isLoading = playlistState.isLoading;
 
             return isLoading
-                ? const CircularProgressIndicator(color: Color(0xFF9B59B6))
+                ? CircularProgressIndicator(color: theme.colorScheme.primary)
                 : const SizedBox.shrink();
           },
         ),
@@ -277,35 +337,42 @@ class SharedBottomSheets {
     );
   }
 
-
-  static Widget _buildLoadingIndicator() {
-    return const Center(
+  static Widget _buildLoadingIndicator(ThemeData theme) {
+    return Center(
       child: Padding(
-        padding: EdgeInsets.all(40.0),
-        child: CircularProgressIndicator(color: Color(0xFF9B59B6)),
+        padding: const EdgeInsets.all(40.0),
+        child: CircularProgressIndicator(color: theme.colorScheme.primary),
       ),
     );
   }
 
-  static Widget _buildErrorWidget(dynamic error) {
+  static Widget _buildErrorWidget(dynamic error, ThemeData theme) {
     return Center(
       child: Text(
         'Error loading playlists: $error',
-        style: const TextStyle(color: Colors.red),
+        style: TextStyle(color: theme.colorScheme.error),
       ),
     );
   }
 
-  static Widget _buildCreatePlaylistButton(BuildContext context, VoidCallback onCreatePlaylist) {
+  static Widget _buildCreatePlaylistButton(
+      BuildContext context,
+      VoidCallback onCreatePlaylist,
+      ThemeData theme,
+      bool isDark,
+      ) {
     return Padding(
-      padding: const EdgeInsets.all(8.0),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       child: RoundedButton(
         title: 'Create new playlist',
         onPressed: () {
           Navigator.pop(context);
           onCreatePlaylist();
         },
-        color: AppColors.PRIMARYCOLOR,
+        color: AppColors.BUTTONCOLOR,
+        textColor: Colors.white,
+        minWidth: double.infinity,
+        borderRadius: 25.0,
       ),
     );
   }
@@ -316,16 +383,24 @@ class SharedBottomSheets {
     required Playlist playlist,
     required TextEditingController renameController,
     required VoidCallback onRename,
+    ThemeData? theme,
+    bool? isDark,
   }) {
+    final currentTheme = theme ?? Theme.of(context);
+    final currentIsDark = isDark ?? currentTheme.brightness == Brightness.dark;
+
     renameController.text = playlist.title;
 
     BottomSheetHelper.showCommonBottomSheet(
       context: context,
       isScrollControlled: true,
+      backgroundColor: currentTheme.cardColor,
       builder: (context) => _buildRenamePlaylistContent(
         context: context,
         renameController: renameController,
         onRename: onRename,
+        theme: currentTheme,
+        isDark: currentIsDark,
       ),
     );
   }
@@ -334,6 +409,8 @@ class SharedBottomSheets {
     required BuildContext context,
     required TextEditingController renameController,
     required VoidCallback onRename,
+    required ThemeData theme,
+    required bool isDark,
   }) {
     return BottomSheetHelper.buildBottomSheetWrapper(
       context: context,
@@ -350,7 +427,7 @@ class SharedBottomSheets {
           children: [
             BottomSheetHelper.buildBottomSheetHeader(
               title: "Rename playlist",
-              onClose: () => Navigator.pop(context),
+              onClose: () => Navigator.pop(context), context: context,
             ),
             const SizedBox(height: 20),
             LabeledTextField(
@@ -361,7 +438,7 @@ class SharedBottomSheets {
             RoundedButton(
               title: 'Save changes',
               onPressed: onRename,
-              color: AppColors.PRIMARYCOLOR,
+              color: AppColors.BUTTONCOLOR,
             ),
           ],
         ),
@@ -374,30 +451,41 @@ class SharedBottomSheets {
     required BuildContext context,
     required Playlist playlist,
     required VoidCallback onDelete,
+    ThemeData? theme,
+    bool? isDark,
   }) {
+    final currentTheme = theme ?? Theme.of(context);
+    final currentIsDark = isDark ?? currentTheme.brightness == Brightness.dark;
+
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        backgroundColor: AppColors.BACKGROUNDCOLOR,
-        title: const Text(
+        backgroundColor: currentTheme.cardColor,
+        title: Text(
           'Delete Playlist',
-          style: TextStyle(color: Colors.white),
+          style: TextStyle(color: currentTheme.colorScheme.onSurface),
         ),
         content: Text(
           'Are you sure you want to delete "${playlist.title}"? This action cannot be undone.',
-          style: const TextStyle(color: Colors.white70),
+          style: TextStyle(color: currentTheme.colorScheme.onSurface.withOpacity(0.7)),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text('Cancel', style: TextStyle(color: Colors.white70)),
+            child: Text(
+              'Cancel',
+              style: TextStyle(color: currentTheme.colorScheme.onSurface.withOpacity(0.7)),
+            ),
           ),
           TextButton(
             onPressed: () {
               Navigator.pop(context);
               onDelete();
             },
-            child: const Text('Delete', style: TextStyle(color: Colors.red)),
+            child: Text(
+              'Delete',
+              style: TextStyle(color: currentTheme.colorScheme.error),
+            ),
           ),
         ],
       ),
@@ -410,11 +498,15 @@ class _BottomOption extends StatelessWidget {
   final IconData icon;
   final String label;
   final VoidCallback onTap;
+  final ThemeData theme;
+  final bool isDark;
 
   const _BottomOption({
     required this.icon,
     required this.label,
     required this.onTap,
+    required this.theme,
+    required this.isDark,
   });
 
   @override
@@ -426,12 +518,16 @@ class _BottomOption extends StatelessWidget {
         padding: const EdgeInsets.symmetric(vertical: 12),
         child: Row(
           children: [
-            Icon(icon, color: Colors.white70, size: 22),
+            Icon(
+              icon,
+              color: theme.colorScheme.onSurface.withOpacity(0.7),
+              size: 22,
+            ),
             const SizedBox(width: 14),
             Text(
               label,
-              style: const TextStyle(
-                color: Colors.white,
+              style: TextStyle(
+                color: theme.colorScheme.onSurface,
                 fontSize: 15,
                 fontWeight: FontWeight.w400,
               ),
@@ -443,45 +539,65 @@ class _BottomOption extends StatelessWidget {
   }
 }
 
+
 class _PlaylistTile extends StatelessWidget {
   final Playlist playlist;
   final VoidCallback onTap;
   final VoidCallback onRename;
   final VoidCallback onDelete;
+  final ThemeData theme;
+  final bool isDark;
 
   const _PlaylistTile({
     required this.playlist,
     required this.onTap,
     required this.onRename,
     required this.onDelete,
+    required this.theme,
+    required this.isDark,
   });
 
   @override
   Widget build(BuildContext context) {
     return InkWell(
       onTap: onTap,
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+      borderRadius: BorderRadius.circular(8),
+      child: Container(
+        margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        decoration: BoxDecoration(
+          color: isDark ? Colors.transparent : Colors.grey[50],
+          borderRadius: BorderRadius.circular(8),
+          border: Border.all(
+            color: theme.dividerColor.withOpacity(0.1),
+          ),
+        ),
         child: Row(
           children: [
+            Icon(
+              Icons.playlist_play,
+              color: theme.colorScheme.onSurface.withOpacity(0.7),
+              size: 24,
+            ),
+            const SizedBox(width: 16),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
                     playlist.title,
-                    style: const TextStyle(
-                      color: Colors.white,
+                    style: TextStyle(
+                      color: theme.colorScheme.onSurface,
                       fontSize: 16,
                       fontWeight: FontWeight.w400,
                     ),
                     overflow: TextOverflow.ellipsis,
                   ),
-                  const SizedBox(height: 2),
+                  const SizedBox(height: 4),
                   Text(
                     '${playlist.songs.length} songs',
-                    style: const TextStyle(
-                      color: Colors.white70,
+                    style: TextStyle(
+                      color: theme.colorScheme.onSurface.withOpacity(0.6),
                       fontSize: 13,
                     ),
                   ),
@@ -492,11 +608,19 @@ class _PlaylistTile extends StatelessWidget {
               mainAxisSize: MainAxisSize.min,
               children: [
                 IconButton(
-                  icon: const Icon(Icons.edit_outlined, color: Colors.white54, size: 20),
+                  icon: Icon(
+                    Icons.edit_outlined,
+                    color: theme.colorScheme.onSurface.withOpacity(0.6),
+                    size: 20,
+                  ),
                   onPressed: onRename,
                 ),
                 IconButton(
-                  icon: const Icon(Icons.delete_outline, color: Colors.white54, size: 20),
+                  icon: Icon(
+                    Icons.delete_outline,
+                    color: theme.colorScheme.error.withOpacity(0.7),
+                    size: 20,
+                  ),
                   onPressed: onDelete,
                 ),
               ],

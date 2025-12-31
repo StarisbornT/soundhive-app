@@ -16,8 +16,9 @@ class ArtistProfileScreen extends ConsumerStatefulWidget {
   const ArtistProfileScreen({super.key, required this.user});
 
   @override
-  _ArtistProfileScreenState createState() => _ArtistProfileScreenState();
+  ConsumerState<ArtistProfileScreen> createState() => _ArtistProfileScreenState();
 }
+
 
 class _ArtistProfileScreenState extends ConsumerState<ArtistProfileScreen> {
   @override
@@ -30,11 +31,13 @@ class _ArtistProfileScreenState extends ConsumerState<ArtistProfileScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
     final statsAsync = ref.watch(getArtistProfileStatistics);
     final user = widget.user.user?.artist;
 
     return Scaffold(
-      backgroundColor: const Color(0xFF0C0513),
+      backgroundColor: theme.colorScheme.background,
       body: SafeArea(
         child: statsAsync.when(
           data: (stats) {
@@ -46,27 +49,28 @@ class _ArtistProfileScreenState extends ConsumerState<ArtistProfileScreen> {
 
             return Column(
               children: [
-                _ProfileHeader(user: user),
-
+                _ProfileHeader(user: user, theme: theme, isDark: isDark),
                 Expanded(
                   child: hasSongs
                       ? _StatsAndGraphSection(
                     songStats: songStats,
                     performance: performance,
                     earnings: earnings,
+                    theme: theme,
+                    isDark: isDark,
                   )
-                      : const _EmptySongsSection(),
+                      : _EmptySongsSection(theme: theme, isDark: isDark),
                 ),
               ],
             );
           },
-          loading: () => const Center(
-            child: CircularProgressIndicator(color: Colors.white),
+          loading: () => Center(
+            child: CircularProgressIndicator(color: theme.colorScheme.primary),
           ),
           error: (err, _) => Center(
             child: Text(
               'Failed to load statistics: $err',
-              style: const TextStyle(color: Colors.white),
+              style: TextStyle(color: theme.colorScheme.error),
             ),
           ),
         ),
@@ -77,7 +81,9 @@ class _ArtistProfileScreenState extends ConsumerState<ArtistProfileScreen> {
 
 // ✅ Empty state widget
 class _EmptySongsSection extends StatelessWidget {
-  const _EmptySongsSection();
+  final ThemeData theme;
+  final bool isDark;
+  const _EmptySongsSection({required this.theme, required this.isDark});
 
   @override
   Widget build(BuildContext context) {
@@ -87,22 +93,26 @@ class _EmptySongsSection extends StatelessWidget {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Image.asset('images/bag.png', height: 120),
+            Image.asset(
+              'images/bag.png',
+              height: 120,
+              color: isDark ? Colors.white70 : Colors.grey[700],
+            ),
             const SizedBox(height: 20),
-            const Text(
+            Text(
               'No published songs',
               style: TextStyle(
-                color: Colors.white,
+                color: theme.colorScheme.onSurface,
                 fontSize: 16,
                 fontWeight: FontWeight.w600,
               ),
             ),
             const SizedBox(height: 8),
-            const Text(
+            Text(
               'You have not published any song on Soundhive yet.',
               textAlign: TextAlign.center,
               style: TextStyle(
-                color: Colors.white60,
+                color: theme.colorScheme.onSurface.withOpacity(0.6),
                 fontSize: 14,
               ),
             ),
@@ -111,7 +121,8 @@ class _EmptySongsSection extends StatelessWidget {
               padding: const EdgeInsets.all(12.0),
               child: RoundedButton(
                 title: '+ Add new Song',
-                color: AppColors.PRIMARYCOLOR,
+                color: theme.colorScheme.primary,
+                borderWidth: 0,
                 onPressed: () {
                   Navigator.push(
                     context,
@@ -134,11 +145,15 @@ class _StatsAndGraphSection extends ConsumerWidget {
   final SongStats songStats;
   final Performance performance;
   final Earnings earnings;
+  final ThemeData theme;
+  final bool isDark;
 
   const _StatsAndGraphSection({
     required this.songStats,
     required this.performance,
     required this.earnings,
+    required this.theme,
+    required this.isDark,
   });
 
   @override
@@ -151,10 +166,26 @@ class _StatsAndGraphSection extends ConsumerWidget {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              _StatItem(title: 'Created', value: Utils.formatNumber(songStats.created)),
-              _StatItem(title: 'Published', value: Utils.formatNumber(songStats.published)),
-              _StatItem(title: 'Rejected', value: Utils.formatNumber(songStats.rejected)),
-              _StatItem(title: 'Under Review', value: Utils.formatNumber(songStats.underReview)),
+              _StatItem(
+                title: 'Created',
+                value: Utils.formatNumber(songStats.created),
+                theme: theme,
+              ),
+              _StatItem(
+                title: 'Published',
+                value: Utils.formatNumber(songStats.published),
+                theme: theme,
+              ),
+              _StatItem(
+                title: 'Rejected',
+                value: Utils.formatNumber(songStats.rejected),
+                theme: theme,
+              ),
+              _StatItem(
+                title: 'Under Review',
+                value: Utils.formatNumber(songStats.underReview),
+                theme: theme,
+              ),
             ],
           ),
           const SizedBox(height: 20),
@@ -163,8 +194,16 @@ class _StatsAndGraphSection extends ConsumerWidget {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceEvenly,
             children: [
-              _StatItem(title: 'Plays', value: performance.plays),
-              _StatItem(title: 'Followers', value: performance.followers),
+              _StatItem(
+                title: 'Plays',
+                value: performance.plays,
+                theme: theme,
+              ),
+              _StatItem(
+                title: 'Followers',
+                value: performance.followers,
+                theme: theme,
+              ),
             ],
           ),
           const SizedBox(height: 30),
@@ -174,31 +213,40 @@ class _StatsAndGraphSection extends ConsumerWidget {
             earnings: earnings,
             performance: performance,
             songStats: songStats,
+            theme: theme,
+            isDark: isDark,
           ),
           const SizedBox(height: 20),
 
           // Recent Activity or Additional Sections
-          _AdditionalInfoSection(songStats: songStats),
-
+          _AdditionalInfoSection(
+            songStats: songStats,
+            theme: theme,
+            isDark: isDark,
+          ),
         ],
       ),
     );
   }
 }
+
 // ✅ Earnings Section with Graph
 class _EarningsSection extends ConsumerWidget {
   final Earnings earnings;
   final Performance performance;
   final SongStats songStats;
+  final ThemeData theme;
+  final bool isDark;
 
   const _EarningsSection({
     required this.earnings,
     required this.performance,
-    required this.songStats
+    required this.songStats,
+    required this.theme,
+    required this.isDark,
   });
 
   @override
-
   Widget build(BuildContext context, WidgetRef ref) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -206,10 +254,10 @@ class _EarningsSection extends ConsumerWidget {
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            const Text(
+            Text(
               'Earnings',
               style: TextStyle(
-                color: Colors.white,
+                color: theme.colorScheme.onSurface,
                 fontSize: 18,
                 fontWeight: FontWeight.bold,
               ),
@@ -223,10 +271,10 @@ class _EarningsSection extends ConsumerWidget {
                   ),
                 );
               },
-              child: const Text(
+              child: Text(
                 'View songs',
                 style: TextStyle(
-                  color: Color(0xFFC5AFFF),
+                  color: theme.colorScheme.primary,
                   fontSize: 12,
                 ),
               ),
@@ -238,8 +286,8 @@ class _EarningsSection extends ConsumerWidget {
         // Total Earnings
         Text(
           earnings.formattedTotal,
-          style: const TextStyle(
-            color: Colors.white,
+          style: TextStyle(
+            color: theme.colorScheme.onSurface,
             fontSize: 24,
             fontWeight: FontWeight.bold,
           ),
@@ -251,14 +299,20 @@ class _EarningsSection extends ConsumerWidget {
           children: [
             Icon(
               Icons.check_circle,
-              color: double.parse(earnings.formattedTotal)  >= 0  ? Colors.green : Colors.orange,
+              color: double.parse(earnings.formattedTotal) >= 0
+                  ? Colors.green
+                  : Colors.orange,
               size: 16,
             ),
             const SizedBox(width: 5),
             Text(
-              double.parse(earnings.formattedTotal)  >= 0  ? 'Paid to Cre8Vest Wallet' : 'Pending payment',
+              double.parse(earnings.formattedTotal) >= 0
+                  ? 'Paid to Cre8Vest Wallet'
+                  : 'Pending payment',
               style: TextStyle(
-                color: double.parse(earnings.formattedTotal)  >= 0  ? Colors.green : Colors.orange,
+                color: double.parse(earnings.formattedTotal) >= 0
+                    ? Colors.green
+                    : Colors.orange,
                 fontSize: 12,
               ),
             ),
@@ -267,20 +321,35 @@ class _EarningsSection extends ConsumerWidget {
         const SizedBox(height: 20),
 
         // Time Filter
-        _TimeFilterButtons(),
+        _TimeFilterButtons(theme: theme, isDark: isDark),
         const SizedBox(height: 15),
 
         // Graph Widget
-        _EarningsGraph(performance: performance),
+        _EarningsGraph(
+          performance: performance,
+          theme: theme,
+          isDark: isDark,
+        ),
         const SizedBox(height: 20),
 
         // Quick Stats
-        _QuickStats(earnings: earnings, performance: performance, songStats: songStats,),
+        _QuickStats(
+          earnings: earnings,
+          performance: performance,
+          songStats: songStats,
+          theme: theme,
+          isDark: isDark,
+        ),
       ],
     );
   }
 }
+
 class _TimeFilterButtons extends StatefulWidget {
+  final ThemeData theme;
+  final bool isDark;
+  const _TimeFilterButtons({required this.theme, required this.isDark});
+
   @override
   State<_TimeFilterButtons> createState() => _TimeFilterButtonsState();
 }
@@ -317,16 +386,22 @@ class _TimeFilterButtonsState extends State<_TimeFilterButtons> {
               child: Container(
                 padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                 decoration: BoxDecoration(
-                  color: isSelected ? AppColors.PRIMARYCOLOR : Colors.transparent,
+                  color: isSelected
+                      ? widget.theme.colorScheme.primary
+                      : Colors.transparent,
                   border: Border.all(
-                    color: isSelected ? AppColors.PRIMARYCOLOR : Colors.white30,
+                    color: isSelected
+                        ? widget.theme.colorScheme.primary
+                        : widget.theme.dividerColor,
                   ),
                   borderRadius: BorderRadius.circular(20),
                 ),
                 child: Text(
                   filter,
                   style: TextStyle(
-                    color: isSelected ? Colors.white : Colors.white70,
+                    color: isSelected
+                        ? Colors.white
+                        : widget.theme.colorScheme.onSurface.withOpacity(0.7),
                     fontSize: 12,
                     fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
                   ),
@@ -343,8 +418,14 @@ class _TimeFilterButtonsState extends State<_TimeFilterButtons> {
 // ✅ Earnings Graph Widget
 class _EarningsGraph extends ConsumerWidget {
   final Performance performance;
+  final ThemeData theme;
+  final bool isDark;
 
-  const _EarningsGraph({required this.performance});
+  const _EarningsGraph({
+    required this.performance,
+    required this.theme,
+    required this.isDark,
+  });
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -357,8 +438,11 @@ class _EarningsGraph extends ConsumerWidget {
       width: double.infinity,
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: const Color(0xFF1B0C23),
+        color: isDark ? const Color(0xFF1B0C23) : Colors.grey[100],
         borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: isDark ? Colors.white10 : Colors.grey[300]!,
+        ),
       ),
       child: Column(
         children: [
@@ -366,18 +450,18 @@ class _EarningsGraph extends ConsumerWidget {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              const Text(
+              Text(
                 'Earnings Trend',
                 style: TextStyle(
-                  color: Colors.white,
+                  color: theme.colorScheme.onSurface,
                   fontSize: 14,
                   fontWeight: FontWeight.w600,
                 ),
               ),
               Text(
                 'Peak: ${ref.formatCreatorCurrency(maxEarnings)}',
-                style: const TextStyle(
-                  color: Colors.white54,
+                style: TextStyle(
+                  color: theme.colorScheme.onSurface.withOpacity(0.6),
                   fontSize: 12,
                 ),
               ),
@@ -404,10 +488,13 @@ class _EarningsGraph extends ConsumerWidget {
                         width: 20,
                         height: height,
                         decoration: BoxDecoration(
-                          gradient: const LinearGradient(
+                          gradient: LinearGradient(
                             begin: Alignment.bottomCenter,
                             end: Alignment.topCenter,
-                            colors: [Color(0xFFC5AFFF), Color(0xFF8B5FEB)],
+                            colors: [
+                              theme.colorScheme.primary,
+                              theme.colorScheme.primary.withOpacity(0.6),
+                            ],
                           ),
                           borderRadius: BorderRadius.circular(4),
                         ),
@@ -415,8 +502,8 @@ class _EarningsGraph extends ConsumerWidget {
                       const SizedBox(height: 5),
                       Text(
                         ['M', 'T', 'W', 'T', 'F', 'S', 'S'][index],
-                        style: const TextStyle(
-                          color: Colors.white54,
+                        style: TextStyle(
+                          color: theme.colorScheme.onSurface.withOpacity(0.6),
                           fontSize: 10,
                         ),
                       ),
@@ -426,7 +513,6 @@ class _EarningsGraph extends ConsumerWidget {
               ),
             ),
           ),
-
         ],
       ),
     );
@@ -438,11 +524,15 @@ class _QuickStats extends StatelessWidget {
   final Earnings earnings;
   final Performance performance;
   final SongStats songStats;
+  final ThemeData theme;
+  final bool isDark;
 
   const _QuickStats({
     required this.earnings,
     required this.performance,
-    required this.songStats
+    required this.songStats,
+    required this.theme,
+    required this.isDark,
   });
 
   @override
@@ -452,7 +542,7 @@ class _QuickStats extends StatelessWidget {
       formatted = formatted.toLowerCase().trim();
 
       if (formatted.endsWith('k')) {
-        return double.tryParse(formatted.replaceAll('k', '')) ?? 0 * 1000;
+        return (double.tryParse(formatted.replaceAll('k', '')) ?? 0) * 1000;
       } else if (formatted.endsWith('m')) {
         return (double.tryParse(formatted.replaceAll('m', '')) ?? 0) * 1000000;
       } else if (formatted.endsWith('b')) {
@@ -461,25 +551,30 @@ class _QuickStats extends StatelessWidget {
 
       return double.tryParse(formatted) ?? 0;
     }
-    final playsValue = parseFormattedNumber(performance.plays);
+
+    final playsValue = parseFormattedNumber(performance.plays.toString());
     final followersValue = parseFormattedNumber(performance.followers);
     final publishedCount = songStats.published;
+
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: const Color(0xFF1B0C23),
+        color: isDark ? const Color(0xFF1B0C23) : Colors.grey[100],
         borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: isDark ? Colors.white10 : Colors.grey[300]!,
+        ),
       ),
       child: Column(
         children: [
-          const Row(
+          Row(
             children: [
-              Icon(Icons.trending_up, color: Colors.white, size: 16),
-              SizedBox(width: 8),
+              Icon(Icons.trending_up, color: theme.colorScheme.primary, size: 16),
+              const SizedBox(width: 8),
               Text(
                 'Performance Insights',
                 style: TextStyle(
-                  color: Colors.white,
+                  color: theme.colorScheme.onSurface,
                   fontSize: 14,
                   fontWeight: FontWeight.w600,
                 ),
@@ -495,13 +590,14 @@ class _QuickStats extends StatelessWidget {
                 value: publishedCount > 0
                     ? (playsValue / publishedCount).toStringAsFixed(1)
                     : '0',
+                theme: theme,
               ),
-
               _QuickStatItem(
                 label: 'Conversion Rate',
                 value: playsValue > 0
                     ? '${((followersValue / playsValue) * 100).toStringAsFixed(1)}%'
                     : '0%',
+                theme: theme,
               ),
             ],
           ),
@@ -515,10 +611,12 @@ class _QuickStats extends StatelessWidget {
 class _QuickStatItem extends StatelessWidget {
   final String label;
   final String value;
+  final ThemeData theme;
 
   const _QuickStatItem({
     required this.label,
     required this.value,
+    required this.theme,
   });
 
   @override
@@ -528,16 +626,16 @@ class _QuickStatItem extends StatelessWidget {
       children: [
         Text(
           value,
-          style: const TextStyle(
-            color: Colors.white,
+          style: TextStyle(
+            color: theme.colorScheme.onSurface,
             fontSize: 16,
             fontWeight: FontWeight.bold,
           ),
         ),
         Text(
           label,
-          style: const TextStyle(
-            color: Colors.white54,
+          style: TextStyle(
+            color: theme.colorScheme.onSurface.withOpacity(0.6),
             fontSize: 12,
           ),
         ),
@@ -549,24 +647,33 @@ class _QuickStatItem extends StatelessWidget {
 // ✅ Additional Info Section
 class _AdditionalInfoSection extends StatelessWidget {
   final SongStats songStats;
+  final ThemeData theme;
+  final bool isDark;
 
-  const _AdditionalInfoSection({required this.songStats});
+  const _AdditionalInfoSection({
+    required this.songStats,
+    required this.theme,
+    required this.isDark,
+  });
 
   @override
   Widget build(BuildContext context) {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: const Color(0xFF1B0C23),
+        color: isDark ? const Color(0xFF1B0C23) : Colors.grey[100],
         borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: isDark ? Colors.white10 : Colors.grey[300]!,
+        ),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text(
+          Text(
             'Song Distribution',
             style: TextStyle(
-              color: Colors.white,
+              color: theme.colorScheme.onSurface,
               fontSize: 16,
               fontWeight: FontWeight.w600,
             ),
@@ -577,18 +684,21 @@ class _AdditionalInfoSection extends StatelessWidget {
             value: songStats.published,
             total: songStats.created,
             color: Colors.green,
+            theme: theme,
           ),
           _DistributionItem(
             label: 'Under Review',
             value: songStats.underReview,
             total: songStats.created,
             color: Colors.orange,
+            theme: theme,
           ),
           _DistributionItem(
             label: 'Rejected Songs',
             value: songStats.rejected,
             total: songStats.created,
             color: Colors.red,
+            theme: theme,
           ),
         ],
       ),
@@ -602,12 +712,14 @@ class _DistributionItem extends StatelessWidget {
   final int value;
   final int total;
   final Color color;
+  final ThemeData theme;
 
   const _DistributionItem({
     required this.label,
     required this.value,
     required this.total,
     required this.color,
+    required this.theme,
   });
 
   @override
@@ -624,8 +736,8 @@ class _DistributionItem extends StatelessWidget {
             children: [
               Text(
                 label,
-                style: const TextStyle(
-                  color: Colors.white70,
+                style: TextStyle(
+                  color: theme.colorScheme.onSurface.withOpacity(0.7),
                   fontSize: 14,
                 ),
               ),
@@ -642,7 +754,7 @@ class _DistributionItem extends StatelessWidget {
           const SizedBox(height: 4),
           LinearProgressIndicator(
             value: total > 0 ? value / total : 0,
-            backgroundColor: Colors.white10,
+            backgroundColor: theme.dividerColor,
             valueColor: AlwaysStoppedAnimation<Color>(color),
             borderRadius: BorderRadius.circular(2),
           ),
@@ -655,26 +767,31 @@ class _DistributionItem extends StatelessWidget {
 // ✅ Stat Item Widget
 class _StatItem extends StatelessWidget {
   final String title;
-  final String value;
+  final dynamic value;
+  final ThemeData theme;
 
-  const _StatItem({required this.title, required this.value});
+  const _StatItem({
+    required this.title,
+    required this.value,
+    required this.theme,
+  });
 
   @override
   Widget build(BuildContext context) {
     return Column(
       children: [
         Text(
-          value,
-          style: const TextStyle(
-            color: Colors.white,
+          value.toString(),
+          style: TextStyle(
+            color: theme.colorScheme.onSurface,
             fontSize: 18,
             fontWeight: FontWeight.bold,
           ),
         ),
         Text(
           title,
-          style: const TextStyle(
-            color: Colors.white70,
+          style: TextStyle(
+            color: theme.colorScheme.onSurface.withOpacity(0.7),
             fontSize: 13,
           ),
         ),
@@ -683,10 +800,15 @@ class _StatItem extends StatelessWidget {
   }
 }
 
-
 class _ProfileHeader extends StatelessWidget {
   final Artist? user;
-  const _ProfileHeader({required this.user});
+  final ThemeData theme;
+  final bool isDark;
+  const _ProfileHeader({
+    required this.user,
+    required this.theme,
+    required this.isDark,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -706,6 +828,28 @@ class _ProfileHeader extends StatelessWidget {
               image: DecorationImage(
                 image: NetworkImage(user?.coverPhoto ?? ''),
                 fit: BoxFit.cover,
+                colorFilter: isDark
+                    ? ColorFilter.mode(
+                  Colors.black.withOpacity(0.3),
+                  BlendMode.darken,
+                )
+                    : null,
+              ),
+            ),
+          ),
+
+          // Gradient overlay for better text readability
+          Container(
+            height: waveHeight,
+            width: double.infinity,
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topCenter,
+                end: Alignment.bottomCenter,
+                colors: [
+                  Colors.transparent,
+                  isDark ? Colors.black.withOpacity(0.5) : Colors.white.withOpacity(0.5),
+                ],
               ),
             ),
           ),
@@ -724,7 +868,7 @@ class _ProfileHeader extends StatelessWidget {
                   children: [
                     CircleAvatar(
                       radius: avatarRadius,
-                      backgroundColor: const Color(0xFF0C0513),
+                      backgroundColor: theme.colorScheme.surface,
                       child: Padding(
                         padding: const EdgeInsets.all(3.0),
                         child: CircleAvatar(
@@ -739,8 +883,8 @@ class _ProfileHeader extends StatelessWidget {
                     const SizedBox(height: 6),
                     Text(
                       user?.userName ?? "Damian_sings",
-                      style: const TextStyle(
-                        color: Colors.white,
+                      style: TextStyle(
+                        color: theme.colorScheme.onSurface,
                         fontSize: 18,
                         fontWeight: FontWeight.w600,
                       ),
@@ -759,13 +903,13 @@ class _ProfileHeader extends StatelessWidget {
                       Navigator.push(
                         context,
                         MaterialPageRoute(
-                          builder: (context) =>  EditArtistProfile(user: user!),
+                          builder: (context) => EditArtistProfile(user: user!),
                         ),
                       );
                     },
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.white,
-                      foregroundColor: Colors.black,
+                      backgroundColor: theme.colorScheme.primary,
+                      foregroundColor: theme.colorScheme.onPrimary,
                       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(30),
@@ -786,12 +930,15 @@ class _ProfileHeader extends StatelessWidget {
             top: 10,
             left: 10,
             child: IconButton(
-              icon: const Icon(Icons.arrow_back_ios_new, color: Colors.white),
+              icon: Icon(
+                Icons.arrow_back_ios_new,
+                color: theme.colorScheme.onSurface,
+              ),
               onPressed: () {
                 Navigator.push(
                   context,
                   MaterialPageRoute(
-                    builder: (context) =>  CreatorDashboard(),
+                    builder: (context) => CreatorDashboard(),
                   ),
                 );
               },

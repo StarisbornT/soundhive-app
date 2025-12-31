@@ -11,9 +11,11 @@ import 'package:soundhive2/utils/app_colors.dart';
 import 'package:soundhive2/lib/dashboard_provider/apiresponseprovider.dart';
 import 'package:soundhive2/lib/dashboard_provider/notification_provider.dart';
 import '../auth/login.dart';
+import '../non_creator/settings/settings.dart';
 import '../non_creator/wallet/transaction_history.dart';
 import '../notifications/notifications.dart';
 import 'creator_home.dart';
+import 'events/event_screen.dart';
 final creatorNavigationProvider = StateProvider<int>((ref) => 0);
 
 class CreatorDashboard extends ConsumerWidget {
@@ -31,10 +33,8 @@ class CreatorDashboard extends ConsumerWidget {
 
     return Scaffold(
       key: _scaffoldKey,
-      backgroundColor: Colors.black,
       appBar: AppBar(
         automaticallyImplyLeading: false,
-        backgroundColor: const Color(0xFF0C051F),
         elevation: 0,
         title: Consumer(
           builder: (context, ref, _) {
@@ -48,7 +48,6 @@ class CreatorDashboard extends ConsumerWidget {
                     fontFamily: 'Nohemi',
                     fontSize: 18,
                     fontWeight: FontWeight.w400,
-                    color: Colors.white,
                   ),
                 ),
               ],
@@ -61,7 +60,6 @@ class CreatorDashboard extends ConsumerWidget {
               children: [
                 const Icon(
                   Icons.notifications_sharp,
-                  color: Colors.white,
                   size: 24,
                 ),
                 if (unreadCount > 0)
@@ -81,7 +79,6 @@ class CreatorDashboard extends ConsumerWidget {
                       child: Text(
                         unreadCount > 9 ? '9+' : unreadCount.toString(),
                         style: const TextStyle(
-                          color: Colors.white,
                           fontSize: 10,
                           fontWeight: FontWeight.bold,
                         ),
@@ -125,7 +122,6 @@ class CreatorDashboard extends ConsumerWidget {
 
       // ADDED: The Drawer widget for the sidebar
       drawer: Drawer(
-        backgroundColor: const Color(0xFF1A191E),
         child: AnimatedSwitcher(
           duration: const Duration(milliseconds: 900),
           transitionBuilder: (Widget child, Animation<double> animation) {
@@ -142,9 +138,6 @@ class CreatorDashboard extends ConsumerWidget {
                   SliverList(
                     delegate: SliverChildListDelegate([
                       DrawerHeader(
-                        decoration: const BoxDecoration(
-                          color: Color(0xFF1A191E),
-                        ),
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
@@ -160,7 +153,6 @@ class CreatorDashboard extends ConsumerWidget {
                                     ? "${user?.firstName[0]}${user?.lastName[0]}"
                                     : '?',
                                 style: const TextStyle(
-                                  color: Colors.white,
                                   fontSize: 30,
                                   fontWeight: FontWeight.bold,
                                 ),
@@ -170,7 +162,7 @@ class CreatorDashboard extends ConsumerWidget {
                             Text(
                               '${user?.firstName} ${user?.lastName}',
                               style: const TextStyle(
-                                color: Colors.white,
+                                
                                 fontSize: 16,
                                 fontWeight: FontWeight.w400,
                               ),
@@ -242,13 +234,21 @@ class CreatorDashboard extends ConsumerWidget {
                           ),
                         );
                       }),
+                      _buildDrawerItem(icon: 'images/calendar.png', text: 'Event Management', onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) =>   const EventScreen(),
+                          ),
+                        );
+                      }),
                       _buildDrawerItem(icon:'images/settings.png', text: 'Settings', onTap: () {
-                        // Navigator.push(
-                        //   context,
-                        //   MaterialPageRoute(
-                        //     builder: (context) =>  const SoundhiveVest(),
-                        //   ),
-                        // );
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) =>  const Settings(),
+                          ),
+                        );
                       }),
                       const SizedBox(height: 20),
                       Padding(
@@ -327,7 +327,7 @@ class CreatorDashboard extends ConsumerWidget {
                   );
                 }
               },
-              color: Colors.white,
+              
               backgroundColor: Colors.deepPurple,
               child: pages[selectedIndex],
             );
@@ -355,7 +355,7 @@ class CreatorDashboard extends ConsumerWidget {
       leading: Image.asset(icon),
       title: Text(
         text,
-        style: TextStyle(color: textColor, fontSize: 16),
+        style: const TextStyle(fontSize: 16),
       ),
       onTap: onTap,
     );

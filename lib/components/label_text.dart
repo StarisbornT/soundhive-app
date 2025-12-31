@@ -20,6 +20,7 @@ class LabeledTextField extends StatelessWidget {
   final String? errorText;
   final IconData? prefixIcon;
   final List<TextInputFormatter>? inputFormatters;
+  final TextAlign? textAlign;
 
   const LabeledTextField({
     super.key,
@@ -35,12 +36,16 @@ class LabeledTextField extends StatelessWidget {
     this.hintText,
     this.secondLabel,
     this.inputFormatters,
-    this.maxLines,
-    this.prefixIcon
+    this.maxLines = 1,
+    this.prefixIcon,
+    this.textAlign,
   });
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -49,21 +54,21 @@ class LabeledTextField extends StatelessWidget {
           children: [
             Text(
               label,
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 14,
                 fontWeight: FontWeight.w400,
-                color: AppColors.WHITECOLOR,
+                color: theme.colorScheme.onSurface,
               ),
             ),
-            if(secondLabel != null && secondLabel!.isNotEmpty)
-            Text(
-              secondLabel ?? '',
-              style: const TextStyle(
-                fontSize: 14,
-                fontWeight: FontWeight.w400,
-                color: Color(0xFFC5AFFF),
+            if (secondLabel != null && secondLabel!.isNotEmpty)
+              Text(
+                secondLabel!,
+                style: TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w400,
+                  color: isDark ? const Color(0xFFC5AFFF) : AppColors.BUTTONCOLOR,
+                ),
               ),
-            ),
           ],
         ),
         const SizedBox(height: 6),
@@ -73,27 +78,66 @@ class LabeledTextField extends StatelessWidget {
           obscureText: obscureText,
           onChanged: onChanged,
           maxLines: maxLines,
-          style: const TextStyle(color: Colors.white),
+          textAlign: textAlign ?? TextAlign.start,
+          style: TextStyle(color: theme.colorScheme.onSurface),
           inputFormatters: inputFormatters,
           decoration: InputDecoration(
-            prefixIcon: prefixIcon != null ?  Icon(prefixIcon, color: Color(0xFFB0B0B6),) : null,
+            prefixIcon: prefixIcon != null
+                ? Icon(
+              prefixIcon,
+              color: theme.colorScheme.onSurface.withOpacity(0.6),
+            )
+                : null,
+            suffixIcon: hasToggleVisibility
+                ? IconButton(
+              icon: Icon(
+                showVisibility ? Icons.visibility : Icons.visibility_off,
+                color: theme.colorScheme.onSurface.withOpacity(0.6),
+              ),
+              onPressed: toggleVisibility,
+            )
+                : null,
             border: OutlineInputBorder(
               borderRadius: BorderRadius.circular(8),
               borderSide: BorderSide(
-                color: errorText != null ? const Color.fromRGBO(219, 33, 33, 0.76) : AppColors.FORMGREYCOLOR,
+                color: errorText != null
+                    ? theme.colorScheme.error.withOpacity(0.76)
+                    : theme.dividerColor,
               ),
             ),
-            hintText: hintText,
+            enabledBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(8),
+              borderSide: BorderSide(
+                color: errorText != null
+                    ? theme.colorScheme.error.withOpacity(0.76)
+                    : theme.dividerColor,
+              ),
+            ),
             focusedBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(8),
               borderSide: BorderSide(
                 color: errorText != null
-                    ? const Color.fromRGBO(219, 33, 33, 0.76) // Error color
-                    : AppColors.WHITECOLOR, // Normal focus color
+                    ? theme.colorScheme.error.withOpacity(0.76)
+                    : AppColors.BUTTONCOLOR,
                 width: 2.0,
               ),
             ),
+            hintText: hintText,
+            hintStyle: TextStyle(
+              color: theme.colorScheme.onSurface.withOpacity(0.5),
+            ),
+            filled: true,
+            fillColor: isDark
+                ? theme.cardColor
+                : Colors.grey[100],
             errorText: errorText,
+            errorStyle: TextStyle(
+              color: theme.colorScheme.error,
+            ),
+            contentPadding: const EdgeInsets.symmetric(
+              horizontal: 16,
+              vertical: 12,
+            ),
           ),
         ),
         const SizedBox(height: 16),
@@ -158,7 +202,6 @@ class _LabeledSelectFieldState extends State<LabeledSelectField> {
               style: const TextStyle(
                 fontSize: 14,
                 fontWeight: FontWeight.w400,
-                color: AppColors.WHITECOLOR,
               ),
             ),
             if (widget.secondLabel != null && widget.secondLabel!.isNotEmpty)
@@ -182,7 +225,7 @@ class _LabeledSelectFieldState extends State<LabeledSelectField> {
               controller: widget.controller,
               decoration: InputDecoration(
                 hintText: widget.hintText ?? 'Select an option',
-                suffixIcon: const Icon(Icons.arrow_drop_down, color: Colors.white),
+                suffixIcon: const Icon(Icons.arrow_drop_down),
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(8),
                   borderSide: BorderSide(
@@ -202,7 +245,6 @@ class _LabeledSelectFieldState extends State<LabeledSelectField> {
                 ),
                 errorText: widget.errorText,
               ),
-              style: const TextStyle(color: Colors.white),
               readOnly: true,
             ),
           ),
@@ -327,7 +369,6 @@ class LabeledMultiSelectField extends StatelessWidget {
               style: const TextStyle(
                 fontSize: 14,
                 fontWeight: FontWeight.w400,
-                color: AppColors.WHITECOLOR,
               ),
             ),
             if (secondLabel != null && secondLabel!.isNotEmpty)
@@ -348,7 +389,6 @@ class LabeledMultiSelectField extends StatelessWidget {
           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 17),
           width: double.infinity,
           decoration: BoxDecoration(
-            color: Colors.black,
             borderRadius: BorderRadius.circular(8),
             border: Border.all(
               color: errorText != null
@@ -366,7 +406,6 @@ class LabeledMultiSelectField extends StatelessWidget {
                   onTap: () => _openBottomSheet(context),
                   child: Text(
                     hintText ?? 'Select options',
-                    style: const TextStyle(color: Colors.white38),
                   ),
                 )
                     : Wrap(
@@ -388,7 +427,6 @@ class LabeledMultiSelectField extends StatelessWidget {
                           Text(
                             label,
                             style: const TextStyle(
-                              color: Colors.white,
                               fontSize: 13,
                               fontWeight: FontWeight.w400,
                             ),
@@ -403,7 +441,6 @@ class LabeledMultiSelectField extends StatelessWidget {
                             child: const Icon(
                               Icons.close,
                               size: 16,
-                              color: Colors.white54,
                             ),
                           ),
                         ],
@@ -420,7 +457,6 @@ class LabeledMultiSelectField extends StatelessWidget {
                   padding: EdgeInsets.only(left: 6.0),
                   child: Icon(
                     Icons.arrow_drop_down,
-                    color: Colors.white70,
                   ),
                 ),
               ),
@@ -538,7 +574,6 @@ class LabeledMultiSelectField extends StatelessWidget {
   }
 }
 
-
 class CurrencyInputField extends ConsumerStatefulWidget {
   final String label;
   final String? hintText;
@@ -546,6 +581,8 @@ class CurrencyInputField extends ConsumerStatefulWidget {
   final TextEditingController? controller;
   final ValueChanged<String>? onChanged;
   final FormFieldValidator<String>? validator;
+  final ThemeData? theme;
+  final bool? isDark;
 
   const CurrencyInputField({
     super.key,
@@ -555,6 +592,8 @@ class CurrencyInputField extends ConsumerStatefulWidget {
     this.controller,
     this.onChanged,
     this.validator,
+    this.theme,
+    this.isDark,
   });
 
   @override
@@ -568,7 +607,7 @@ class _CurrencyInputFieldState extends ConsumerState<CurrencyInputField> {
   void initState() {
     super.initState();
     _internalController = widget.controller ?? TextEditingController();
-    // Initialize with "0.00" if empty, to match the "₦0.00" prefix appearance
+    // Initialize with empty string
     if (_internalController.text.isEmpty) {
       _internalController.text = '';
     }
@@ -625,17 +664,18 @@ class _CurrencyInputFieldState extends ConsumerState<CurrencyInputField> {
     }
   }
 
-
-
   @override
   Widget build(BuildContext context) {
+    final theme = widget.theme ?? Theme.of(context);
+    final isDark = widget.isDark ?? theme.brightness == Brightness.dark;
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
           widget.label,
-          style: const TextStyle(
-            color: Colors.white,
+          style: TextStyle(
+            color: theme.colorScheme.onSurface,
             fontSize: 14,
             fontWeight: FontWeight.w400,
           ),
@@ -650,36 +690,60 @@ class _CurrencyInputFieldState extends ConsumerState<CurrencyInputField> {
           validator: widget.validator,
           decoration: InputDecoration(
             hintText: widget.hintText,
-            hintStyle: const TextStyle(color: Color(0xFF7C7C88)),
+            hintStyle: TextStyle(
+              color: theme.colorScheme.onSurface.withOpacity(0.5),
+            ),
             prefix: Text(
               '${ref.creatorCurrencySymbol} ',
-              style: const TextStyle(
-                color: Colors.white,
+              style: TextStyle(
+                color: theme.colorScheme.onSurface,
+                fontSize: 18,
+                fontWeight: FontWeight.w500,
               ),
             ),
-            suffixText: widget.suffixText,
-            suffixStyle: const TextStyle(
-              color: Colors.white54,
+            suffixText: widget.suffixText.isNotEmpty ? widget.suffixText : null,
+            suffixStyle: TextStyle(
+              color: theme.colorScheme.onSurface.withOpacity(0.6),
               fontSize: 16,
             ),
             filled: true,
-            fillColor: Colors.black,
+            fillColor: isDark ? Colors.black : Colors.grey[100],
             border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12.0), // Rounded corners
-              borderSide: const BorderSide(color: Colors.white38), // Subtle border
+              borderRadius: BorderRadius.circular(12.0),
+              borderSide: BorderSide(
+                color: theme.dividerColor,
+              ),
             ),
             enabledBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(12.0),
-              borderSide: const BorderSide(color: Colors.white38),
+              borderSide: BorderSide(
+                color: theme.dividerColor,
+              ),
             ),
             focusedBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(12.0),
-              borderSide: const BorderSide(color: Colors.white38), // Orange border when focused
+              borderSide: BorderSide(
+                color: AppColors.BUTTONCOLOR,
+                width: 2.0,
+              ),
+            ),
+            errorBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12.0),
+              borderSide: BorderSide(
+                color: theme.colorScheme.error,
+              ),
+            ),
+            focusedErrorBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12.0),
+              borderSide: BorderSide(
+                color: theme.colorScheme.error,
+                width: 2.0,
+              ),
             ),
             contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
           ),
-          style: const TextStyle(
-            color: Colors.white, // White text color for input
+          style: TextStyle(
+            color: theme.colorScheme.onSurface,
             fontSize: 18,
             fontWeight: FontWeight.w500,
           ),

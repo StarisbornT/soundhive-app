@@ -6,6 +6,7 @@ import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
 import 'package:shimmer/shimmer.dart';
 import 'package:soundhive2/screens/creator/profile/setup_screen.dart';
+import 'package:soundhive2/screens/dashboard/withdraw.dart';
 import 'package:soundhive2/screens/non_creator/streaming/streaming.dart';
 import 'package:soundhive2/utils/app_colors.dart';
 import 'package:soundhive2/utils/utils.dart';
@@ -209,7 +210,7 @@ class _CreatorHomeState extends ConsumerState<CreatorHome> with SingleTickerProv
     return PopScope(
       canPop: false,
       child: Scaffold(
-        backgroundColor: AppColors.BACKGROUNDCOLOR,
+       
         body: SafeArea(
           child: SingleChildScrollView(
             padding: const EdgeInsets.all(16),
@@ -567,7 +568,7 @@ class _CreatorHomeState extends ConsumerState<CreatorHome> with SingleTickerProv
                       Navigator.push(
                         context,
                         MaterialPageRoute(
-                          builder: (context) => Streaming(),
+                          builder: (context) => const WithdrawScreen(),
                         ),
                       );
                     },

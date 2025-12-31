@@ -35,6 +35,7 @@ class Streaming extends ConsumerStatefulWidget {
   ConsumerState<Streaming> createState() => _StreamingState();
 }
 
+
 class _StreamingState extends ConsumerState<Streaming> {
   final TextEditingController _searchController = TextEditingController();
   final TextEditingController _playlistTitleController = TextEditingController();
@@ -55,7 +56,7 @@ class _StreamingState extends ConsumerState<Streaming> {
     "Country", "Classical", "Jazz", "Blues"
   ];
 
-  Widget _buildSearchAndFilter() {
+  Widget _buildSearchAndFilter(ThemeData theme, bool isDark) {
     return Row(
       children: [
         Expanded(
@@ -63,24 +64,34 @@ class _StreamingState extends ConsumerState<Streaming> {
             height: 48,
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
             decoration: BoxDecoration(
-              color: AppColors.BACKGROUNDCOLOR,
+              color: isDark ? AppColors.BACKGROUNDCOLOR : Colors.grey[100],
               borderRadius: BorderRadius.circular(4),
               border: Border.all(
-                color: AppColors.TEXT_SECONDARY.withOpacity(0.4),
+                color: theme.dividerColor,
                 width: 1,
               ),
             ),
             child: Row(
               children: [
-                const Icon(Icons.search, color: AppColors.TEXT_SECONDARY, size: 20),
+                Icon(
+                  Icons.search,
+                  color: theme.colorScheme.onSurface.withOpacity(0.6),
+                  size: 20,
+                ),
                 const SizedBox(width: 8),
                 Expanded(
                   child: TextField(
                     controller: _searchController,
-                    style: const TextStyle(color: Colors.white, fontSize: 12),
-                    decoration: const InputDecoration(
+                    style: TextStyle(
+                      color: theme.colorScheme.onSurface,
+                      fontSize: 12,
+                    ),
+                    decoration: InputDecoration(
                       hintText: 'Search for a song',
-                      hintStyle: TextStyle(color: AppColors.TEXT_SECONDARY, fontSize: 12),
+                      hintStyle: TextStyle(
+                        color: theme.colorScheme.onSurface.withOpacity(0.5),
+                        fontSize: 12,
+                      ),
                       border: InputBorder.none,
                       isDense: true,
                       contentPadding: EdgeInsets.zero,
@@ -97,16 +108,22 @@ class _StreamingState extends ConsumerState<Streaming> {
         const SizedBox(width: 10.0),
         Container(
           decoration: BoxDecoration(
-            color: AppColors.BACKGROUNDCOLOR,
+            color: isDark ? AppColors.BACKGROUNDCOLOR : Colors.grey[100],
             borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: const Color(0xFF2C2C2C)),
+            border: Border.all(color: theme.dividerColor),
           ),
           child: TextButton.icon(
-            onPressed: _showTypeFilterBottomSheet,
-            icon: const Icon(Icons.filter_list, color: Colors.white),
-            label: const Text(
+            onPressed: () => _showTypeFilterBottomSheet(theme, isDark),
+            icon: Icon(
+              Icons.filter_list,
+              color: theme.colorScheme.onSurface,
+            ),
+            label: Text(
               'Filter',
-              style: TextStyle(color: Colors.white30, fontSize: 12),
+              style: TextStyle(
+                color: theme.colorScheme.onSurface.withOpacity(0.6),
+                fontSize: 12,
+              ),
             ),
           ),
         ),
@@ -114,10 +131,10 @@ class _StreamingState extends ConsumerState<Streaming> {
     );
   }
 
-  void _showTypeFilterBottomSheet() {
+  void _showTypeFilterBottomSheet(ThemeData theme, bool isDark) {
     showModalBottomSheet(
       context: context,
-      backgroundColor: AppColors.BACKGROUNDCOLOR,
+      backgroundColor: theme.cardColor,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
       ),
@@ -128,9 +145,13 @@ class _StreamingState extends ConsumerState<Streaming> {
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Text(
+              Text(
                 'Select Song Type',
-                style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold),
+                style: TextStyle(
+                  color: theme.colorScheme.onSurface,
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                ),
               ),
               const SizedBox(height: 12),
               Wrap(
@@ -138,13 +159,19 @@ class _StreamingState extends ConsumerState<Streaming> {
                 children: types.map((type) {
                   final isSelected = selectedType == type;
                   return ChoiceChip(
-                    label: Text(type),
-                    selected: isSelected,
-                    selectedColor: Colors.deepPurple,
-                    backgroundColor: const Color(0xFF2C2C2C),
-                    labelStyle: TextStyle(
-                      color: isSelected ? Colors.white : AppColors.TEXT_SECONDARY,
+                    label: Text(
+                      type,
+                      style: TextStyle(
+                        color: isSelected
+                            ? Colors.white
+                            : theme.colorScheme.onSurface.withOpacity(0.8),
+                      ),
                     ),
+                    selected: isSelected,
+                    selectedColor: AppColors.BUTTONCOLOR,
+                    backgroundColor: isDark
+                        ? const Color(0xFF2C2C2C)
+                        : Colors.grey[200],
                     onSelected: (_) {
                       Navigator.pop(context);
                       setState(() => selectedType = type);
@@ -161,7 +188,12 @@ class _StreamingState extends ConsumerState<Streaming> {
                     setState(() => selectedType = null);
                     ref.read(getAllSongsProvider.notifier).getAllSongs();
                   },
-                  child: const Text('Clear Filter', style: TextStyle(color: Colors.white70)),
+                  child: Text(
+                    'Clear Filter',
+                    style: TextStyle(
+                      color: theme.colorScheme.onSurface.withOpacity(0.7),
+                    ),
+                  ),
                 ),
             ],
           ),
@@ -170,88 +202,111 @@ class _StreamingState extends ConsumerState<Streaming> {
     );
   }
 
-  Widget _buildTrackItem(SongItem song) {
+  Widget _buildTrackItem(SongItem song, ThemeData theme, bool isDark) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 12.0),
-      child: ListTile(
-        contentPadding: const EdgeInsets.symmetric(horizontal: 16.0),
-        leading: Container(
-          width: 50,
-          height: 50,
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(8.0),
-            image: DecorationImage(
-              image: NetworkImage(song.coverPhoto),
-              fit: BoxFit.cover,
-            ),
-          ),
+      child: Container(
+        decoration: BoxDecoration(
+          color: isDark ? Colors.transparent : Colors.grey[50],
+          borderRadius: BorderRadius.circular(8),
         ),
-        title: Text(
-          song.title,
-          style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w400, fontSize: 14),
-        ),
-        subtitle: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              "${song.artist?.userName ?? "Unknown Artist"} - ${song.artist?.followers} followers",
-              style: const TextStyle(color: AppColors.TEXT_SECONDARY, fontSize: 12),
-            ),
-            Text(
-              "${song.plays} plays",
-              style: const TextStyle(color: AppColors.TEXT_SECONDARY, fontSize: 12),
-            ),
-          ],
-        ),
-        trailing: IconButton(
-          icon: const Icon(Icons.more_vert, color: AppColors.TEXT_SECONDARY),
-          onPressed: () => _showSongOptions(song),
-        ),
-        onTap: () {
-          final songsState = ref.read(getAllSongsProvider);
-          List<SongItem>? playlist;
-
-          songsState.when(
-            data: (songModel) {
-              playlist = songModel.data.data;
-            },
-            loading: () => playlist = null,
-            error: (e, _) => playlist = null,
-          );
-
-          Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder: (context) => PlayMusic(
-                song: song,
-                playlist: playlist,
+        child: ListTile(
+          contentPadding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8),
+          leading: Container(
+            width: 50,
+            height: 50,
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(8.0),
+              image: DecorationImage(
+                image: NetworkImage(song.coverPhoto),
+                fit: BoxFit.cover,
               ),
             ),
-          );
-        },
+          ),
+          title: Text(
+            song.title,
+            style: TextStyle(
+              color: theme.colorScheme.onSurface,
+              fontWeight: FontWeight.w400,
+              fontSize: 14,
+            ),
+          ),
+          subtitle: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                "${song.artist?.userName ?? "Unknown Artist"} - ${song.artist?.followers} followers",
+                style: TextStyle(
+                  color: theme.colorScheme.onSurface.withOpacity(0.6),
+                  fontSize: 12,
+                ),
+              ),
+              Text(
+                "${song.plays} plays",
+                style: TextStyle(
+                  color: theme.colorScheme.onSurface.withOpacity(0.6),
+                  fontSize: 12,
+                ),
+              ),
+            ],
+          ),
+          trailing: IconButton(
+            icon: Icon(
+              Icons.more_vert,
+              color: theme.colorScheme.onSurface.withOpacity(0.6),
+            ),
+            onPressed: () => _showSongOptions(song, theme, isDark),
+          ),
+          onTap: () {
+            final songsState = ref.read(getAllSongsProvider);
+            List<SongItem>? playlist;
+
+            songsState.when(
+              data: (songModel) {
+                playlist = songModel.data.data;
+              },
+              loading: () => playlist = null,
+              error: (e, _) => playlist = null,
+            );
+
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (context) => PlayMusic(
+                  song: song,
+                  playlist: playlist,
+                ),
+              ),
+            );
+          },
+        ),
       ),
     );
   }
 
-  void _showSongOptions(SongItem song) {
+  void _showSongOptions(SongItem song, ThemeData theme, bool isDark) {
     SharedBottomSheets.showSongOptions(
       context: context,
       song: song,
       ref: ref,
-      onAddToPlaylist: () => _showAddToPlaylist(song),
+      theme: theme,
+      isDark: isDark,
+      onAddToPlaylist: () => _showAddToPlaylist(song, theme, isDark),
       onArtistProfile: () => _navigateToArtistProfile(song),
     );
   }
 
-  void _showAddToPlaylist(SongItem song) {
+  void _showAddToPlaylist(SongItem song, ThemeData theme, bool isDark) {
     SharedBottomSheets.showAddToPlaylist(
       context: context,
       song: song,
       ref: ref,
-      onCreatePlaylist: () => _showCreatePlaylistBottomSheet(),
+      theme: theme,
+      isDark: isDark,
+      onCreatePlaylist: () => _showCreatePlaylistBottomSheet(theme, isDark),
       onPlaylistTap: (playlist, songToAdd) => _onPlaylistTap(playlist, songToAdd),
-      onPlaylistRename: (playlist) => _onPlaylistRename(playlist),
-      onPlaylistDelete: (playlist) => _onPlaylistDelete(playlist),
+      onPlaylistRename: (playlist) => _onPlaylistRename(playlist, theme, isDark),
+      onPlaylistDelete: (playlist) => _onPlaylistDelete(playlist, theme, isDark),
     );
   }
 
@@ -260,25 +315,30 @@ class _StreamingState extends ConsumerState<Streaming> {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text('Added ${songToAdd.title} to ${playlist.title}'),
+        backgroundColor: AppColors.BUTTONCOLOR,
       ),
     );
   }
 
-  void _onPlaylistRename(Playlist playlist) {
+  void _onPlaylistRename(Playlist playlist, ThemeData theme, bool isDark) {
     Navigator.pop(context);
     SharedBottomSheets.showRenamePlaylist(
       context: context,
       playlist: playlist,
       renameController: _renameController,
+      theme: theme,
+      isDark: isDark,
       onRename: () => _renamePlaylist(playlist.id),
     );
   }
 
-  void _onPlaylistDelete(Playlist playlist) {
+  void _onPlaylistDelete(Playlist playlist, ThemeData theme, bool isDark) {
     Navigator.pop(context);
     SharedBottomSheets.showDeletePlaylistConfirmation(
       context: context,
       playlist: playlist,
+      theme: theme,
+      isDark: isDark,
       onDelete: () => _deletePlaylist(playlist.id),
     );
   }
@@ -330,15 +390,16 @@ class _StreamingState extends ConsumerState<Streaming> {
     );
   }
 
-  void _showCreatePlaylistBottomSheet() {
+  void _showCreatePlaylistBottomSheet(ThemeData theme, bool isDark) {
     BottomSheetHelper.showCommonBottomSheet(
       context: context,
       isScrollControlled: true,
-      builder: (context) => _buildCreatePlaylistContent(),
+      backgroundColor: theme.cardColor,
+      builder: (context) => _buildCreatePlaylistContent(theme, isDark),
     );
   }
 
-  Widget _buildCreatePlaylistContent() {
+  Widget _buildCreatePlaylistContent(ThemeData theme, bool isDark) {
     return BottomSheetHelper.buildBottomSheetWrapper(
       context: context,
       padding: EdgeInsets.only(
@@ -355,6 +416,7 @@ class _StreamingState extends ConsumerState<Streaming> {
             BottomSheetHelper.buildBottomSheetHeader(
               title: "Create new playlist",
               onClose: () => Navigator.pop(context),
+              theme: theme, context: context,
             ),
             const SizedBox(height: 20),
             LabeledTextField(
@@ -365,7 +427,7 @@ class _StreamingState extends ConsumerState<Streaming> {
             RoundedButton(
               title: 'Save playlist',
               onPressed: _createPlaylist,
-              color: AppColors.PRIMARYCOLOR,
+              color: AppColors.BUTTONCOLOR,
             ),
           ],
         ),
@@ -391,7 +453,7 @@ class _StreamingState extends ConsumerState<Streaming> {
     }
   }
 
-  Widget _buildMiniPlayer() {
+  Widget _buildMiniPlayer(ThemeData theme, bool isDark) {
     final audioState = ref.watch(audioPlayerProvider);
     final currentSong = audioState.currentSong;
 
@@ -414,7 +476,7 @@ class _StreamingState extends ConsumerState<Streaming> {
       },
       child: Container(
         height: 70.0,
-        color: AppColors.MINI_PLAYER_COLOR,
+        color: isDark ? AppColors.MINI_PLAYER_COLOR : Colors.grey[200],
         padding: const EdgeInsets.symmetric(horizontal: 10.0),
         child: Row(
           children: [
@@ -434,16 +496,24 @@ class _StreamingState extends ConsumerState<Streaming> {
                     return Container(
                       width: 50,
                       height: 50,
-                      color: Colors.grey[800],
-                      child: const Icon(Icons.music_note, color: Colors.white, size: 24),
+                      color: isDark ? Colors.grey[800] : Colors.grey[300],
+                      child: Icon(
+                        Icons.music_note,
+                        color: theme.colorScheme.onSurface,
+                        size: 24,
+                      ),
                     );
                   },
                 )
                     : Container(
                   width: 50,
                   height: 50,
-                  color: Colors.grey[800],
-                  child: const Icon(Icons.music_note, color: Colors.white, size: 24),
+                  color: isDark ? Colors.grey[800] : Colors.grey[300],
+                  child: Icon(
+                    Icons.music_note,
+                    color: theme.colorScheme.onSurface,
+                    size: 24,
+                  ),
                 ),
               ),
             ),
@@ -454,12 +524,19 @@ class _StreamingState extends ConsumerState<Streaming> {
                 children: [
                   Text(
                     currentSong.title,
-                    style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 14),
+                    style: TextStyle(
+                      color: theme.colorScheme.onSurface,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 14,
+                    ),
                     overflow: TextOverflow.ellipsis,
                   ),
                   Text(
                     currentSong.artist?.userName ?? 'Unknown Artist',
-                    style: const TextStyle(color: AppColors.TEXT_SECONDARY, fontSize: 12),
+                    style: TextStyle(
+                      color: theme.colorScheme.onSurface.withOpacity(0.6),
+                      fontSize: 12,
+                    ),
                     overflow: TextOverflow.ellipsis,
                   ),
                 ],
@@ -468,7 +545,7 @@ class _StreamingState extends ConsumerState<Streaming> {
             IconButton(
               icon: Icon(
                 audioState.isPlaying ? Icons.pause : Icons.play_arrow,
-                color: Colors.white,
+                color: theme.colorScheme.onSurface,
                 size: 30,
               ),
               onPressed: () {
@@ -483,6 +560,8 @@ class _StreamingState extends ConsumerState<Streaming> {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
     final user = ref.watch(userProvider);
     final songsState = ref.watch(getAllSongsProvider);
 
@@ -491,34 +570,43 @@ class _StreamingState extends ConsumerState<Streaming> {
         data: (songModel) {
           final tracks = songModel.data.data;
           if (tracks.isEmpty) {
-            return const Center(
+            return Center(
               child: Padding(
-                padding: EdgeInsets.all(20),
-                child: Text('No songs found', style: TextStyle(color: Colors.white70)),
+                padding: const EdgeInsets.all(20),
+                child: Text(
+                  'No songs found',
+                  style: TextStyle(color: theme.colorScheme.onSurface.withOpacity(0.6)),
+                ),
               ),
             );
           }
 
           return Column(
             children: tracks.map((song) {
-              return _buildTrackItem(song);
+              return _buildTrackItem(song, theme, isDark);
             }).toList(),
           );
         },
-        loading: () => const Center(child: CircularProgressIndicator()),
-        error: (e, _) => Center(child: Text('Error: $e', style: const TextStyle(color: Colors.red))),
+        loading: () => Center(
+          child: CircularProgressIndicator(color: theme.colorScheme.primary),
+        ),
+        error: (e, _) => Center(
+          child: Text(
+            'Error: $e',
+            style: TextStyle(color: theme.colorScheme.error),
+          ),
+        ),
       );
     }
 
     return Scaffold(
-      backgroundColor: AppColors.BACKGROUNDCOLOR,
       appBar: AppBar(
-        backgroundColor: AppColors.BACKGROUNDCOLOR,
+        backgroundColor: theme.scaffoldBackgroundColor,
         elevation: 0,
         leading: IconButton(
-          icon: const Icon(
+          icon: Icon(
             Icons.arrow_back_ios_new,
-            color: Color(0xFFB0B0B6),
+            color: theme.colorScheme.onSurface.withOpacity(0.6),
           ),
           onPressed: () => Navigator.pop(context),
         ),
@@ -529,26 +617,26 @@ class _StreamingState extends ConsumerState<Streaming> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: <Widget>[
-              const Text(
+              Text(
                 'SoundHive- Stream Music',
                 style: TextStyle(
                   fontSize: 24,
                   fontWeight: FontWeight.w500,
-                  color: Colors.white,
+                  color: theme.colorScheme.onSurface,
                 ),
               ),
               const SizedBox(height: 10,),
               Image.asset('images/music_banner.png'),
               const SizedBox(height: 10,),
-              _buildSearchAndFilter(),
+              _buildSearchAndFilter(theme, isDark),
               const SizedBox(height: 10,),
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  const Text(
+                  Text(
                     'Discover',
                     style: TextStyle(
-                      color: Colors.white,
+                      color: theme.colorScheme.onSurface,
                       fontSize: 16.0,
                       fontWeight: FontWeight.w400,
                     ),
@@ -558,14 +646,17 @@ class _StreamingState extends ConsumerState<Streaming> {
                       // Navigate to categories if needed
                     },
                     style: OutlinedButton.styleFrom(
-                      side: const BorderSide(color: Color(0xFF2C2C2C)),
+                      side: BorderSide(color: theme.dividerColor),
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(100),
                       ),
                     ),
-                    child: const Text(
+                    child: Text(
                       'View More',
-                      style: TextStyle(color: Color(0xFFB0B0B6), fontSize: 12),
+                      style: TextStyle(
+                        color: theme.colorScheme.onSurface.withOpacity(0.6),
+                        fontSize: 12,
+                      ),
                     ),
                   ),
                 ],
@@ -577,7 +668,7 @@ class _StreamingState extends ConsumerState<Streaming> {
           ),
         ),
       ),
-      bottomNavigationBar: _buildMiniPlayer(),
+      bottomNavigationBar: _buildMiniPlayer(theme, isDark),
     );
   }
 

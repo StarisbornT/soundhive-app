@@ -23,7 +23,7 @@ class AddSongScreen extends ConsumerStatefulWidget {
   const AddSongScreen({super.key});
 
   @override
-  _AddSongScreenState createState() => _AddSongScreenState();
+  ConsumerState<AddSongScreen> createState() => _AddSongScreenState();
 }
 
 class _AddSongScreenState extends ConsumerState<AddSongScreen> {
@@ -297,7 +297,7 @@ class _AddSongScreenState extends ConsumerState<AddSongScreen> {
     final artistsAsync = ref.watch(getFeaturedArtistProvider);
 
     return Scaffold(
-      backgroundColor: AppColors.BACKGROUNDCOLOR,
+     
       body: SafeArea(
         child: LayoutBuilder(
           builder: (context, constraints) {
@@ -311,7 +311,6 @@ class _AddSongScreenState extends ConsumerState<AddSongScreen> {
                       IconButton(
                         icon: const Icon(
                           Icons.arrow_back_ios_new,
-                          color: Color(0xFFB0B0B6),
                         ),
                         onPressed: () => Navigator.pop(context),
                       ),
@@ -321,14 +320,12 @@ class _AddSongScreenState extends ConsumerState<AddSongScreen> {
                         style: TextStyle(
                           fontSize: 24,
                           fontWeight: FontWeight.w400,
-                          color: Colors.white,
                         ),
                       ),
                       const SizedBox(height: 8),
                       const Text(
                         'Note that all added songs will be reviewed by Soundhive before it is published.',
                         style: TextStyle(
-                          color: Colors.white70,
                           fontSize: 12,
                         ),
                       ),
@@ -424,6 +421,7 @@ class _AddSongScreenState extends ConsumerState<AddSongScreen> {
                     title: 'Upload Song',
                     onPressed: _submitForm,
                     color: AppColors.PRIMARYCOLOR,
+                    borderWidth: 0,
                   ),
                 ),
               ],

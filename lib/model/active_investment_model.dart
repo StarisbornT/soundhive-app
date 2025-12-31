@@ -1,6 +1,4 @@
 import 'dart:convert';
-
-import 'investment_model.dart';
 import 'market_orders_service_model.dart';
 
 class ActiveInvestmentResponse {

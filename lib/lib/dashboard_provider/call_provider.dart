@@ -232,7 +232,17 @@ class AudioCallNotifier extends StateNotifier<AudioCallState> {
     _callDurationSeconds = 0;
 
     if (_isEngineInitialized && _currentChannel != null) {
-      _agoraEngine.leaveChannel();
+      try {
+        // First leave the channel
+        _agoraEngine.leaveChannel();
+
+        // Then destroy the engine to completely stop audio
+        _agoraEngine.release();
+        _isEngineInitialized = false;
+
+      } catch (e) {
+        print('Error ending call: $e');
+      }
     }
 
     // Clear the token when call ends

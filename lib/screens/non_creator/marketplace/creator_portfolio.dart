@@ -29,7 +29,7 @@ class _CreatorPortfolioState extends ConsumerState<CreatorPortfolio> {
     final user = ref.watch(userProvider);
 
     return Scaffold(
-      backgroundColor: AppColors.BACKGROUNDCOLOR,
+     
       body: SingleChildScrollView(
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,

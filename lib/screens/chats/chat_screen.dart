@@ -1,4 +1,3 @@
-
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -67,7 +66,7 @@ class Message {
         if (readByValue is Map<dynamic, dynamic>) {
           // Handle Map format: {"userId": true}
           readByMap = Map<String, bool>.from(readByValue.map(
-                (key, value) => MapEntry(
+            (key, value) => MapEntry(
               key.toString(),
               value?.toString() == 'true',
             ),
@@ -97,7 +96,8 @@ class Message {
       serviceName: map['serviceName']?.toString() ?? '',
       customerName: map['customerName']?.toString() ?? '',
       timestamp: timestamp,
-      files: List<FileData>.from((map['files'] ?? []).map((f) => FileData.fromMap(f))),
+      files: List<FileData>.from(
+          (map['files'] ?? []).map((f) => FileData.fromMap(f))),
       isSystem: map['isSystem']?.toString() == 'true' || false,
       readBy: readByMap,
     );
@@ -159,14 +159,13 @@ class ChatScreen extends ConsumerStatefulWidget {
   final String senderName;
   final String receiverId;
 
-  const ChatScreen({
-    super.key,
-    required this.sellerId,
-    required this.receiverId,
-    required this.sellerName,
-    required this.senderName,
-    required this.sellerService
-  });
+  const ChatScreen(
+      {super.key,
+      required this.sellerId,
+      required this.receiverId,
+      required this.sellerName,
+      required this.senderName,
+      required this.sellerService});
 
   @override
   ConsumerState<ChatScreen> createState() => _ChatScreenState();
@@ -192,8 +191,8 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
 
     // Determine the other user ID
     final otherUserId = userId == widget.sellerId
-        ? widget.receiverId  // Current user is seller, so other user is receiver
-        : widget.sellerId;   // Current user is buyer, so other user is seller
+        ? widget.receiverId // Current user is seller, so other user is receiver
+        : widget.sellerId; // Current user is buyer, so other user is seller
 
     final chatId = _getChatId(userId, otherUserId);
 
@@ -201,12 +200,16 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
     for (final message in _messages) {
       if (message.senderId != userId && !message.readBy.containsKey(userId)) {
         // Use correct Map format: {"userId": true}
-        await _dbRef.child('chats/$chatId/messages/${message.id}/readBy/$userId').set(true);
+        await _dbRef
+            .child('chats/$chatId/messages/${message.id}/readBy/$userId')
+            .set(true);
       }
     }
 
     // Update the last read timestamp for this user
-    await _dbRef.child('chats/$chatId/lastRead/$userId').set(DateTime.now().toIso8601String());
+    await _dbRef
+        .child('chats/$chatId/lastRead/$userId')
+        .set(DateTime.now().toIso8601String());
   }
 
   Future<void> _migrateOldMessages() async {
@@ -216,9 +219,8 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
     final userId = currentUser.id.toString();
 
     // Determine the other user ID
-    final otherUserId = userId == widget.sellerId
-        ? widget.receiverId
-        : widget.sellerId;
+    final otherUserId =
+        userId == widget.sellerId ? widget.receiverId : widget.sellerId;
 
     final chatId = _getChatId(userId, otherUserId);
 
@@ -226,7 +228,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
       final snapshot = await _dbRef.child('chats/$chatId/messages').get();
       if (snapshot.exists) {
         final Map<dynamic, dynamic> messagesMap =
-        snapshot.value as Map<dynamic, dynamic>;
+            snapshot.value as Map<dynamic, dynamic>;
 
         final updates = <String, dynamic>{};
 
@@ -246,7 +248,6 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
             // Check if timestamp is missing or invalid
             if (messageData['timestamp'] == null ||
                 messageData['timestamp'].toString().isEmpty) {
-
               // Create a fallback timestamp (current time)
               updates['chats/$chatId/messages/$key/timestamp'] =
                   DateTime.now().toIso8601String();
@@ -271,9 +272,8 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
     final userId = currentUser.id.toString();
 
     // Determine the other user ID
-    final otherUserId = userId == widget.sellerId
-        ? widget.receiverId
-        : widget.sellerId;
+    final otherUserId =
+        userId == widget.sellerId ? widget.receiverId : widget.sellerId;
 
     final chatId = _getChatId(userId, otherUserId);
 
@@ -281,7 +281,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
       final snapshot = await _dbRef.child('chats/$chatId/messages').get();
       if (snapshot.exists) {
         final Map<dynamic, dynamic> messagesMap =
-        snapshot.value as Map<dynamic, dynamic>;
+            snapshot.value as Map<dynamic, dynamic>;
 
         final updates = <String, dynamic>{};
 
@@ -291,7 +291,8 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
 
             // Check if readBy is a List instead of a Map
             if (messageData['readBy'] is List) {
-              final List<dynamic> readByList = messageData['readBy'] as List<dynamic>;
+              final List<dynamic> readByList =
+                  messageData['readBy'] as List<dynamic>;
 
               // Convert List format to Map format
               final Map<String, bool> readByMap = {};
@@ -309,7 +310,8 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
 
         if (updates.isNotEmpty) {
           await _dbRef.update(updates);
-          print('Migrated ${updates.length} messages with incorrect readBy format');
+          print(
+              'Migrated ${updates.length} messages with incorrect readBy format');
         }
       }
     } catch (e) {
@@ -337,6 +339,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
     _scrollController.dispose();
     super.dispose();
   }
+
   void _scrollToBottom() {
     if (_scrollController.hasClients) {
       _scrollController.animateTo(
@@ -346,18 +349,18 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
       );
     }
   }
+
   void _setupCallListener() {
     final currentUser = ref.read(userProvider).value?.user;
     if (currentUser == null) return;
 
     final userId = currentUser.id.toString();
-    final otherUserId = userId == widget.sellerId ? widget.receiverId : widget.sellerId;
+    final otherUserId =
+        userId == widget.sellerId ? widget.receiverId : widget.sellerId;
     final chatId = _getChatId(userId, otherUserId);
 
-    _callSubscription = _dbRef
-        .child('calls/$chatId')
-        .onValue
-        .listen((DatabaseEvent event) {
+    _callSubscription =
+        _dbRef.child('calls/$chatId').onValue.listen((DatabaseEvent event) {
       if (event.snapshot.value != null) {
         final callData = event.snapshot.value as Map<dynamic, dynamic>;
         _handleIncomingCall(callData, userId);
@@ -371,7 +374,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
     final channelName = callData['channelName']?.toString();
 
     if (callStatus == 'calling' && callerId != userId) {
-      // Show incoming call dialog
+      // Show incoming call dialog with the caller's name
       _showIncomingCallDialog(callData);
     } else if (callStatus == 'ended') {
       // End call if active
@@ -390,9 +393,10 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
       context: context,
       barrierDismissible: false,
       builder: (context) => AlertDialog(
-        backgroundColor: AppColors.BACKGROUNDCOLOR,
-        title: const Text('Incoming Audio Call', style: TextStyle(color: Colors.white)),
-        content: Text('$callerName is calling you...', style: TextStyle(color: Colors.white70)),
+        title: const Text('Incoming Audio Call',
+            style: TextStyle(color: Colors.white)),
+        content: Text('$callerName is calling you...',
+            style: TextStyle(color: Colors.white70)),
         actions: [
           TextButton(
             onPressed: () {
@@ -404,7 +408,8 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
           TextButton(
             onPressed: () {
               Navigator.pop(context);
-              _acceptCall(channelName);
+              // Pass the callData to acceptCall so we can show the right info
+              _acceptCall(channelName, callData);
             },
             child: const Text('Accept', style: TextStyle(color: Colors.green)),
           ),
@@ -413,12 +418,36 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
     );
   }
 
-  Future<void> _startCall(WidgetRef ref) async {
+  Future<void> _acceptCall(
+      String channelName, Map<dynamic, dynamic> callData) async {
     final currentUser = ref.read(userProvider).value?.user;
     if (currentUser == null) return;
 
     final userId = currentUser.id.toString();
-    final otherUserId = userId == widget.sellerId ? widget.receiverId : widget.sellerId;
+    final otherUserId =
+        userId == widget.sellerId ? widget.receiverId : widget.sellerId;
+    final chatId = _getChatId(userId, otherUserId);
+
+    // Update call status
+    await _dbRef.child('calls/$chatId/status').set('connected');
+
+    // Join the call
+    ref
+        .read(audioCallProvider.notifier)
+        .joinCall(channelName, int.parse(userId));
+    _isCallActive = true;
+
+    // Show call screen - pass the callData from the notification
+    _showCallScreen(ref, isInitiator: false);
+  }
+
+  void _startCall(WidgetRef ref) async {
+    final currentUser = ref.read(userProvider).value?.user;
+    if (currentUser == null) return;
+
+    final userId = currentUser.id.toString();
+    final otherUserId =
+        userId == widget.sellerId ? widget.receiverId : widget.sellerId;
     final chatId = _getChatId(userId, otherUserId);
     final channelName = 'audio_call_${DateTime.now().millisecondsSinceEpoch}';
 
@@ -436,11 +465,12 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
       await _sendCallNotification(ref, otherUserId, channelName);
 
       // 3. Start the local call
-      await ref.read(audioCallProvider.notifier).startCall(channelName, int.parse(userId));
+      await ref
+          .read(audioCallProvider.notifier)
+          .startCall(channelName, int.parse(userId));
 
-      // 4. Show call screen
-      _showCallScreen(ref);
-
+      // 4. Show call screen - pass the OTHER user's data
+      _showCallScreen(ref, isInitiator: true);
     } catch (e) {
       debugPrint("Failed to start call: $e");
 
@@ -454,7 +484,8 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
   }
 
   // Add this method to your ChatScreen
-  Future<void> _sendCallNotification(WidgetRef ref, String receiverId, String channelName) async {
+  Future<void> _sendCallNotification(
+      WidgetRef ref, String receiverId, String channelName) async {
     final currentUser = ref.read(userProvider).value?.user;
     final dio = ref.read(dioProvider);
 
@@ -465,7 +496,8 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
         '/calls/notify-incoming',
         data: {
           'receiver_id': int.parse(receiverId),
-          'caller_name': "${currentUser.firstName} ${currentUser.lastName}".trim(),
+          'caller_name':
+              "${currentUser.firstName} ${currentUser.lastName}".trim(),
           'channel_name': channelName,
           'call_id': 'call_${DateTime.now().millisecondsSinceEpoch}',
         },
@@ -482,8 +514,35 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
     }
   }
 
-  void _showCallScreen(WidgetRef ref) {
-    Navigator.of(context).push(
+  void _showCallScreen(WidgetRef ref, {bool isInitiator = false}) {
+    final currentUser = ref.read(userProvider).value?.user;
+
+    // Create caller data based on whether we're initiating or receiving
+    final callerData = isInitiator
+        ? {
+            'caller_name': widget.sellerName, // The person we're calling
+            'caller': {
+              'first_name': widget.sellerName.split(' ').first,
+              'last_name': widget.sellerName.split(' ').last,
+              'role': widget.sellerService, // Use seller service as role
+            }
+          }
+        : {
+            'caller_name': currentUser != null
+                ? "${currentUser.firstName} ${currentUser.lastName}".trim()
+                : 'Unknown',
+            'caller': currentUser != null
+                ? {
+                    'first_name': currentUser.firstName,
+                    'last_name': currentUser.lastName,
+                    'role': currentUser.role ?? 'User',
+                    'image': currentUser.image,
+                  }
+                : null
+          };
+
+    Navigator.of(context)
+        .push(
       PageRouteBuilder(
         opaque: true,
         transitionDuration: Duration.zero,
@@ -491,6 +550,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
         pageBuilder: (_, __, ___) => Consumer(
           builder: (context, ref, child) {
             return AudioCallScreen(
+              callerData: callerData,
               onEndCall: () {
                 Navigator.pop(context);
                 _endCall();
@@ -499,29 +559,10 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
           },
         ),
       ),
-    ).then((_) {
+    )
+        .then((_) {
       _endCall();
     });
-  }
-
-
-  Future<void> _acceptCall(String channelName) async {
-    final currentUser = ref.read(userProvider).value?.user;
-    if (currentUser == null) return;
-
-    final userId = currentUser.id.toString();
-    final otherUserId = userId == widget.sellerId ? widget.receiverId : widget.sellerId;
-    final chatId = _getChatId(userId, otherUserId);
-
-    // Update call status
-    await _dbRef.child('calls/$chatId/status').set('connected');
-
-    // Join the call
-    ref.read(audioCallProvider.notifier).joinCall(channelName, int.parse(userId));
-    _isCallActive = true;
-
-    // Show call screen
-    _showCallScreen(ref);
   }
 
   Future<void> _rejectCall() async {
@@ -529,7 +570,8 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
     if (currentUser == null) return;
 
     final userId = currentUser.id.toString();
-    final otherUserId = userId == widget.sellerId ? widget.receiverId : widget.sellerId;
+    final otherUserId =
+        userId == widget.sellerId ? widget.receiverId : widget.sellerId;
     final chatId = _getChatId(userId, otherUserId);
 
     // End the call
@@ -541,7 +583,8 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
     if (currentUser == null) return;
 
     final userId = currentUser.id.toString();
-    final otherUserId = userId == widget.sellerId ? widget.receiverId : widget.sellerId;
+    final otherUserId =
+        userId == widget.sellerId ? widget.receiverId : widget.sellerId;
     final chatId = _getChatId(userId, otherUserId);
 
     // End call in database
@@ -551,6 +594,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
     ref.read(audioCallProvider.notifier).endCall();
     _isCallActive = false;
   }
+
   void _setupRealtimeListener() {
     final currentUser = ref.read(userProvider).value?.user;
     if (currentUser == null) return;
@@ -558,9 +602,8 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
     final userId = currentUser.id.toString();
 
     // Determine the other user ID
-    final otherUserId = userId == widget.sellerId
-        ? widget.receiverId
-        : widget.sellerId;
+    final otherUserId =
+        userId == widget.sellerId ? widget.receiverId : widget.sellerId;
 
     final chatId = _getChatId(userId, otherUserId);
 
@@ -571,7 +614,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
         .listen((DatabaseEvent event) {
       if (event.snapshot.value != null) {
         final Map<dynamic, dynamic> messagesMap =
-        event.snapshot.value as Map<dynamic, dynamic>;
+            event.snapshot.value as Map<dynamic, dynamic>;
 
         final List<Message> messages = [];
 
@@ -687,8 +730,9 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
     // Determine the receiver ID - if current user is seller, receiver is the other user
     // If current user is buyer, receiver is the seller
     final receiverId = userId == widget.sellerId
-        ? widget.receiverId  // Current user is seller, so receiver is the other user
-        : widget.sellerId;   // Current user is buyer, so receiver is the seller
+        ? widget
+            .receiverId // Current user is seller, so receiver is the other user
+        : widget.sellerId; // Current user is buyer, so receiver is the seller
 
     final chatId = _getChatId(userId, receiverId);
     final messageRef = _dbRef.child('chats/$chatId/messages').push();
@@ -708,10 +752,12 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
       text: text,
       senderId: userId,
       senderName: "${currentUser.firstName} ${currentUser.lastName}".trim(),
-      receiverName: userId == widget.sellerId ? widget.senderName : widget.sellerName,
+      receiverName:
+          userId == widget.sellerId ? widget.senderName : widget.sellerName,
       serviceName: widget.sellerService,
       customerName: customerName,
-      receiverId: receiverId,  // Use the calculated receiverId
+      receiverId: receiverId,
+      // Use the calculated receiverId
       timestamp: DateTime.now(),
       files: fileData,
     );
@@ -760,34 +806,41 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
               children: [
                 ListTile(
                   leading: const Icon(Icons.image, color: Colors.white),
-                  title: const Text('Photo & Video', style: TextStyle(color: Colors.white)),
+                  title: const Text('Photo & Video',
+                      style: TextStyle(color: Colors.white)),
                   onTap: () async {
                     Navigator.pop(context);
                     final files = await ImagePicker().pickMultiImage();
                     if (files.isNotEmpty) {
-                      _handleFilesSelected(files.map((f) => File(f.path)).toList());
+                      _handleFilesSelected(
+                          files.map((f) => File(f.path)).toList());
                     }
                   },
                 ),
                 ListTile(
-                  leading: const Icon(Icons.insert_drive_file, color: Colors.white),
-                  title: const Text('Document', style: TextStyle(color: Colors.white)),
+                  leading:
+                      const Icon(Icons.insert_drive_file, color: Colors.white),
+                  title: const Text('Document',
+                      style: TextStyle(color: Colors.white)),
                   onTap: () async {
                     Navigator.pop(context);
                     final result = await FilePicker.platform.pickFiles(
                       allowMultiple: true,
                     );
                     if (result != null) {
-                      _handleFilesSelected(result.paths.map((p) => File(p!)).toList());
+                      _handleFilesSelected(
+                          result.paths.map((p) => File(p!)).toList());
                     }
                   },
                 ),
                 ListTile(
                   leading: const Icon(Icons.camera_alt, color: Colors.white),
-                  title: const Text('Camera', style: TextStyle(color: Colors.white)),
+                  title: const Text('Camera',
+                      style: TextStyle(color: Colors.white)),
                   onTap: () async {
                     Navigator.pop(context);
-                    final file = await ImagePicker().pickImage(source: ImageSource.camera);
+                    final file = await ImagePicker()
+                        .pickImage(source: ImageSource.camera);
                     if (file != null) _handleFilesSelected([File(file.path)]);
                   },
                 ),
@@ -801,7 +854,10 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
     final currentUser = ref.watch(userProvider).value?.user;
+
     if (currentUser == null) {
       return const Scaffold(body: Center(child: Text('User not found')));
     }
@@ -810,26 +866,36 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
     final shouldShowSystemMessage = _messages.isEmpty && !_isLoading;
 
     return Scaffold(
-      backgroundColor: const Color(0xFF050110),
+      backgroundColor: theme.colorScheme.background,
       appBar: AppBar(
-        backgroundColor: const Color(0xFF1A191E),
-        title: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(widget.sellerName, style: const TextStyle(color: Colors.white, fontSize: 14)),
-              Text(widget.sellerService,
-                  style: Theme.of(context)
-                      .textTheme
-                      .bodySmall
-                      ?.copyWith(color: Colors.white70)),
-            ]),
+        backgroundColor:
+            isDark ? const Color(0xFF1A191E) : theme.colorScheme.surface,
+        title: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          Text(
+            widget.sellerName,
+            style: TextStyle(color: theme.colorScheme.onSurface, fontSize: 14),
+          ),
+          Text(
+            widget.sellerService,
+            style: Theme.of(context)
+                .textTheme
+                .bodySmall
+                ?.copyWith(color: theme.colorScheme.onSurface.withOpacity(0.7)),
+          ),
+        ]),
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios, color: Colors.white),
+          icon: Icon(
+            Icons.arrow_back_ios,
+            color: theme.colorScheme.onSurface,
+          ),
           onPressed: () => Navigator.pop(context),
         ),
         actions: [
           IconButton(
-            icon: const Icon(Icons.phone, color: Colors.white),
+            icon: Icon(
+              Icons.phone,
+              color: theme.colorScheme.primary,
+            ),
             onPressed: () => _startCall(ref),
           ),
         ],
@@ -846,7 +912,8 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                   return _SystemMessage(
                     message: Message(
                       id: 'system',
-                      text: "Do not mark this job as completed if your job has not been completed",
+                      text:
+                          "Do not mark this job as completed if your job has not been completed",
                       senderId: 'system',
                       senderName: 'System',
                       serviceName: 'System',
@@ -856,17 +923,23 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                       timestamp: DateTime.now(),
                       isSystem: true,
                     ),
+                    theme: theme,
+                    isDark: isDark,
                   );
                 }
 
                 // Adjust index for real messages
-                final messageIndex = shouldShowSystemMessage ? index - 1 : index;
+                final messageIndex =
+                    shouldShowSystemMessage ? index - 1 : index;
                 final message = _messages[messageIndex];
 
                 if (message.isSystem) {
-                  return _SystemMessage(message: message);
+                  return _SystemMessage(
+                    message: message,
+                    theme: theme,
+                    isDark: isDark,
+                  );
                 }
-
 
                 final isMe = message.senderId == currentUserId;
 
@@ -874,6 +947,8 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                   message: message,
                   isMe: isMe,
                   formatTime: _formatTime,
+                  theme: theme,
+                  isDark: isDark,
                 );
               },
             ),
@@ -891,6 +966,8 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
             onRemoveFile: _removeFile,
             pendingFiles: _pendingFiles,
             onAttachment: _handleAttachment,
+            theme: theme,
+            isDark: isDark,
           )
         ],
       ),
@@ -900,11 +977,23 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
 
 class _SystemMessage extends StatelessWidget {
   final Message message;
+  final ThemeData theme;
+  final bool isDark;
 
-  const _SystemMessage({required this.message});
+  const _SystemMessage({
+    required this.message,
+    required this.theme,
+    required this.isDark,
+  });
 
   @override
   Widget build(BuildContext context) {
+    final warningColor =
+        isDark ? const Color(0xFFFFDD76) : const Color(0xFFD97706);
+    final warningBgColor = isDark
+        ? const Color.fromRGBO(255, 221, 118, 0.1)
+        : const Color.fromRGBO(217, 119, 6, 0.1);
+
     return Container(
       width: 271,
       alignment: Alignment.center,
@@ -913,21 +1002,26 @@ class _SystemMessage extends StatelessWidget {
         width: 271,
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
         decoration: BoxDecoration(
-          color: const Color.fromRGBO(255, 221, 118, 0.1),
+          color: warningBgColor,
           borderRadius: BorderRadius.circular(50),
+          border: Border.all(
+            color: warningColor.withOpacity(0.3),
+            width: 0.5,
+          ),
         ),
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Icon(Icons.warning, color: Color(0xFFFFDD76), size: 12),
+            Icon(Icons.warning, color: warningColor, size: 12),
             const SizedBox(width: 8),
             Flexible(
               child: Text(
                 message.text,
                 style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                    color: const Color(0xFFFFDD76),
-                    fontSize: 10
-                ),
+                      color: warningColor,
+                      fontSize: 10,
+                      fontWeight: FontWeight.w500,
+                    ),
               ),
             ),
           ],
@@ -941,11 +1035,15 @@ class _ChatBubble extends StatelessWidget {
   final Message message;
   final bool isMe;
   final String Function(DateTime) formatTime;
+  final ThemeData theme;
+  final bool isDark;
 
   const _ChatBubble({
     required this.message,
     required this.isMe,
     required this.formatTime,
+    required this.theme,
+    required this.isDark,
   });
 
   Widget _buildFilePreview(FileData fileData) {
@@ -957,46 +1055,84 @@ class _ChatBubble extends StatelessWidget {
         borderRadius: BorderRadius.circular(8),
         child: fileData.type == 'pdf'
             ? Container(
-          width: 200,
-          height: 200,
-          color: Colors.grey[800],
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              const Icon(Icons.picture_as_pdf, size: 48, color: Colors.white),
-              const Text('PDF Document', style: TextStyle(color: Colors.white)),
-              Text(fileData.name, style: const TextStyle(color: Colors.white70, fontSize: 10)),
-            ],
-          ),
-        )
+                width: 200,
+                height: 200,
+                color: isDark ? Colors.grey[800] : Colors.grey[200],
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(Icons.picture_as_pdf,
+                        size: 48,
+                        color: isDark ? Colors.white : Colors.grey[700]),
+                    const SizedBox(height: 8),
+                    Text('PDF Document',
+                        style: TextStyle(
+                            color: isDark ? Colors.white : Colors.grey[700])),
+                    const SizedBox(height: 4),
+                    Text(
+                      fileData.name,
+                      style: TextStyle(
+                          color: isDark ? Colors.white70 : Colors.grey[600],
+                          fontSize: 10),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ],
+                ),
+              )
             : fileData.type == 'image'
-            ? Image.memory(
-          bytes,
-          width: 200,
-          height: 200,
-          fit: BoxFit.cover,
-        )
-            : Container(
-          width: 200,
-          height: 200,
-          color: Colors.grey[800],
-          child: Center(
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                const Icon(Icons.insert_drive_file, size: 48, color: Colors.white),
-                const Text('Download File', style: TextStyle(color: Colors.white)),
-                Text(fileData.name, style: const TextStyle(color: Colors.white70, fontSize: 10)),
-              ],
-            ),
-          ),
-        ),
+                ? Image.memory(
+                    bytes,
+                    width: 200,
+                    height: 200,
+                    fit: BoxFit.cover,
+                  )
+                : Container(
+                    width: 200,
+                    height: 200,
+                    color: isDark ? Colors.grey[800] : Colors.grey[200],
+                    child: Center(
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(Icons.insert_drive_file,
+                              size: 48,
+                              color: isDark ? Colors.white : Colors.grey[700]),
+                          const SizedBox(height: 8),
+                          Text('Download File',
+                              style: TextStyle(
+                                  color: isDark
+                                      ? Colors.white
+                                      : Colors.grey[700])),
+                          const SizedBox(height: 4),
+                          Text(
+                            fileData.name,
+                            style: TextStyle(
+                                color:
+                                    isDark ? Colors.white70 : Colors.grey[600],
+                                fontSize: 10),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
       ),
     );
   }
 
   @override
   Widget build(BuildContext context) {
+    final bubbleColor = isMe
+        ? theme.colorScheme.primary.withOpacity(0.8)
+        : (isDark ? const Color(0xFF1A191E) : Colors.grey[100]!);
+
+    final textColor = isMe ? Colors.white : theme.colorScheme.onSurface;
+
+    final timeColor =
+        isMe ? Colors.white70 : theme.colorScheme.onSurface.withOpacity(0.6);
+
     return Align(
       alignment: isMe ? Alignment.centerRight : Alignment.centerLeft,
       child: Container(
@@ -1005,8 +1141,17 @@ class _ChatBubble extends StatelessWidget {
         ),
         margin: const EdgeInsets.symmetric(vertical: 4),
         decoration: BoxDecoration(
-          color: isMe ? const Color(0xFF4D3490) : const Color(0xFF1A191E),
+          color: bubbleColor,
           borderRadius: BorderRadius.circular(12),
+          boxShadow: !isDark
+              ? [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.05),
+                    blurRadius: 4,
+                    offset: const Offset(0, 2),
+                  ),
+                ]
+              : null,
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.end,
@@ -1021,14 +1166,14 @@ class _ChatBubble extends StatelessWidget {
                   if (message.text.isNotEmpty)
                     Text(
                       message.text,
-                      style: const TextStyle(color: Colors.white),
+                      style: TextStyle(color: textColor),
                     ),
                   const SizedBox(height: 4),
                   Text(
                     formatTime(message.timestamp),
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 10,
-                      color: Colors.white70,
+                      color: timeColor,
                     ),
                   ),
                 ],
@@ -1048,6 +1193,8 @@ class _MessageInput extends StatelessWidget {
   final Function(int) onRemoveFile;
   final Function(BuildContext) onAttachment;
   final List<File> pendingFiles;
+  final ThemeData theme;
+  final bool isDark;
 
   const _MessageInput({
     required this.controller,
@@ -1056,10 +1203,15 @@ class _MessageInput extends StatelessWidget {
     required this.onRemoveFile,
     required this.onAttachment,
     required this.pendingFiles,
+    required this.theme,
+    required this.isDark,
   });
 
   @override
   Widget build(BuildContext context) {
+    final inputBgColor =
+        isDark ? Colors.grey.withOpacity(0.2) : Colors.grey.withOpacity(0.1);
+
     return Padding(
       padding: const EdgeInsets.all(8.0),
       child: Column(
@@ -1082,16 +1234,25 @@ class _MessageInput extends StatelessWidget {
                           height: 100,
                           decoration: BoxDecoration(
                             borderRadius: BorderRadius.circular(8),
-                            color: Colors.grey[800],
+                            color: isDark ? Colors.grey[800] : Colors.grey[200],
                           ),
                           child: file.path.toLowerCase().endsWith('.pdf')
-                              ? const Column(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              Icon(Icons.picture_as_pdf, color: Colors.white, size: 40),
-                              Text('PDF', style: TextStyle(color: Colors.white)),
-                            ],
-                          )
+                              ? Column(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    Icon(Icons.picture_as_pdf,
+                                        color: isDark
+                                            ? Colors.white
+                                            : Colors.grey[700],
+                                        size: 40),
+                                    const SizedBox(height: 4),
+                                    Text('PDF',
+                                        style: TextStyle(
+                                            color: isDark
+                                                ? Colors.white
+                                                : Colors.grey[700])),
+                                  ],
+                                )
                               : Image.file(file, fit: BoxFit.cover),
                         ),
                         Positioned(
@@ -1100,11 +1261,14 @@ class _MessageInput extends StatelessWidget {
                           child: GestureDetector(
                             onTap: () => onRemoveFile(index),
                             child: Container(
-                              decoration: const BoxDecoration(
-                                color: Colors.black54,
+                              decoration: BoxDecoration(
+                                color: isDark
+                                    ? Colors.black54
+                                    : Colors.black.withOpacity(0.4),
                                 shape: BoxShape.circle,
                               ),
-                              child: const Icon(Icons.close, size: 16, color: Colors.white),
+                              child: Icon(Icons.close,
+                                  size: 16, color: Colors.white),
                             ),
                           ),
                         ),
@@ -1116,34 +1280,46 @@ class _MessageInput extends StatelessWidget {
             ),
           Container(
             decoration: BoxDecoration(
-              color: Colors.grey.withOpacity(0.2),
+              color: inputBgColor,
               borderRadius: BorderRadius.circular(20),
+              border: Border.all(
+                color: theme.dividerColor.withOpacity(0.5),
+              ),
             ),
             child: Padding(
               padding: const EdgeInsets.symmetric(horizontal: 8),
               child: Row(
                 children: [
                   IconButton(
-                    icon: const Icon(Icons.attach_file, color: Colors.white),
+                    icon: Icon(
+                      Icons.attach_file,
+                      color: theme.colorScheme.onSurface.withOpacity(0.7),
+                    ),
                     onPressed: () => onAttachment(context),
                   ),
                   Expanded(
                     child: TextField(
                       controller: controller,
-                      style: const TextStyle(color: Colors.white),
+                      style: TextStyle(color: theme.colorScheme.onSurface),
                       decoration: InputDecoration(
                         hintText: pendingFiles.isEmpty
                             ? 'Type something'
                             : 'Add a caption',
-                        hintStyle: const TextStyle(color: Colors.white70),
+                        hintStyle: TextStyle(
+                            color:
+                                theme.colorScheme.onSurface.withOpacity(0.5)),
                         border: InputBorder.none,
-                        contentPadding: const EdgeInsets.symmetric(vertical: 16),
+                        contentPadding:
+                            const EdgeInsets.symmetric(vertical: 16),
                       ),
                       onSubmitted: onSend,
                     ),
                   ),
                   IconButton(
-                    icon: const Icon(Icons.send, color: Colors.white),
+                    icon: Icon(
+                      Icons.send,
+                      color: theme.colorScheme.primary,
+                    ),
                     onPressed: () => onSend(controller.text),
                   ),
                 ],

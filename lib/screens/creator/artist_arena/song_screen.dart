@@ -3,7 +3,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:soundhive2/screens/creator/artist_arena/add_songs.dart';
-import 'package:soundhive2/utils/app_colors.dart';
 import '../../../components/audio_player.dart';
 import '../../../components/success.dart';
 import '../../../components/widgets.dart';
@@ -17,7 +16,7 @@ import '../../../utils/utils.dart';
 class SongScreen extends ConsumerStatefulWidget {
   const SongScreen({super.key});
   @override
-  _SongScreenState createState() => _SongScreenState();
+  ConsumerState<SongScreen> createState() => _SongScreenState();
 }
 
 class _SongScreenState extends ConsumerState<SongScreen> with TickerProviderStateMixin {
@@ -48,9 +47,9 @@ class _SongScreenState extends ConsumerState<SongScreen> with TickerProviderStat
   Widget build(BuildContext context) {
 
     return Scaffold(
-      backgroundColor: AppColors.BACKGROUNDCOLOR,
+     
       appBar: AppBar(
-        backgroundColor: AppColors.BACKGROUNDCOLOR,
+       
         elevation: 0,
         leading: IconButton(
           icon: const Icon(Icons.arrow_back_ios, color: Color(0xFFB0B0B6)),
@@ -58,7 +57,7 @@ class _SongScreenState extends ConsumerState<SongScreen> with TickerProviderStat
         ),
         actions: [
           IconButton(
-            icon: const Icon(Icons.refresh, color: Colors.white),
+            icon: const Icon(Icons.refresh),
             onPressed: _refreshData,
           ),
         ],
@@ -77,15 +76,13 @@ class _SongScreenState extends ConsumerState<SongScreen> with TickerProviderStat
                     style: TextStyle(
                       fontSize: 24,
                       fontWeight: FontWeight.w400,
-                      color: Colors.white,
+                     
                     ),
                   ),
                 ),
                 TabBar(
                   controller: _tabController,
                   indicatorColor: const Color(0xFF917FC0),
-                  labelColor: Colors.white,
-                  unselectedLabelColor: Colors.white70,
                   labelStyle: const TextStyle(fontWeight: FontWeight.bold),
                   unselectedLabelStyle: const TextStyle(fontWeight: FontWeight.normal),
                   tabs: const [
@@ -152,6 +149,7 @@ class _SongScreenState extends ConsumerState<SongScreen> with TickerProviderStat
           child: const Icon(
             Icons.add,
             color: Colors.white,
+           
             size: 36,
           ),
         ),
@@ -164,7 +162,6 @@ class _SongScreenState extends ConsumerState<SongScreen> with TickerProviderStat
       return Center(
         child: Text(
           emptyMessage,
-          style: const TextStyle(color: Colors.white70),
         ),
       );
     }
@@ -207,7 +204,7 @@ class _SongScreenState extends ConsumerState<SongScreen> with TickerProviderStat
                       Text(
                         item.title,
                         style: const TextStyle(
-                            color: Colors.white,
+                           
                             fontSize: 16,
                             fontWeight: FontWeight.bold
                         ),
@@ -217,7 +214,7 @@ class _SongScreenState extends ConsumerState<SongScreen> with TickerProviderStat
                       const SizedBox(height: 5),
                       Text(
                         item.status == "PENDING" ? 'Submitted ${DateFormat('dd/MM/yyyy').format(DateTime.parse(item.createdAt))}' : '',
-                        style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.w500),
+                        style: const TextStyle( fontSize: 12, fontWeight: FontWeight.w500),
                       ),
 
                     ],

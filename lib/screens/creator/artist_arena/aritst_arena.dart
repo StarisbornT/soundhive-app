@@ -11,7 +11,7 @@ class ArtistArena extends ConsumerStatefulWidget {
   const ArtistArena({super.key, required this.user});
 
   @override
-  _ArtistArenaState createState() => _ArtistArenaState();
+  ConsumerState<ArtistArena> createState() => _ArtistArenaState();
 }
 
 class _ArtistArenaState extends ConsumerState<ArtistArena> {
@@ -19,12 +19,12 @@ class _ArtistArenaState extends ConsumerState<ArtistArena> {
   Widget build(BuildContext context) {
     final double screenHeight = MediaQuery.of(context).size.height;
     return Scaffold(
-      backgroundColor: AppColors.BACKGROUNDCOLOR,
+     
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios, color: Colors.white),
+          icon: const Icon(Icons.arrow_back_ios),
           onPressed: () {
             Navigator.of(context).pop();
           },
@@ -117,6 +117,7 @@ class _ArtistArenaState extends ConsumerState<ArtistArena> {
                     ),
                   );
                 },
+                  borderWidth: 0,
                   color: AppColors.PRIMARYCOLOR,
                 )
               ],

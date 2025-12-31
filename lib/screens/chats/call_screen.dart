@@ -4,17 +4,40 @@ import 'package:soundhive2/lib/dashboard_provider/call_provider.dart';
 
 class AudioCallScreen extends ConsumerWidget {
   final VoidCallback onEndCall;
-  final String? callerName;
-  final String? callerRole;
-  final String? imageUrl;
+  final Map<String, dynamic>? callerData;
 
   const AudioCallScreen({
     super.key,
     required this.onEndCall,
-    this.callerName = 'Samuel Olelekan',
-    this.callerRole = 'Song Producer, D.J... (Service Provider)',
-    this.imageUrl,
+    this.callerData,
   });
+
+  String get callerName {
+    if (callerData?['caller_name'] != null) {
+      return callerData!['caller_name'];
+    }
+    if (callerData?['caller'] != null) {
+      final caller = callerData!['caller'];
+      return '${caller['first_name'] ?? ''} ${caller['last_name'] ?? ''}'.trim();
+    }
+    return 'Unknown User';
+  }
+
+  String get callerRole {
+    if (callerData?['caller'] != null) {
+      final caller = callerData!['caller'];
+      return caller['role'] ?? 'Service Provider';
+    }
+    return 'Service Provider';
+  }
+
+  String? get imageUrl {
+    if (callerData?['caller'] != null) {
+      final caller = callerData!['caller'];
+      return caller['image'];
+    }
+    return null;
+  }
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -71,14 +94,30 @@ class AudioCallScreen extends ConsumerWidget {
                         color: Colors.green,
                         width: 3,
                       ),
-                      image: imageUrl != null
-                          ? DecorationImage(
-                        image: NetworkImage(imageUrl!),
+                    ),
+                    child: imageUrl != null && imageUrl!.isNotEmpty
+                        ? ClipRRect(
+                      borderRadius: BorderRadius.circular(60),
+                      child: Image.network(
+                        imageUrl!,
                         fit: BoxFit.cover,
-                      )
-                          : const DecorationImage(
-                        image: AssetImage('assets/images/default_avatar.png'),
-                        fit: BoxFit.cover,
+                        width: 120,
+                        height: 120,
+                      ),
+                    )
+                        : Container(
+                      decoration: BoxDecoration(
+                        color: _getAvatarColor(callerName), // Generate color from name
+                        shape: BoxShape.circle,
+                      ),
+                      alignment: Alignment.center,
+                      child: Text(
+                        _getInitials(callerName), // Get first letter(s)
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 40,
+                          fontWeight: FontWeight.bold,
+                        ),
                       ),
                     ),
                   ),
@@ -86,7 +125,7 @@ class AudioCallScreen extends ConsumerWidget {
 
                   // User name
                   Text(
-                    callerName ?? 'Unknown User',
+                    callerName,
                     style: const TextStyle(
                       color: Colors.white,
                       fontSize: 24,
@@ -95,9 +134,9 @@ class AudioCallScreen extends ConsumerWidget {
                   ),
                   const SizedBox(height: 8),
 
-                  // User role/title
+                  // User role/title - Format the role to be more readable
                   Text(
-                    callerRole ?? 'Service Provider',
+                    _formatRole(callerRole),
                     style: TextStyle(
                       color: Colors.white.withOpacity(0.7),
                       fontSize: 16,
@@ -206,6 +245,60 @@ class AudioCallScreen extends ConsumerWidget {
         return 'Call Failed';
       default:
         return '';
+    }
+  }
+
+  // Helper method to get initials from name
+  String _getInitials(String name) {
+    if (name.isEmpty) return '?';
+
+    final parts = name.trim().split(' ');
+    if (parts.length >= 2) {
+      // Get first letter of first and last name
+      return '${parts[0][0]}${parts[parts.length - 1][0]}'.toUpperCase();
+    } else if (parts.length == 1) {
+      // Get first letter of single name
+      return parts[0][0].toUpperCase();
+    }
+    return '?';
+  }
+
+// Helper method to generate a consistent color from the name
+  Color _getAvatarColor(String name) {
+    if (name.isEmpty) return Colors.grey;
+
+    // Use a simple hash to generate a consistent color
+    final hash = name.codeUnits.fold(0, (int a, int b) => a + b);
+
+    // List of nice avatar colors
+    final colors = [
+      Colors.blue,
+      Colors.red,
+      Colors.green,
+      Colors.orange,
+      Colors.purple,
+      Colors.teal,
+      Colors.indigo,
+      Colors.pink,
+      Colors.cyan,
+      Colors.amber,
+    ];
+
+    return colors[hash % colors.length];
+  }
+
+  String _formatRole(String role) {
+    // Format the role to be more readable
+    switch (role.toUpperCase()) {
+      case 'CREATOR':
+        return 'Content Creator';
+      case 'SERVICE_PROVIDER':
+      case 'PROVIDER':
+        return 'Service Provider';
+      case 'USER':
+        return 'User';
+      default:
+        return role;
     }
   }
 }

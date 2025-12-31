@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 
 import 'package:soundhive2/lib/dashboard_provider/user_provider.dart';
+import '../model/creator_model.dart';
 import '../model/user_model.dart';
 import 'app_colors.dart';
 
@@ -51,6 +52,15 @@ class Utils {
       return '${(number / 1000).toStringAsFixed(1)}k';
     } else {
       return number.toString();
+    }
+  }
+  static String formatEventTime(String isoTime) {
+    try {
+      final dateTime = DateTime.parse(isoTime).toLocal();
+      return DateFormat('h:mm a').format(dateTime);
+      // examples: 6:09 AM, 9:00 PM
+    } catch (e) {
+      return '';
     }
   }
   static String formatCurrency(dynamic amount, {String? currencyCode}) {
@@ -199,14 +209,19 @@ class Utils {
       child: Icon(Icons.broken_image, color: Colors.white54),
     );
   }
- static Widget buildCreativeCard(
+  static Widget buildCreativeCard(
       BuildContext context, {
         required String name,
         required String role,
         required double rating,
         required String profileImage,
         required String firstName,
+        ThemeData? theme,
+        bool? isDark,
       }) {
+    final currentTheme = theme ?? Theme.of(context);
+    final currentIsDark = isDark ?? currentTheme.brightness == Brightness.dark;
+
     return Container(
       width: 140,
       margin: const EdgeInsets.only(left: 16.0, right: 8.0),
@@ -227,54 +242,68 @@ class Utils {
                 image: NetworkImage(profileImage),
                 fit: BoxFit.cover,
               ),
+              border: Border.all(
+                color: AppColors.BUTTONCOLOR.withOpacity(0.3),
+                width: 2,
+              ),
             ),
           )
               : Container(
             width: 120,
             height: 120,
-            decoration:  const BoxDecoration(
+            decoration: BoxDecoration(
               shape: BoxShape.circle,
-              color: AppColors.BUTTONCOLOR, // Fallback background color
+              color: AppColors.BUTTONCOLOR.withOpacity(
+                currentIsDark ? 0.8 : 0.6,
+              ),
+              border: Border.all(
+                color: AppColors.BUTTONCOLOR.withOpacity(0.3),
+                width: 2,
+              ),
             ),
             alignment: Alignment.center,
             child: Text(
               firstName.isNotEmpty ? firstName[0].toUpperCase() : "?",
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 40,
                 fontWeight: FontWeight.bold,
-                color: Colors.white,
+                color: currentIsDark ? Colors.white : Colors.white,
               ),
             ),
           ),
           const SizedBox(height: 8),
           Text(
             name,
-            style: const TextStyle(
-              color: Colors.white,
+            style: TextStyle(
+              color: currentTheme.colorScheme.onSurface,
               fontWeight: FontWeight.bold,
               fontSize: 14,
             ),
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
+            textAlign: TextAlign.center,
           ),
+          const SizedBox(height: 2),
           Text(
             role,
-            style: const TextStyle(
-              color: Colors.white70,
+            style: TextStyle(
+              color: currentTheme.colorScheme.onSurface.withOpacity(0.7),
               fontSize: 12,
             ),
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
+            textAlign: TextAlign.center,
           ),
           const SizedBox(height: 4),
           Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               const Icon(Icons.star, color: Colors.amber, size: 14),
+              const SizedBox(width: 4),
               Text(
-                '$rating rating',
-                style: const TextStyle(
-                  color: Colors.white70,
+                '$rating',
+                style: TextStyle(
+                  color: currentTheme.colorScheme.onSurface.withOpacity(0.8),
                   fontSize: 12,
                 ),
               ),
@@ -283,6 +312,18 @@ class Utils {
         ],
       ),
     );
+  }
+  static  double getOverallRating(CreatorData creator) {
+    final reviews = creator.reviews;
+
+    if (reviews.isEmpty) return 0.0;
+
+    double total = 0;
+    for (var r in reviews) {
+      total += r.rating;
+    }
+
+    return total / reviews.length;
   }
   static Widget confirmRow(String title, dynamic value) {
     Color? backgroundColor;
@@ -318,7 +359,7 @@ class Utils {
 
       displayWidget = title == 'Status'
           ? Container(
-        padding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
         decoration: BoxDecoration(
           color: backgroundColor,
           borderRadius: BorderRadius.circular(12),
@@ -339,7 +380,6 @@ class Utils {
             fontSize: 14,
             color: Colors.white,
             fontWeight: FontWeight.w500,
-              fontFamily: 'Roboto'
           ),
 
           overflow: TextOverflow.ellipsis,
@@ -499,88 +539,133 @@ class Utils {
   // Helper widget to build the other information card
   static Widget buildOtherInfoCard({
     required MemberCreatorResponse user,
-    required Color cardBackgroundColor,
-    required Color textColor,
-    required Color hintTextColor,
-    bool showTitle = true
+    ThemeData? theme,
+    bool? isDark,
+    bool showTitle = true,
+    required BuildContext context
   }) {
+    final currentTheme = theme ?? Theme.of(context);
+    final currentIsDark = isDark ?? currentTheme.brightness == Brightness.dark;
+
+    final cardBackgroundColor = currentIsDark
+        ? const Color(0xFF1A191E)
+        : Colors.grey[100];
+    final textColor = currentTheme.colorScheme.onSurface;
+    final hintTextColor = currentTheme.colorScheme.onSurface.withOpacity(0.7);
+
     final bvn = user.user?.bvn;
+
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(16.0),
       decoration: BoxDecoration(
         color: cardBackgroundColor,
         borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: currentTheme.dividerColor.withOpacity(0.1),
+        ),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          if(showTitle)
-          Text(
-            'Other Information',
-            style: TextStyle(
-              color: hintTextColor,
-              fontSize: 14,
+          if (showTitle)
+            Text(
+              'Other Information',
+              style: TextStyle(
+                color: hintTextColor,
+                fontSize: 14,
+                fontWeight: FontWeight.w400,
+              ),
             ),
+          if (showTitle) const SizedBox(height: 16),
+          _buildInfoRow(
+            'Phone number',
+            user.user?.phoneNumber ?? 'Not specified',
+            currentTheme,
+            textColor,
+            hintTextColor,
           ),
-          const SizedBox(height: 8),
+          const SizedBox(height: 12),
           _buildInfoRow(
-              'Phone number', user.user?.phoneNumber ?? 'Not specified', textColor, hintTextColor),
+            'Email address',
+            user.user?.email ?? 'Not specified',
+            currentTheme,
+            textColor,
+            hintTextColor,
+          ),
+          const SizedBox(height: 12),
           _buildInfoRow(
-              'Email address', user.user?.email ?? 'Not specified', textColor, hintTextColor),
+            'Gender',
+            user.user?.gender?.capitalize() ?? 'Not specified',
+            currentTheme,
+            textColor,
+            hintTextColor,
+          ),
+          const SizedBox(height: 12),
           _buildInfoRow(
-              'Gender', user.user?.gender?.capitalize() ?? 'Not specified', textColor, hintTextColor),
-          _buildInfoRow(
-              'Date of Birth', user.user?.dob ?? 'Not specified', textColor, hintTextColor),
+            'Date of Birth',
+            user.user?.dob ?? 'Not specified',
+            currentTheme,
+            textColor,
+            hintTextColor,
+          ),
+          const SizedBox(height: 12),
           _buildInfoRow(
             'BVN',
             bvn != null && bvn.length >= 4
                 ? '********${bvn.substring(bvn.length - 4)}'
                 : 'Not specified',
+            currentTheme,
             textColor,
             hintTextColor,
           ),
+          const SizedBox(height: 12),
           _buildInfoRow(
-              'NIN', user.user?.creator?.nin ?? 'Not specified', textColor, hintTextColor),
+            'NIN',
+            user.user?.creator?.nin ?? 'Not specified',
+            currentTheme,
+            textColor,
+            hintTextColor,
+          ),
         ],
       ),
     );
   }
 
-
-
-
-  // Helper for consistent info rows in "Other Information"
   static Widget _buildInfoRow(
-      String label, String value, Color textColor, Color hintTextColor) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 6.0),
-      child: Row(
-        children: [
-          Expanded(
-            flex: 2,
-            child: Text(
-              label,
-              style: TextStyle(
-                color: hintTextColor,
-                fontSize: 14,
-                fontWeight: FontWeight.w300,
-              ),
+      String label,
+      String value,
+      ThemeData theme,
+      Color textColor,
+      Color hintTextColor,
+      ) {
+    return Row(
+      children: [
+        Expanded(
+          flex: 2,
+          child: Text(
+            label,
+            style: TextStyle(
+              color: hintTextColor,
+              fontSize: 14,
+              fontWeight: FontWeight.w400,
             ),
           ),
-          Expanded(
-            flex: 3,
-            child: Text(
-              value,
-              style: TextStyle(
-                color: textColor,
-                fontSize: 14,
-              ),
-              textAlign: TextAlign.right,
+        ),
+        Expanded(
+          flex: 3,
+          child: Text(
+            value,
+            style: TextStyle(
+              color: textColor,
+              fontSize: 14,
+              fontWeight: FontWeight.w400,
             ),
+            textAlign: TextAlign.right,
+            overflow: TextOverflow.ellipsis,
           ),
-        ],
-      ),
+        ),
+      ],
     );
   }
 

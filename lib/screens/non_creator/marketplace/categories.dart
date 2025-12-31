@@ -101,7 +101,7 @@ class _CategoriesState extends ConsumerState<Categories> {
     return PopScope(
       canPop: false,
       child: Scaffold(
-        backgroundColor: AppColors.BACKGROUNDCOLOR,
+       
         appBar: AppBar(
           backgroundColor: Colors.transparent,
           elevation: 0,

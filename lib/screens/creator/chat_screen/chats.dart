@@ -187,12 +187,10 @@ class _ChatListScreenState extends ConsumerState<ChatListScreen> {
   Widget build(BuildContext context) {
     final user = widget.user.user;
     return Scaffold(
-      backgroundColor: const Color(0xFF050110),
       appBar: AppBar(
-        backgroundColor: const Color(0xFF1A191E),
-        title: const Text('Messages', style: TextStyle(color: Colors.white)),
+        title: const Text('Messages', style: TextStyle()),
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios, color: Colors.white),
+          icon: const Icon(Icons.arrow_back_ios, ),
           onPressed: () => Navigator.pop(context),
         ),
       ),
@@ -436,7 +434,6 @@ class _ChatListItem extends StatelessWidget {
                 child: Text(
                   unreadCount > 9 ? '9+' : unreadCount.toString(),
                   style: const TextStyle(
-                    color: Colors.white,
                     fontSize: 10,
                     fontWeight: FontWeight.bold,
                   ),
@@ -456,7 +453,6 @@ class _ChatListItem extends StatelessWidget {
             child: Text(
               userName,
               style: TextStyle(
-                color: Colors.white,
                 fontWeight: unreadCount > 0 ? FontWeight.bold : FontWeight.normal,
               ),
             ),

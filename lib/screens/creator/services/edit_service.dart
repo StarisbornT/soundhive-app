@@ -31,7 +31,7 @@ class EditServiceScreen extends ConsumerStatefulWidget {
   const EditServiceScreen({super.key, required this.service});
 
   @override
-  _EditServiceScreenState createState() => _EditServiceScreenState();
+  ConsumerState<EditServiceScreen> createState() => _EditServiceScreenState();
 }
 
 class _EditServiceScreenState extends ConsumerState<EditServiceScreen> {
@@ -583,7 +583,7 @@ class _EditServiceScreenState extends ConsumerState<EditServiceScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.BACKGROUNDCOLOR,
+     
       body: SafeArea(
         child: Form(
           key: _formKey,

@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:dio/dio.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
@@ -158,30 +160,40 @@ class FirebaseService {
     }
   }
   void _handleIncomingCallNotification(Map<String, dynamic> data) {
-    // Use navigatorKey to handle navigation from anywhere
-    final context =LoaderService.navigatorKey.currentContext;
+    // Parse caller data if it's a JSON string
+    Map<String, dynamic> parsedData = Map.from(data);
+
+    if (data['caller'] is String) {
+      try {
+        parsedData['caller'] = jsonDecode(data['caller']);
+      } catch (e) {
+        print('Error parsing caller data: $e');
+      }
+    }
+
+    final context = LoaderService.navigatorKey.currentContext;
     if (context == null) return;
 
     showDialog(
       context: context,
       barrierDismissible: false,
       builder: (context) => AlertDialog(
-        backgroundColor: AppColors.BACKGROUNDCOLOR,
+       
         title: const Text('Incoming Call', style: TextStyle(color: Colors.white)),
-        content: Text('${data['caller_name']} is calling you...',
+        content: Text('${parsedData['caller_name']} is calling you...',
             style: const TextStyle(color: Colors.white70)),
         actions: [
           TextButton(
             onPressed: () {
               Navigator.pop(context);
-              _rejectCallFromNotification(data);
+              _rejectCallFromNotification(parsedData);
             },
             child: const Text('Reject', style: TextStyle(color: Colors.red)),
           ),
           TextButton(
             onPressed: () {
               Navigator.pop(context);
-              _acceptCallFromNotification(data);
+              _acceptCallFromNotification(parsedData);
             },
             child: const Text('Accept', style: TextStyle(color: Colors.green)),
           ),
@@ -216,12 +228,12 @@ class FirebaseService {
     // Navigate to call screen
     final context = LoaderService.navigatorKey.currentContext;
     if (context != null) {
-      // You'll need to implement this method to show the call screen
-      _showCallScreenFromNotification(context);
+      // Pass the data to show caller details
+      _showCallScreenFromNotification(context, data);
     }
   }
 
-  void _showCallScreenFromNotification(BuildContext context) {
+  void _showCallScreenFromNotification(BuildContext context, Map<String, dynamic> data) {
     Navigator.push(
       context,
       MaterialPageRoute(
@@ -230,6 +242,7 @@ class FirebaseService {
             final callNotifier = ref.read(audioCallProvider.notifier);
 
             return AudioCallScreen(
+              callerData: data,
               onEndCall: () {
                 Navigator.pop(context);
                 callNotifier.endCall();
@@ -237,7 +250,7 @@ class FirebaseService {
             );
           },
         ),
-        fullscreenDialog: true, // This gives it a modal-like appearance
+        fullscreenDialog: true,
       ),
     );
   }

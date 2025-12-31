@@ -21,7 +21,7 @@ class EditArtistProfile extends ConsumerStatefulWidget {
   const EditArtistProfile({super.key, required this.user});
 
   @override
-  _EditArtistProfileScreenState createState() => _EditArtistProfileScreenState();
+  ConsumerState<EditArtistProfile> createState() => _EditArtistProfileScreenState();
 }
 
 class _EditArtistProfileScreenState extends ConsumerState<EditArtistProfile> {
@@ -208,7 +208,7 @@ class _EditArtistProfileScreenState extends ConsumerState<EditArtistProfile> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.BACKGROUNDCOLOR,
+     
       body: SafeArea(
         child: LayoutBuilder(
           builder: (context, constraints) {
@@ -220,7 +220,7 @@ class _EditArtistProfileScreenState extends ConsumerState<EditArtistProfile> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       IconButton(
-                        icon: const Icon(Icons.arrow_back_ios_new, color: Color(0xFFB0B0B6)),
+                        icon: const Icon(Icons.arrow_back_ios_new),
                         onPressed: () => Navigator.pop(context),
                       ),
                       const SizedBox(height: 10),
@@ -229,7 +229,6 @@ class _EditArtistProfileScreenState extends ConsumerState<EditArtistProfile> {
                         style: TextStyle(
                           fontSize: 24,
                           fontWeight: FontWeight.w400,
-                          color: Colors.white,
                         ),
                       ),
                       const SizedBox(height: 40),
@@ -276,6 +275,7 @@ class _EditArtistProfileScreenState extends ConsumerState<EditArtistProfile> {
                     title: 'Submit',
                     onPressed: _submitForm,
                     color: AppColors.PRIMARYCOLOR,
+                    borderWidth: 0,
                   ),
                 ),
               ],

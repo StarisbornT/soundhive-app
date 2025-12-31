@@ -28,7 +28,7 @@ class AddNewServiceScreen extends ConsumerStatefulWidget {
   const AddNewServiceScreen({super.key});
 
   @override
-  _AddNewServiceScreenState createState() => _AddNewServiceScreenState();
+  ConsumerState<AddNewServiceScreen> createState() => _AddNewServiceScreenState();
 }
 
 class _AddNewServiceScreenState extends ConsumerState<AddNewServiceScreen> {
@@ -505,7 +505,7 @@ class _AddNewServiceScreenState extends ConsumerState<AddNewServiceScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.BACKGROUNDCOLOR,
+     
       body: SafeArea(
         child: Form(
           key: _formKey,

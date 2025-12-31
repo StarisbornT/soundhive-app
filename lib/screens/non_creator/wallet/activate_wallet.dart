@@ -265,7 +265,7 @@ class _ActivateWalletScreenState extends ConsumerState<ActivateWallet> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.BACKGROUNDCOLOR,
+     
       body: SafeArea(
         child: Form(
           key: _formKey,

@@ -1,6 +1,10 @@
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:soundhive2/screens/dashboard/withdraw.dart';
+import 'package:soundhive2/screens/non_creator/wallet/bills/cable_tv_screen.dart';
+import 'package:soundhive2/screens/non_creator/wallet/bills/data_screen.dart';
+import 'package:soundhive2/screens/non_creator/wallet/bills/electricy_screen.dart';
 import 'package:soundhive2/screens/non_creator/wallet/transaction_history.dart';
 import 'package:soundhive2/screens/non_creator/wallet/wallet_cards.dart';
 import 'package:soundhive2/utils/app_colors.dart';
@@ -14,7 +18,7 @@ import '../../../model/apiresponse_model.dart';
 import '../../../model/transaction_history_model.dart';
 import '../../../model/user_model.dart';
 import '../../../utils/alert_helper.dart';
-import '../streaming/streaming.dart';
+import 'bills/airtime_screen.dart';
 import 'fund_wallet_provider.dart';
 
 class WalletScreen extends ConsumerStatefulWidget {
@@ -46,20 +50,20 @@ class _WalletScreenState extends ConsumerState<WalletScreen> {
   void _navigateToWithdraw() {
     Navigator.push(
       context,
-      MaterialPageRoute(builder: (context) => const Streaming()),
+      MaterialPageRoute(builder: (context) => const WithdrawScreen()),
     );
   }
 
-  void _showDollarWalletActivationSheet() {
+  void _showDollarWalletActivationSheet(ThemeData theme, bool isDark) {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
       builder: (context) => Container(
         height: MediaQuery.of(context).size.height * 0.7,
-        decoration: const BoxDecoration(
-          color: AppColors.BACKGROUNDCOLOR,
-          borderRadius: BorderRadius.only(
+        decoration: BoxDecoration(
+          color: isDark ? AppColors.BACKGROUNDCOLOR : Colors.white,
+          borderRadius: const BorderRadius.only(
             topLeft: Radius.circular(20),
             topRight: Radius.circular(20),
           ),
@@ -73,7 +77,7 @@ class _WalletScreenState extends ConsumerState<WalletScreen> {
               Align(
                 alignment: Alignment.centerRight,
                 child: IconButton(
-                  icon: const Icon(Icons.close, color: Colors.white),
+                  icon: Icon(Icons.close, color: theme.colorScheme.onSurface),
                   onPressed: () => Navigator.pop(context),
                 ),
               ),
@@ -83,25 +87,25 @@ class _WalletScreenState extends ConsumerState<WalletScreen> {
                 width: 80,
                 height: 80,
                 decoration: BoxDecoration(
-                  color: Colors.blue.withOpacity(0.2),
+                  color: AppColors.BUTTONCOLOR.withOpacity(0.2),
                   shape: BoxShape.circle,
                 ),
-                child: const Icon(
+                child: Icon(
                   Icons.account_balance_wallet,
                   size: 40,
-                  color: Colors.blue,
+                  color: AppColors.BUTTONCOLOR,
                 ),
               ),
 
               const SizedBox(height: 24),
 
               // Welcome title
-              const Text(
+              Text(
                 'Welcome to Cre8Pay!',
                 style: TextStyle(
                   fontSize: 24,
                   fontWeight: FontWeight.bold,
-                  color: Colors.white,
+                  color: theme.colorScheme.onSurface,
                 ),
                 textAlign: TextAlign.center,
               ),
@@ -117,26 +121,36 @@ class _WalletScreenState extends ConsumerState<WalletScreen> {
                         Icons.currency_exchange,
                         'Multi-Currency Support',
                         'Access to both local and dollar wallets for seamless international transactions',
+                        theme: theme,
+                        isDark: isDark,
                       ),
                       _buildBenefitItem(
                         Icons.security,
                         'Secure Transactions',
                         'Bank-level security to keep your funds safe and protected',
+                        theme: theme,
+                        isDark: isDark,
                       ),
                       _buildBenefitItem(
                         Icons.speed,
                         'Instant Transfers',
                         'Send and receive money instantly across borders',
+                        theme: theme,
+                        isDark: isDark,
                       ),
                       _buildBenefitItem(
                         Icons.analytics,
                         'Better Exchange Rates',
                         'Enjoy competitive exchange rates without hidden fees',
+                        theme: theme,
+                        isDark: isDark,
                       ),
                       _buildBenefitItem(
                         Icons.language,
                         'Global Access',
                         'Make payments and receive funds from anywhere in the world',
+                        theme: theme,
+                        isDark: isDark,
                       ),
                     ],
                   ),
@@ -152,6 +166,7 @@ class _WalletScreenState extends ConsumerState<WalletScreen> {
                   Navigator.pop(context); // Close bottom sheet
                   activateDollarWallet(); // Call activation function
                 },
+                color: AppColors.BUTTONCOLOR,
               ),
             ],
           ),
@@ -160,7 +175,8 @@ class _WalletScreenState extends ConsumerState<WalletScreen> {
     );
   }
 
-  Widget _buildBenefitItem(IconData icon, String title, String description) {
+  Widget _buildBenefitItem(IconData icon, String title, String description,
+      {required ThemeData theme, required bool isDark}) {
     return Container(
       margin: const EdgeInsets.only(bottom: 16),
       child: Row(
@@ -170,10 +186,10 @@ class _WalletScreenState extends ConsumerState<WalletScreen> {
             width: 40,
             height: 40,
             decoration: BoxDecoration(
-              color: Colors.blue.withOpacity(0.1),
+              color: AppColors.BUTTONCOLOR.withOpacity(0.1),
               borderRadius: BorderRadius.circular(8),
             ),
-            child: Icon(icon, color: Colors.blue, size: 20),
+            child: Icon(icon, color: AppColors.BUTTONCOLOR, size: 20),
           ),
           const SizedBox(width: 12),
           Expanded(
@@ -182,10 +198,10 @@ class _WalletScreenState extends ConsumerState<WalletScreen> {
               children: [
                 Text(
                   title,
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 16,
                     fontWeight: FontWeight.w600,
-                    color: Colors.white,
+                    color: theme.colorScheme.onSurface,
                   ),
                 ),
                 const SizedBox(height: 4),
@@ -193,7 +209,7 @@ class _WalletScreenState extends ConsumerState<WalletScreen> {
                   description,
                   style: TextStyle(
                     fontSize: 14,
-                    color: Colors.white.withOpacity(0.7),
+                    color: theme.colorScheme.onSurface.withOpacity(0.7),
                     height: 1.4,
                   ),
                 ),
@@ -207,11 +223,12 @@ class _WalletScreenState extends ConsumerState<WalletScreen> {
 
   void activateDollarWallet() async {
     try {
-      final response = await ref.read(apiresponseProvider.notifier).activateDollarWallet(
+      final response =
+      await ref.read(apiresponseProvider.notifier).activateDollarWallet(
         context: context,
       );
 
-      if(response.status) {
+      if (response.status) {
         await ref.read(userProvider.notifier).loadUserProfile();
 
         Navigator.push(
@@ -227,15 +244,16 @@ class _WalletScreenState extends ConsumerState<WalletScreen> {
     } catch (error) {
       String errorMessage = 'An unexpected error occurred';
 
-      print("Raw error: $error");
+      debugPrint("Raw error: $error");
 
       if (error is DioException) {
-        print("Dio error: ${error.response?.data}");
-        print("Status code: ${error.response?.statusCode}");
+        debugPrint("Dio error: ${error.response?.data}");
+        debugPrint("Status code: ${error.response?.statusCode}");
 
         if (error.response?.data != null) {
           try {
-            final apiResponse = ApiResponseModel.fromJson(error.response?.data);
+            final apiResponse =
+            ApiResponseModel.fromJson(error.response?.data);
             errorMessage = apiResponse.message;
           } catch (e) {
             errorMessage = 'Failed to parse error message';
@@ -256,37 +274,109 @@ class _WalletScreenState extends ConsumerState<WalletScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
     final serviceState = ref.watch(getTransactionHistoryPlaceProvider);
     final user = widget.user;
 
     return Scaffold(
-      backgroundColor: AppColors.BACKGROUNDCOLOR,
       body: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 16),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             // Title
-            const Text(
+            Text(
               'Wallet',
               style: TextStyle(
                 fontSize: 24,
                 fontWeight: FontWeight.w400,
-                color: Colors.white,
+                color: theme.colorScheme.onSurface,
               ),
             ),
             const SizedBox(height: 20),
 
             // Wallet Balance Cards
-            _buildWalletBalanceCards(user),
+            _buildWalletBalanceCards(user, theme, isDark),
             const SizedBox(height: 16),
-
+            _buildHeader("Quick Actions", theme),
+            const SizedBox(height: 12),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                _quickActionItem(
+                  icon: Icons.call,
+                  label: "Airtime",
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => AirtimeScreen(
+                          user: widget.user,
+                        ),
+                      ),
+                    );
+                  },
+                  theme: theme,
+                  isDark: isDark,
+                ),
+                _quickActionItem(
+                  icon: Icons.swap_vert,
+                  label: "Data",
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => DataScreen(
+                          user: widget.user,
+                        ),
+                      ),
+                    );
+                  },
+                  theme: theme,
+                  isDark: isDark,
+                ),
+                _quickActionItem(
+                  icon: Icons.lightbulb_outline,
+                  label: "Electricity",
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => ElectricityScreen(
+                          user: widget.user,
+                        ),
+                      ),
+                    );
+                  },
+                  theme: theme,
+                  isDark: isDark,
+                ),
+                _quickActionItem(
+                  icon: Icons.tv,
+                  label: "Cable TV",
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => CableTvScreen(
+                          user: widget.user,
+                        ),
+                      ),
+                    );
+                  },
+                  theme: theme,
+                  isDark: isDark,
+                ),
+              ],
+            ),
+            const SizedBox(height: 16),
             // Recent Transactions Header
-            _buildTransactionsHeader(),
+            _buildHeader("Recent Transactions", theme),
             const SizedBox(height: 10),
 
             // Transactions List
-            _buildTransactionsList(serviceState),
+            _buildTransactionsList(serviceState, theme, isDark),
             const SizedBox(height: 40),
           ],
         ),
@@ -294,7 +384,47 @@ class _WalletScreenState extends ConsumerState<WalletScreen> {
     );
   }
 
-  Widget _buildWalletBalanceCards(User user) {
+  Widget _quickActionItem({
+    required IconData icon,
+    required String label,
+    required ThemeData theme,
+    required bool isDark,
+    VoidCallback? onTap,
+  }) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Column(
+        children: [
+          Container(
+            width: 56,
+            height: 56,
+            decoration: BoxDecoration(
+              color: isDark ? const Color(0xFF1C1C1E) : Colors.grey[100],
+              borderRadius: BorderRadius.circular(28),
+            ),
+            child: Center(
+              child: Icon(
+                icon,
+                color: AppColors.BUTTONCOLOR,
+                size: 24,
+              ),
+            ),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            label,
+            style: TextStyle(
+              color: theme.colorScheme.onSurface.withOpacity(0.7),
+              fontSize: 12,
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildWalletBalanceCards(User user, ThemeData theme, bool isDark) {
     return SingleChildScrollView(
       scrollDirection: Axis.horizontal,
       child: Row(
@@ -309,9 +439,9 @@ class _WalletScreenState extends ConsumerState<WalletScreen> {
             onWithdraw: _navigateToWithdraw,
           ),
           const SizedBox(width: 10),
-          if(!user.wallet!.hasActivatedDollarWallet)
-            _buildDollarWalletActivationCard(),
-          if(user.wallet!.hasActivatedDollarWallet)
+          if (!user.wallet!.hasActivatedDollarWallet)
+            _buildDollarWalletActivationCard(theme, isDark),
+          if (user.wallet!.hasActivatedDollarWallet)
             WalletBalanceCard(
               title: 'Dollar balance',
               balance: user.wallet?.dollarBalance != null
@@ -326,16 +456,16 @@ class _WalletScreenState extends ConsumerState<WalletScreen> {
     );
   }
 
-  Widget _buildDollarWalletActivationCard() {
+  Widget _buildDollarWalletActivationCard(ThemeData theme, bool isDark) {
     return GestureDetector(
-      onTap: _showDollarWalletActivationSheet,
+      onTap: () => _showDollarWalletActivationSheet(theme, isDark),
       child: Container(
         width: 280,
         padding: const EdgeInsets.all(20),
         decoration: BoxDecoration(
-          color: const Color(0xFF1A191E),
+          color: isDark ? const Color(0xFF1A191E) : Colors.grey[100],
           borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: Colors.blue.withOpacity(0.3)),
+          border: Border.all(color: AppColors.BUTTONCOLOR.withOpacity(0.3)),
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -345,32 +475,32 @@ class _WalletScreenState extends ConsumerState<WalletScreen> {
                 Container(
                   padding: const EdgeInsets.all(8),
                   decoration: BoxDecoration(
-                    color: Colors.blue.withOpacity(0.2),
+                    color: AppColors.BUTTONCOLOR.withOpacity(0.2),
                     borderRadius: BorderRadius.circular(8),
                   ),
-                  child: const Icon(
+                  child: Icon(
                     Icons.lock_open,
-                    color: Colors.blue,
+                    color: AppColors.BUTTONCOLOR,
                     size: 20,
                   ),
                 ),
                 const SizedBox(width: 12),
-                const Text(
+                Text(
                   'Dollar Wallet',
                   style: TextStyle(
                     fontSize: 18,
                     fontWeight: FontWeight.w500,
-                    color: Colors.white,
+                    color: theme.colorScheme.onSurface,
                   ),
                 ),
               ],
             ),
             const SizedBox(height: 16),
-            const Text(
+            Text(
               'Activate your dollar wallet to start making international transactions and enjoy global payment features.',
               style: TextStyle(
                 fontSize: 14,
-                color: Colors.white70,
+                color: theme.colorScheme.onSurface.withOpacity(0.7),
                 height: 1.4,
               ),
             ),
@@ -379,10 +509,10 @@ class _WalletScreenState extends ConsumerState<WalletScreen> {
               width: double.infinity,
               padding: const EdgeInsets.symmetric(vertical: 12),
               decoration: BoxDecoration(
-                color: AppColors.PRIMARYCOLOR,
+                color: AppColors.BUTTONCOLOR,
                 borderRadius: BorderRadius.circular(12),
               ),
-              child: const Center(
+              child: Center(
                 child: Text(
                   'Activate Now',
                   style: TextStyle(
@@ -399,28 +529,31 @@ class _WalletScreenState extends ConsumerState<WalletScreen> {
     );
   }
 
-  Widget _buildTransactionsHeader() {
-    return const Text(
-      'Recent Transactions',
+  Widget _buildHeader(String title, ThemeData theme) {
+    return Text(
+      title,
       style: TextStyle(
-          fontSize: 18,
-          fontWeight: FontWeight.w400,
-          color: Colors.white
+        fontSize: 16,
+        fontWeight: FontWeight.w400,
+        color: theme.colorScheme.onSurface,
       ),
     );
   }
 
-  Widget _buildTransactionsList(AsyncValue<TransactionHistoryResponse> serviceState) {
+  Widget _buildTransactionsList(
+      AsyncValue<TransactionHistoryResponse> serviceState,
+      ThemeData theme,
+      bool isDark) {
     return serviceState.when(
       data: (serviceResponse) {
         final allServices = serviceResponse.data.data;
 
         if (allServices.isEmpty) {
-          return const Expanded(
+          return Expanded(
             child: Center(
               child: Text(
                 'No Transaction History',
-                style: TextStyle(color: Colors.white),
+                style: TextStyle(color: theme.colorScheme.onSurface),
               ),
             ),
           );
@@ -429,27 +562,33 @@ class _WalletScreenState extends ConsumerState<WalletScreen> {
         return Expanded(
           child: Container(
             decoration: BoxDecoration(
-              color: const Color(0xFF1A191E),
+              color: isDark ? const Color(0xFF1A191E) : Colors.grey[100],
               borderRadius: BorderRadius.circular(20),
             ),
             child: ListView.builder(
               padding: const EdgeInsets.all(8),
               itemCount: allServices.length,
               itemBuilder: (context, index) {
-                return TransactionCard(transaction: allServices[index]);
+                return TransactionCard(
+                  transaction: allServices[index],
+                  theme: theme,
+                  isDark: isDark,
+                );
               },
             ),
           ),
         );
       },
-      loading: () => const Expanded(
-        child: Center(child: CircularProgressIndicator()),
+      loading: () => Expanded(
+        child: Center(
+          child: CircularProgressIndicator(color: theme.colorScheme.primary),
+        ),
       ),
       error: (error, _) => Expanded(
         child: Center(
           child: Text(
-              'Error: $error',
-              style: const TextStyle(color: Colors.white)
+            'Error: $error',
+            style: TextStyle(color: theme.colorScheme.error),
           ),
         ),
       ),

@@ -69,9 +69,9 @@ class _ServiceScreenState extends ConsumerState<ServiceScreen> with TickerProvid
     );
 
     return Scaffold(
-      backgroundColor: AppColors.BACKGROUNDCOLOR,
+     
       appBar: AppBar(
-        backgroundColor: AppColors.BACKGROUNDCOLOR,
+       
         elevation: 0,
         leading: IconButton(
           icon: const Icon(Icons.arrow_back_ios, color: Color(0xFFB0B0B6)),

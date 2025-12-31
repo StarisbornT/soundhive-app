@@ -39,7 +39,7 @@ class _JustCuriousState extends ConsumerState<JustCurious> {
   Widget build(BuildContext context) {
     final user = ref.watch(userProvider);
     return Scaffold(
-      backgroundColor: AppColors.BACKGROUNDCOLOR,
+     
       body: SafeArea(
         child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 20),
