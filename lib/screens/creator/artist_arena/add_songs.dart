@@ -47,7 +47,10 @@ class _AddSongScreenState extends ConsumerState<AddSongScreen> {
     {'label': 'Pop', 'value': 'pop'},
     {'label': 'Reggae', 'value': 'reggae'},
     {'label': 'Afro', 'value': 'afro'},
-    {'label': 'Metal', 'value': 'metal'},
+    {'label': 'Afrofusion', 'value': 'afrofusion'},
+    {'label': 'Agro Beat', 'value': 'agrobeat'},
+    {'label': 'Juju', 'value': 'juju'},
+    {'label': 'Other Genres', 'value': 'other_genres'},
   ];
   String? selectedSongType;
   List<String> selectedFeaturedArtists = [];
