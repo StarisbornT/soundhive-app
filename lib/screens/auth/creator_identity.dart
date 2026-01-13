@@ -29,7 +29,7 @@ class _IdentityScreenState extends State<CreatorIdentityScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-     
+      backgroundColor: AppColors.BACKGROUNDCOLOR,
       body: SafeArea(
         child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 36),

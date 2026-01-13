@@ -573,7 +573,6 @@ class LabeledMultiSelectField extends StatelessWidget {
     );
   }
 }
-
 class CurrencyInputField extends ConsumerStatefulWidget {
   final String label;
   final String? hintText;
@@ -583,6 +582,8 @@ class CurrencyInputField extends ConsumerStatefulWidget {
   final FormFieldValidator<String>? validator;
   final ThemeData? theme;
   final bool? isDark;
+  final String? currencySymbol;
+  final String? secondLabel;
 
   const CurrencyInputField({
     super.key,
@@ -594,6 +595,8 @@ class CurrencyInputField extends ConsumerStatefulWidget {
     this.validator,
     this.theme,
     this.isDark,
+    this.currencySymbol,
+    this.secondLabel
   });
 
   @override
@@ -602,6 +605,7 @@ class CurrencyInputField extends ConsumerStatefulWidget {
 
 class _CurrencyInputFieldState extends ConsumerState<CurrencyInputField> {
   late TextEditingController _internalController;
+  String? _currentCurrencySymbol;
 
   @override
   void initState() {
@@ -612,6 +616,17 @@ class _CurrencyInputFieldState extends ConsumerState<CurrencyInputField> {
       _internalController.text = '';
     }
     _internalController.addListener(_formatCurrencyInput);
+    _currentCurrencySymbol = widget.currencySymbol;
+  }
+
+  @override
+  void didUpdateWidget(CurrencyInputField oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.currencySymbol != oldWidget.currencySymbol) {
+      setState(() {
+        _currentCurrencySymbol = widget.currencySymbol;
+      });
+    }
   }
 
   @override
@@ -624,68 +639,103 @@ class _CurrencyInputFieldState extends ConsumerState<CurrencyInputField> {
   }
 
   void _formatCurrencyInput() {
-    String text = _internalController.text;
+    final text = _internalController.text;
 
-    // Remove all non-digit characters except the first dot
-    String cleanText = text.replaceAll(RegExp(r'[^\d.]'), '');
-    List<String> parts = cleanText.split('.');
+    if (text.isEmpty) return;
 
-    // Handle decimal part
-    if (parts.length > 1) {
-      String integerPart = parts[0];
-      String decimalPart = parts[1];
+    // Remove commas
+    String cleanText = text.replaceAll(',', '');
 
-      // Ensure only one decimal point
-      if (parts.length > 2) {
-        decimalPart = parts[1] + parts.sublist(2).join();
-      }
+    // Remove all non-digit characters except dot
+    cleanText = cleanText.replaceAll(RegExp(r'[^\d.]'), '');
 
-      // Limit decimal part to two digits
-      if (decimalPart.length > 2) {
-        decimalPart = decimalPart.substring(0, 2);
-      }
+    final parts = cleanText.split('.');
 
-      String newText = '$integerPart.$decimalPart';
+    String integerPart = parts[0];
+    String decimalPart = parts.length > 1 ? parts[1] : '';
 
-      _internalController.value = _internalController.value.copyWith(
-        text: newText,
-        selection: TextSelection.collapsed(offset: newText.length),
-      );
-    } else {
-      // No decimal, just keep the digits
-      _internalController.value = _internalController.value.copyWith(
-        text: cleanText,
-        selection: TextSelection.collapsed(offset: cleanText.length),
-      );
+    // Limit decimal places to 2
+    if (decimalPart.length > 2) {
+      decimalPart = decimalPart.substring(0, 2);
     }
+
+    // Format integer part with commas
+    final formattedInteger = _addCommas(integerPart);
+
+    final formattedText =
+    decimalPart.isNotEmpty ? '$formattedInteger.$decimalPart' : formattedInteger;
+
+    // Avoid infinite loop
+    if (formattedText == text) return;
+
+    _internalController.value = TextEditingValue(
+      text: formattedText,
+      selection: TextSelection.collapsed(offset: formattedText.length),
+    );
 
     if (widget.onChanged != null) {
-      widget.onChanged!(_internalController.text);
+      widget.onChanged!(formattedText);
     }
   }
+
+  String _addCommas(String value) {
+    if (value.isEmpty) return value;
+
+    final buffer = StringBuffer();
+    final chars = value.split('').reversed.toList();
+
+    for (int i = 0; i < chars.length; i++) {
+      if (i != 0 && i % 3 == 0) {
+        buffer.write(',');
+      }
+      buffer.write(chars[i]);
+    }
+
+    return buffer.toString().split('').reversed.join();
+  }
+
+
 
   @override
   Widget build(BuildContext context) {
     final theme = widget.theme ?? Theme.of(context);
     final isDark = widget.isDark ?? theme.brightness == Brightness.dark;
 
+    // Get the currency symbol with fallback options
+    final currencySymbol = _currentCurrencySymbol ??
+        ref.creatorCurrencySymbol;
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
-          widget.label,
-          style: TextStyle(
-            color: theme.colorScheme.onSurface,
-            fontSize: 14,
-            fontWeight: FontWeight.w400,
-          ),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Text(
+              widget.label,
+              style: TextStyle(
+                fontSize: 14,
+                fontWeight: FontWeight.w400,
+                color: theme.colorScheme.onSurface,
+              ),
+            ),
+            if (widget.secondLabel != null && widget.secondLabel!.isNotEmpty)
+              Text(
+                widget.secondLabel!,
+                style: TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w400,
+                  color: isDark ? const Color(0xFFC5AFFF) : AppColors.BUTTONCOLOR,
+                ),
+              ),
+          ],
         ),
         const SizedBox(height: 8),
         TextFormField(
           controller: _internalController,
           keyboardType: TextInputType.number,
           inputFormatters: [
-            FilteringTextInputFormatter.allow(RegExp(r'^\d*\.?\d{0,2}')),
+            FilteringTextInputFormatter.allow(RegExp(r'[\d.,]')),
           ],
           validator: widget.validator,
           decoration: InputDecoration(
@@ -694,7 +744,7 @@ class _CurrencyInputFieldState extends ConsumerState<CurrencyInputField> {
               color: theme.colorScheme.onSurface.withOpacity(0.5),
             ),
             prefix: Text(
-              '${ref.creatorCurrencySymbol} ',
+              '$currencySymbol ',
               style: TextStyle(
                 color: theme.colorScheme.onSurface,
                 fontSize: 18,

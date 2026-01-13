@@ -275,7 +275,7 @@ class _OtpScreenState extends ConsumerState<OtpScreen> with WidgetsBindingObserv
   @override
   Widget build(BuildContext context) {
         return Scaffold(
-      backgroundColor: const Color(0xFF0C051F),
+          backgroundColor: AppColors.BACKGROUNDCOLOR,
       body: SafeArea(
         child: SingleChildScrollView(
           child: Padding(

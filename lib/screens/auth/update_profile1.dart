@@ -277,7 +277,7 @@ class _UpdateProfileState extends State<UpdateProfile1> {
   Widget build(BuildContext context) {
     print("Update $identity");
     return Scaffold(
-     
+      backgroundColor: AppColors.BACKGROUNDCOLOR,
       body: Column(
         children: [
           Padding(

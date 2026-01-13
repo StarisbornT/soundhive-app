@@ -30,12 +30,45 @@ class WalletScreen extends ConsumerStatefulWidget {
 }
 
 class _WalletScreenState extends ConsumerState<WalletScreen> {
+  final ScrollController _scrollController = ScrollController();
+  bool _isLoadingMore = false;
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       ref.read(getTransactionHistoryPlaceProvider.notifier).getTransactionHistory();
     });
+    _scrollController.addListener(_onScroll);
+  }
+
+  @override
+  void dispose() {
+    _scrollController.dispose();
+    super.dispose();
+  }
+  void _onScroll() {
+    if (_scrollController.position.pixels >=
+        _scrollController.position.maxScrollExtent - 100) {
+      _loadMoreTransactions();
+    }
+  }
+  Future<void> _loadMoreTransactions() async {
+    if (_isLoadingMore) return;
+
+    final notifier = ref.read(getTransactionHistoryPlaceProvider.notifier);
+    if (notifier.hasMore) {
+      setState(() {
+        _isLoadingMore = true;
+      });
+
+      try {
+        await notifier.loadMore();
+      } finally {
+        setState(() {
+          _isLoadingMore = false;
+        });
+      }
+    }
   }
 
   void _showAmountInputModal(String currency) {
@@ -559,23 +592,45 @@ class _WalletScreenState extends ConsumerState<WalletScreen> {
           );
         }
 
+        final notifier = ref.read(getTransactionHistoryPlaceProvider.notifier);
+
         return Expanded(
-          child: Container(
-            decoration: BoxDecoration(
-              color: isDark ? const Color(0xFF1A191E) : Colors.grey[100],
-              borderRadius: BorderRadius.circular(20),
-            ),
-            child: ListView.builder(
-              padding: const EdgeInsets.all(8),
-              itemCount: allServices.length,
-              itemBuilder: (context, index) {
-                return TransactionCard(
-                  transaction: allServices[index],
-                  theme: theme,
-                  isDark: isDark,
-                );
-              },
-            ),
+          child: Column(
+            children: [
+              Expanded(
+                child: Container(
+                  decoration: BoxDecoration(
+                    color: isDark ? const Color(0xFF1A191E) : Colors.grey[100],
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                  child: ListView.builder(
+                    controller: _scrollController,
+                    padding: const EdgeInsets.all(8),
+                    itemCount: allServices.length + (_isLoadingMore ? 1 : 0),
+                    itemBuilder: (context, index) {
+                      if (index >= allServices.length) {
+                        // Loading indicator at the bottom
+                        return Padding(
+                          padding: const EdgeInsets.all(16.0),
+                          child: Center(
+                            child: CircularProgressIndicator(
+                              color: theme.colorScheme.primary,
+                            ),
+                          ),
+                        );
+                      }
+
+                      return TransactionCard(
+                        transaction: allServices[index],
+                        theme: theme,
+                        isDark: isDark,
+                      );
+                    },
+                  ),
+                ),
+              ),
+
+            ],
           ),
         );
       },
@@ -586,9 +641,21 @@ class _WalletScreenState extends ConsumerState<WalletScreen> {
       ),
       error: (error, _) => Expanded(
         child: Center(
-          child: Text(
-            'Error: $error',
-            style: TextStyle(color: theme.colorScheme.error),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Text(
+                'Error loading transactions',
+                style: TextStyle(color: theme.colorScheme.error),
+              ),
+              const SizedBox(height: 10),
+              ElevatedButton(
+                onPressed: () => ref
+                    .read(getTransactionHistoryPlaceProvider.notifier)
+                    .refresh(),
+                child: const Text('Retry'),
+              ),
+            ],
           ),
         ),
       ),

@@ -106,7 +106,7 @@ class _TermsAndConditionScreenState extends ConsumerState<TermsAndCondition> {
   @override
 Widget build(BuildContext context) {
   return Scaffold(
-   
+    backgroundColor: AppColors.BACKGROUNDCOLOR,
     body: SafeArea(
       child: Column(
         children: [

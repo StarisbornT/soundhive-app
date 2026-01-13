@@ -293,7 +293,7 @@ class _EditEventScreenState extends ConsumerState<EditEventScreen> {
             ? 0
             : int.parse(eventTicketLimitController.text),
         "amount": selectedEventType == 'paid'
-            ? double.parse(eventAmountController.text)
+            ? double.parse(eventAmountController.text.replaceAll(",", ""))
             : 0,
         "image": uploadedImageUrl,
       };

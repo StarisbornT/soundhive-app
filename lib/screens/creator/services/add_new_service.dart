@@ -304,7 +304,7 @@ class _AddNewServiceScreenState extends ConsumerState<AddNewServiceScreen> {
       "sub_category_id": int.parse(selectedSubCategoryId!),
       "service_name": serviceNameController.text,
       "service_description": serviceDescriptionController.text,
-      "rate": rateController.text,
+      "rate": rateController.text.replaceAll(",", ""),
       "cover_image": portfolioData.coverUrl,
       "service_image": portfolioImage ?? '',
       "service_audio": portfolioAudio ?? '',

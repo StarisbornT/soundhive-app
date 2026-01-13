@@ -378,7 +378,7 @@ class _EditServiceScreenState extends ConsumerState<EditServiceScreen> {
       "sub_category_id": int.parse(selectedSubCategoryId!),
       "service_name": serviceNameController.text,
       "service_description": serviceDescriptionController.text,
-      "rate": rateController.text,
+      "rate": rateController.text.replaceAll(",", ""),
       "cover_image": portfolioData.coverUrl ?? widget.service.coverImage,
       "service_image": portfolioImage ?? '',
       "service_audio": portfolioAudio ?? '',

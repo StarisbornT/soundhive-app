@@ -10,22 +10,61 @@ import '../../../model/transaction_history_model.dart';
 import '../../../model/user_model.dart';
 import '../../../utils/app_colors.dart';
 
-
 class TransactionHistory extends ConsumerStatefulWidget {
   final MemberCreatorResponse user;
   const TransactionHistory({super.key, required this.user});
 
   @override
-  ConsumerState<TransactionHistory> createState() => _TransactionHistoryScreenState();
+  ConsumerState<TransactionHistory> createState() =>
+      _TransactionHistoryScreenState();
 }
-class _TransactionHistoryScreenState extends ConsumerState<TransactionHistory>{
+
+class _TransactionHistoryScreenState
+    extends ConsumerState<TransactionHistory> {
+  final ScrollController _scrollController = ScrollController();
+  bool _isLoadingMore = false;
+
   @override
   void initState() {
     super.initState();
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        ref.read(getTransactionHistoryPlaceProvider.notifier).getTransactionHistory();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      ref.read(getTransactionHistoryPlaceProvider.notifier).refresh();
+    });
+
+    // Add scroll listener for pagination
+    _scrollController.addListener(_onScroll);
+  }
+
+  @override
+  void dispose() {
+    _scrollController.dispose();
+    super.dispose();
+  }
+
+  void _onScroll() {
+    if (_scrollController.position.pixels >=
+        _scrollController.position.maxScrollExtent - 100) {
+      _loadMoreTransactions();
+    }
+  }
+
+  Future<void> _loadMoreTransactions() async {
+    if (_isLoadingMore) return;
+
+    final notifier = ref.read(getTransactionHistoryPlaceProvider.notifier);
+    if (notifier.hasMore) {
+      setState(() {
+        _isLoadingMore = true;
       });
 
+      try {
+        await notifier.loadMore();
+      } finally {
+        setState(() {
+          _isLoadingMore = false;
+        });
+      }
+    }
   }
 
   @override
@@ -41,83 +80,142 @@ class _TransactionHistoryScreenState extends ConsumerState<TransactionHistory>{
           onPressed: () => Navigator.pop(context),
         ),
       ),
-      body: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          children: [
-            Container(
-              alignment: Alignment.topLeft,
-              child: const Text(
-                'Transaction History',
-                style: TextStyle(fontSize: 24, fontWeight: FontWeight.w400),
+      body: RefreshIndicator(
+        onRefresh: () async {
+          await ref.read(getTransactionHistoryPlaceProvider.notifier).refresh();
+        },
+        child: Padding(
+          padding: const EdgeInsets.all(16.0),
+          child: Column(
+            children: [
+              Container(
+                alignment: Alignment.topLeft,
+                child: const Text(
+                  'Transaction History',
+                  style: TextStyle(fontSize: 24, fontWeight: FontWeight.w400),
+                ),
               ),
-            ),
-            const SizedBox(height: 16),
+              const SizedBox(height: 16),
 
-            if (account == null)
-              Expanded(
-                child: Center(
-                  child: SizedBox(
-                    height: 60,
-                    child: RoundedButton(
-                        title: 'Activate Wallet',
-                        color: AppColors.BUTTONCOLOR,
-                        onPressed: () {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(builder: (_) => WalletScreen(user: widget.user.user!)),
-                          );
-                        }
-                    ),
-                  )
-                ),
-              )
-            else
-              serviceState.when(
-                data: (serviceResponse) {
-                  final allServices = serviceResponse.data.data;
-                  if (allServices.isEmpty) {
-                    return const Expanded(
-                      child: Center(
-                        child: Text(
-                          'No Transaction History',
-                          style: TextStyle(color: Colors.white),
-                        ),
-                      ),
-                    );
-                  }
-
-                  return Expanded(
-                    child: Container(
-                      decoration: BoxDecoration(
-                        color: const Color(0xFF1A191E),
-                        borderRadius: BorderRadius.circular(20),
-                      ),
-                      child: ListView.builder(
-                        padding: const EdgeInsets.all(8),
-                        itemCount: allServices.length,
-                        itemBuilder: (context, index) {
-                          return TransactionCard(transaction: allServices[index]);
-                        },
-                      ),
-                    ),
-                  );
-                },
-                loading: () => const Expanded(
-                  child: Center(child: CircularProgressIndicator()),
-                ),
-                error: (error, _) => Expanded(
+              if (account == null)
+                Expanded(
                   child: Center(
-                    child: Text('Error: $error', style: const TextStyle(color: Colors.white)),
+                    child: SizedBox(
+                      height: 60,
+                      child: RoundedButton(
+                          title: 'Activate Wallet',
+                          color: AppColors.BUTTONCOLOR,
+                          onPressed: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                  builder: (_) =>
+                                      WalletScreen(user: widget.user.user!)),
+                            );
+                          }),
+                    ),
                   ),
-                ),
-              ),
-          ],
+                )
+              else
+                _buildTransactionsList(serviceState, context),
+              const SizedBox(height: 40),
+            ],
+          ),
         ),
       ),
     );
   }
 
+  Widget _buildTransactionsList(
+      AsyncValue<TransactionHistoryResponse> serviceState,
+      BuildContext context,
+      ) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+    return serviceState.when(
+      data: (serviceResponse) {
+        final allServices = serviceResponse.data.data;
+
+        if (allServices.isEmpty) {
+          return Expanded(
+            child: Center(
+              child: Text(
+                'No Transaction History',
+                style: TextStyle(color: theme.colorScheme.onSurface),
+              ),
+            ),
+          );
+        }
+
+        final notifier = ref.read(getTransactionHistoryPlaceProvider.notifier);
+
+        return Expanded(
+          child: Column(
+            children: [
+              Expanded(
+                child: Container(
+                  decoration: BoxDecoration(
+                    color: isDark ? const Color(0xFF1A191E) : Colors.grey[100],
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                  child: ListView.builder(
+                    controller: _scrollController,
+                    padding: const EdgeInsets.all(8),
+                    itemCount: allServices.length + (_isLoadingMore ? 1 : 0),
+                    itemBuilder: (context, index) {
+                      if (index >= allServices.length) {
+                        // Loading indicator at the bottom
+                        return Padding(
+                          padding: const EdgeInsets.all(16.0),
+                          child: Center(
+                            child: CircularProgressIndicator(
+                              color: theme.colorScheme.primary,
+                            ),
+                          ),
+                        );
+                      }
+
+                      return TransactionCard(
+                        transaction: allServices[index],
+                        theme: theme,
+                        isDark: isDark,
+                      );
+                    },
+                  ),
+                ),
+              ),
+
+            ],
+          ),
+        );
+      },
+      loading: () => Expanded(
+        child: Center(
+          child: CircularProgressIndicator(color: theme.colorScheme.primary),
+        ),
+      ),
+      error: (error, _) => Expanded(
+        child: Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Text(
+                'Error loading transactions',
+                style: TextStyle(color: theme.colorScheme.error),
+              ),
+              const SizedBox(height: 10),
+              ElevatedButton(
+                onPressed: () => ref
+                    .read(getTransactionHistoryPlaceProvider.notifier)
+                    .refresh(),
+                child: const Text('Retry'),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
 }
 
 class TransactionCard extends ConsumerWidget {
@@ -166,7 +264,9 @@ class TransactionCard extends ConsumerWidget {
               ),
               child: Center(
                 child: Icon(
-                  isDebit ? FontAwesomeIcons.arrowDown : FontAwesomeIcons.arrowUp,
+                  isDebit
+                      ? FontAwesomeIcons.arrowDown
+                      : FontAwesomeIcons.arrowUp,
                   color: amountColor,
                   size: 16,
                 ),
@@ -191,17 +291,20 @@ class TransactionCard extends ConsumerWidget {
                   ),
                   const SizedBox(height: 2),
                   Text(
-                    transaction.type ?? '',
+                    transaction.transactionStatus ?? '',
                     style: TextStyle(
-                      color: currentTheme.colorScheme.onSurface.withOpacity(0.6),
+                      color:
+                      currentTheme.colorScheme.onSurface.withOpacity(0.6),
                       fontSize: 12,
                     ),
                   ),
                   const SizedBox(height: 4),
                   Text(
-                    DateFormat('dd/MM/yyyy').format(DateTime.parse(transaction.createdAt)),
+                    DateFormat('dd/MM/yyyy')
+                        .format(DateTime.parse(transaction.createdAt)),
                     style: TextStyle(
-                      color: currentTheme.colorScheme.onSurface.withOpacity(0.5),
+                      color:
+                      currentTheme.colorScheme.onSurface.withOpacity(0.5),
                       fontSize: 10,
                     ),
                   ),
@@ -223,7 +326,8 @@ class TransactionCard extends ConsumerWidget {
                 ),
                 const SizedBox(height: 2),
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                  padding:
+                  const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
                   decoration: BoxDecoration(
                     color: amountColor.withOpacity(0.1),
                     borderRadius: BorderRadius.circular(4),

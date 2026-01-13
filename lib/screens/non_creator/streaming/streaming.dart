@@ -53,7 +53,7 @@ class _StreamingState extends ConsumerState<Streaming> {
 
   List<String> types = [
     "Gospel", "Metal", "Rock", "Hip-Pop", "Reggae",
-    "Country", "Classical", "Jazz", "Blues"
+    "Country", "Classical", "Jazz", "Blues", "Afrofusion", "Agro Beat", "Juju", "Other Genres"
   ];
 
   Widget _buildSearchAndFilter(ThemeData theme, bool isDark) {

@@ -146,7 +146,7 @@ class _CreateAccountScreenState extends State<CreateAccount> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-     
+      backgroundColor: AppColors.BACKGROUNDCOLOR,
       body: SingleChildScrollView(
         child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 10),
