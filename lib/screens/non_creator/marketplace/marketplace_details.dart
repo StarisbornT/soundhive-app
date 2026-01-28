@@ -505,52 +505,55 @@ class _MarketplaceDetailsScreenState extends ConsumerState<MarketplaceDetails> {
           ),
         ),
         const SizedBox(height: 16),
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            offerState.when(
-              data: (data) {
-                return _buildOfferButton(data.offer, theme, isDark);
-              },
-              error: (err, stack) {
-                debugPrint(err.toString());
-                return Text(
-                  "Error loading offer",
-                  style: TextStyle(color: theme.colorScheme.error),
-                );
-              },
-              loading: () => SizedBox(
-                width: 120,
-                child: Center(
-                  child: CircularProgressIndicator(color: theme.colorScheme.primary),
+        offerState.when(
+          data: (data) {
+            return Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                _buildOfferButton(data.offer, theme, isDark),
+                RoundedButton(
+                  title: widget.user.user?.wallet == null
+                      ? "Activate your wallet"
+                      : 'Book',
+                  onPressed: () {
+                    if (widget.user.user?.wallet == null) {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) =>
+                              WalletScreen(user: widget.user.user!),
+                        ),
+                      );
+                    }else if (data.offer?.status == "PENDING") {
+                      showCustomAlert(context: context, isSuccess: false, title: "Error", message: "Your Offer is on Pending");
+                    }
+                    else {
+                      setState(() {
+                        _currentStep++;
+                      });
+                    }
+                  },
+                  color: AppColors.BUTTONCOLOR,
+                  minWidth: 100,
+                  borderWidth: 0,
+                  borderRadius: 25.0,
                 ),
-              ),
+              ],
+            );
+          },
+          error: (err, stack) {
+            debugPrint(err.toString());
+            return Text(
+              "Error loading offer",
+              style: TextStyle(color: theme.colorScheme.error),
+            );
+          },
+          loading: () => SizedBox(
+            width: 120,
+            child: Center(
+              child: CircularProgressIndicator(color: theme.colorScheme.primary),
             ),
-            RoundedButton(
-              title: widget.user.user?.wallet == null
-                  ? "Activate your wallet"
-                  : 'Book',
-              onPressed: () {
-                if (widget.user.user?.wallet == null) {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) =>
-                          WalletScreen(user: widget.user.user!),
-                    ),
-                  );
-                } else {
-                  setState(() {
-                    _currentStep++;
-                  });
-                }
-              },
-              color: AppColors.BUTTONCOLOR,
-              minWidth: 100,
-              borderWidth: 0,
-              borderRadius: 25.0,
-            ),
-          ],
+          ),
         ),
       ],
     );

@@ -107,7 +107,7 @@ class _ServicesListScreenState extends ConsumerState<ServicesListScreen>
                   style: const TextStyle(color: Colors.white),
                   onChanged: (value) {
                     marketplaceNotifier.getMarketPlaceService(
-                      serviceName: value,
+                      searchTerm: value,
                     );
                   },
                   decoration: const InputDecoration(

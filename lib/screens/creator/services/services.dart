@@ -3,18 +3,16 @@ import 'dart:ui';
 import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
 import 'package:soundhive2/screens/creator/services/add_new_service.dart';
 import 'package:soundhive2/screens/creator/services/service_details_screen.dart';
-import 'package:soundhive2/utils/app_colors.dart';
 
 import '../../../components/rounded_button.dart';
 import '../../../components/success.dart';
 import '../../../components/widgets.dart';
 import 'package:soundhive2/lib/dashboard_provider/serviceProvider.dart';
-import '../../../lib/dashboard_provider/apiresponseprovider.dart';
-import '../../../lib/dashboard_provider/getCreatorServiceStatisticsProvider.dart';
+import 'package:soundhive2/lib/dashboard_provider/apiresponseprovider.dart';
+import 'package:soundhive2/lib/dashboard_provider/getCreatorServiceStatisticsProvider.dart';
 import '../../../model/apiresponse_model.dart';
 import '../../../model/service_model.dart';
 import '../../../model/user_model.dart';
@@ -98,7 +96,7 @@ class _ServiceScreenState extends ConsumerState<ServiceScreen> with TickerProvid
                       const Text(
                         'Earnings from Services',
                         style: TextStyle(
-                            color: Colors.white,
+
                             fontSize: 16,
                             fontWeight: FontWeight.bold
                         ),
@@ -124,7 +122,7 @@ class _ServiceScreenState extends ConsumerState<ServiceScreen> with TickerProvid
                       const Text(
                         'Services Summary',
                         style: TextStyle(
-                            color: Colors.white,
+
                             fontSize: 16,
                             fontWeight: FontWeight.bold
                         ),
@@ -152,8 +150,6 @@ class _ServiceScreenState extends ConsumerState<ServiceScreen> with TickerProvid
                 TabBar(
                   controller: _tabController,
                   indicatorColor: const Color(0xFF917FC0),
-                  labelColor: Colors.white,
-                  unselectedLabelColor: Colors.white70,
                   labelStyle: const TextStyle(fontWeight: FontWeight.bold),
                   unselectedLabelStyle: const TextStyle(fontWeight: FontWeight.normal),
                   tabs: const [
@@ -222,7 +218,7 @@ class _ServiceScreenState extends ConsumerState<ServiceScreen> with TickerProvid
                           (widget.user.user?.creator == null || widget.user.user?.creator?.hasVerifiedIdentity == false || widget.user.user?.creator?.hasVerifiedCreativeProfile == false)
                               ? "Complete your KYC so as to activate your option to create services"
                               : "Your account is under review",
-                          style: const TextStyle(color: Colors.white, fontSize: 18),
+                          style: const TextStyle( fontSize: 18),
                         ),
                       ),
                       const SizedBox(height: 10),
@@ -309,7 +305,6 @@ class _ServiceScreenState extends ConsumerState<ServiceScreen> with TickerProvid
         Text(
           label,
           style: const TextStyle(
-            color: Colors.white70,
             fontSize: 12,
           ),
         ),
@@ -322,7 +317,6 @@ class _ServiceScreenState extends ConsumerState<ServiceScreen> with TickerProvid
       return Center(
         child: Text(
           emptyMessage,
-          style: const TextStyle(color: Colors.white70),
         ),
       );
     }
@@ -357,7 +351,6 @@ class _ServiceScreenState extends ConsumerState<ServiceScreen> with TickerProvid
                     Text(
                       item.serviceName,
                       style: const TextStyle(
-                          color: Colors.white,
                           fontSize: 16,
                           fontWeight: FontWeight.bold
                       ),
@@ -367,12 +360,12 @@ class _ServiceScreenState extends ConsumerState<ServiceScreen> with TickerProvid
                     const SizedBox(height: 5),
                     Text(
                       ref.formatCreatorCurrency(item.rate),
-                      style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.w500),
+                      style: const TextStyle( fontSize: 18, fontWeight: FontWeight.w500),
                     ),
                     const SizedBox(height: 5),
                     Text(
                       item.status == "PENDING" ? 'Submitted ${DateFormat('dd/MM/yyyy').format(DateTime.parse(item.createdAt))}' : '',
-                      style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.w500),
+                      style: const TextStyle( fontSize: 12, fontWeight: FontWeight.w500),
                     ),
 
                   ],
@@ -382,7 +375,7 @@ class _ServiceScreenState extends ConsumerState<ServiceScreen> with TickerProvid
                   onTap: () {
                     showBottomSheet(item, earnings);
                   },
-                  child: const Icon(Icons.more_vert, color: Colors.white,)
+                  child: const Icon(Icons.more_vert)
               )
             ],
           ),

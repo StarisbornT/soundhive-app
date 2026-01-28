@@ -1,12 +1,14 @@
 import 'dart:convert';
 
 import 'package:dio/dio.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import 'package:google_sign_in/google_sign_in.dart';
 import 'package:soundhive2/screens/auth/otp_screen.dart';
-
-import 'package:soundhive2/lib/interceptor.dart';
-import 'package:soundhive2/lib/provider.dart';
+import 'package:soundhive2/screens/auth/terms_and_condition.dart';
+import '../../services/fcm_service.dart';
 import '../../utils/alert_helper.dart';
 import '../../utils/app_colors.dart';
 
@@ -35,15 +37,30 @@ class _CreateAccountScreenState extends State<CreateAccount> {
     emailController.dispose();
     super.dispose();
   }
+  late final GoogleSignIn _googleSignIn;
+
   @override
   void initState() {
     super.initState();
-    dio = Dio();
-    dio.interceptors.add(BaseUrlInterceptor());
-    initializeDioLogger(dio);
+
+    _googleSignIn = GoogleSignIn.instance;
+
+    // Initialize with serverClientId
+    _googleSignIn.initialize(
+      serverClientId: dotenv.env["CLIENT_SERVER_ID"],
+    ).then((_) {
+      // Listen to auth events
+      _googleSignIn.authenticationEvents.listen(
+        _handleGoogleAuthEvent,
+        onError: _handleGoogleAuthError,
+      );
+
+    });
+
     passwordController.addListener(_validatePassword);
     loadData();
   }
+
 
 
   String? identity;
@@ -71,7 +88,7 @@ class _CreateAccountScreenState extends State<CreateAccount> {
         'creator_role': creatorIdentity?.toUpperCase() ?? ""
       };
       final options = Options(headers: {'Accept': 'application/json'});
-      final response = await dio.post(
+      final response = await widget.dio.post(
           '/auth/register',
           data: jsonEncode(payload),
           options: options
@@ -101,7 +118,7 @@ class _CreateAccountScreenState extends State<CreateAccount> {
       setState(() {
         isLoading = false;
       });
-      if (error is DioError) {
+      if (error is DioException) {
         String errorMessage = "Failed, Please check input";
 
         if (error.response != null && error.response!.data != null) {
@@ -129,6 +146,92 @@ class _CreateAccountScreenState extends State<CreateAccount> {
       }
     }
   }
+
+  Future<void> _signUpWithGoogle() async {
+    try {
+      setState(() => isLoading = true);
+
+      await _googleSignIn.authenticate(); // 👈 THIS starts the flow
+
+    } catch (e) {
+      setState(() => isLoading = false);
+      showCustomAlert(
+        context: context,
+        isSuccess: false,
+        title: 'Error',
+        message: 'Google sign in cancelled',
+      );
+    }
+  }
+  Future<void> _handleGoogleAuthEvent(event) async {
+    if (event is GoogleSignInAuthenticationEventSignIn) {
+      final googleAuth = event.user;
+
+      // ✅ ID TOKEN (this is what Firebase needs)
+      final idToken = googleAuth.authentication.idToken;
+
+      if (idToken == null) {
+        throw Exception('No ID token');
+      }
+
+      // 🔥 Firebase credential (NO accessToken needed)
+      final credential = GoogleAuthProvider.credential(
+        idToken: idToken,
+      );
+
+      final userCredential =
+      await FirebaseAuth.instance.signInWithCredential(credential);
+
+      final user = userCredential.user;
+      if (user == null) throw Exception('Firebase auth failed');
+
+      await _sendGoogleUserToBackend(user);
+    }
+
+    setState(() => isLoading = false);
+  }
+  void _handleGoogleAuthError(Object error) {
+    setState(() => isLoading = false);
+    print("Google Error $error");
+    showCustomAlert(
+      context: context,
+      isSuccess: false,
+      title: 'Error',
+      message: 'Google authentication failed',
+    );
+  }
+
+
+
+  Future<void> _sendGoogleUserToBackend(User user) async {
+    final payload = {
+      "email": user.email,
+      "name": user.displayName,
+      "google_id": user.uid,
+      "role": identity == "creator" ? "CREATOR" : "USER",
+      "creator_role": creatorIdentity?.toUpperCase() ?? ""
+    };
+
+    final response = await widget.dio.post(
+      '/auth/register/google',
+      data: jsonEncode(payload),
+      options: Options(headers: {'Accept': 'application/json'}),
+    );
+
+    setState(() => isLoading = false);
+
+    if (response.statusCode == 200) {
+      final responseData = response.data;
+      final fcmService = FcmTokenService(widget.dio);
+      await fcmService.registerFcmToken(user.email ?? "");
+      await widget.storage.write(key: 'auth_token', value: responseData['token']);
+      Navigator.pushNamed(context, TermsAndCondition.id);
+    } else {
+      throw Exception("Backend auth failed");
+    }
+  }
+
+
 
 
   void _validatePassword() {
@@ -192,11 +295,15 @@ class _CreateAccountScreenState extends State<CreateAccount> {
               ),
               const SizedBox(height: 24),
               // Social Login Buttons
-              _buildSocialButton('Sign up with Google', 'images/google.png'),
-              const SizedBox(height: 12),
-              _buildSocialButton('Sign up with Facebook', 'images/facebook.png'),
-              const SizedBox(height: 12),
-              _buildSocialButton('Sign up with Apple ID', 'images/apple.png'),
+              _buildSocialButton(
+                'Sign up with Google',
+                'images/google.png',
+                onTap: _signUpWithGoogle,
+              ),
+              // const SizedBox(height: 12),
+              // _buildSocialButton('Sign up with Facebook', 'images/facebook.png'),
+              // const SizedBox(height: 12),
+              // _buildSocialButton('Sign up with Apple ID', 'images/apple.png'),
             ],
           ),
         ),
@@ -295,9 +402,13 @@ class _CreateAccountScreenState extends State<CreateAccount> {
     );
   }
 
-  Widget _buildSocialButton(String text, String asset) {
+  Widget _buildSocialButton(
+      String text,
+      String asset, {
+        required VoidCallback onTap,
+      }) {
     return GestureDetector(
-      onTap: () {},
+      onTap: isLoading ? null : onTap,
       child: Container(
         width: double.infinity,
         padding: const EdgeInsets.symmetric(vertical: 14),
@@ -313,13 +424,15 @@ class _CreateAccountScreenState extends State<CreateAccount> {
             Text(
               text,
               style: const TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.white),
+                fontSize: 16,
+                fontWeight: FontWeight.bold,
+                color: Colors.white,
+              ),
             ),
           ],
         ),
       ),
     );
   }
+
 }

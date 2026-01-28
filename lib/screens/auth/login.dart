@@ -1,12 +1,13 @@
 import 'dart:convert';
 
 import 'package:dio/dio.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import 'package:google_sign_in/google_sign_in.dart';
 import 'package:soundhive2/screens/auth/terms_and_condition.dart';
 import 'package:soundhive2/screens/auth/update_profile1.dart';
-import 'package:soundhive2/lib/interceptor.dart';
-import 'package:soundhive2/lib/provider.dart';
 import 'package:soundhive2/utils/utils.dart';
 import '../../services/loader_service.dart';
 import '../../utils/alert_helper.dart';
@@ -35,9 +36,19 @@ class _LoginScreenState extends State<Login> {
   @override
   void initState() {
     super.initState();
-    dio = Dio();
-    dio.interceptors.add(BaseUrlInterceptor());
-    initializeDioLogger(dio);
+    _googleSignIn = GoogleSignIn.instance;
+
+    // Initialize with serverClientId
+    _googleSignIn.initialize(
+      serverClientId: dotenv.env["CLIENT_SERVER_ID"],
+    ).then((_) {
+      // Listen to auth events
+      _googleSignIn.authenticationEvents.listen(
+        _handleGoogleAuthEvent,
+        onError: _handleGoogleAuthError,
+      );
+
+    });
   }
   @override
   void dispose() {
@@ -45,6 +56,7 @@ class _LoginScreenState extends State<Login> {
     emailController.dispose();
     super.dispose();
   }
+  late final GoogleSignIn _googleSignIn;
   Future<void> _saveFormData() async {
     try {
       LoaderService.showLoader(context);
@@ -53,7 +65,7 @@ class _LoginScreenState extends State<Login> {
         "password": passwordController.text,
       };
       final options = Options(headers: {'Accept': 'application/json'});
-      final response = await dio.post(
+      final response = await widget.dio.post(
           '/auth/login',
           data: jsonEncode(payload),
           options: options
@@ -128,6 +140,92 @@ class _LoginScreenState extends State<Login> {
       }
     }
   }
+  Future<void> _signUpWithGoogle() async {
+    try {
+      LoaderService.showLoader(context);
+
+      await _googleSignIn.authenticate(); // 👈 THIS starts the flow
+
+    } catch (e) {
+      LoaderService.hideLoader(context);
+      showCustomAlert(
+        context: context,
+        isSuccess: false,
+        title: 'Error',
+        message: 'Google sign in cancelled',
+      );
+    }
+  }
+  Future<void> _handleGoogleAuthEvent(event) async {
+    if (event is GoogleSignInAuthenticationEventSignIn) {
+      final googleAuth = event.user;
+
+      // ✅ ID TOKEN (this is what Firebase needs)
+      final idToken = googleAuth.authentication.idToken;
+
+      if (idToken == null) {
+        throw Exception('No ID token');
+      }
+
+      // 🔥 Firebase credential (NO accessToken needed)
+      final credential = GoogleAuthProvider.credential(
+        idToken: idToken,
+      );
+
+      final userCredential =
+      await FirebaseAuth.instance.signInWithCredential(credential);
+
+      final user = userCredential.user;
+      if (user == null) throw Exception('Firebase auth failed');
+
+      await _sendGoogleUserToBackend(user);
+    }
+
+    LoaderService.hideLoader(context);
+  }
+  void _handleGoogleAuthError(Object error) {
+    LoaderService.hideLoader(context);
+    print("Google Error $error");
+    showCustomAlert(
+      context: context,
+      isSuccess: false,
+      title: 'Error',
+      message: 'Google authentication failed',
+    );
+  }
+
+
+
+  Future<void> _sendGoogleUserToBackend(User user) async {
+    final payload = {
+      "email": user.email,
+    };
+
+    final response = await widget.dio.post(
+      '/auth/login/google',
+      data: jsonEncode(payload),
+      options: Options(headers: {'Accept': 'application/json'}),
+    );
+
+   LoaderService.hideLoader(context);
+
+    if (response.statusCode == 200) {
+      final responseData = response.data;
+
+      await widget.storage.write(key: 'auth_token', value: responseData['token']);
+
+      print("FULL RESPONSE: ${response.data}");
+
+
+      if (responseData['user']['first_name'] != null) {
+        Navigator.pushNamed(context, DashboardScreen.id);
+      } else {
+        Navigator.pushNamed(context, UpdateProfile1.id);
+      }
+    } else {
+      throw Exception("Backend auth failed");
+    }
+  }
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -191,11 +289,12 @@ class _LoginScreenState extends State<Login> {
               ),
               const SizedBox(height: 24),
               // Social Login Buttons
-              _buildSocialButton('Login with Google', 'images/google.png'),
-              const SizedBox(height: 12),
-              _buildSocialButton('Login with Facebook', 'images/facebook.png'),
-              const SizedBox(height: 12),
-              _buildSocialButton('Login with Apple ID', 'images/apple.png'),
+              _buildSocialButton(
+                'Sign in with Google',
+                'images/google.png',
+                onTap: _signUpWithGoogle,
+              ),
+
             ],
           ),
         ),
@@ -261,12 +360,16 @@ class _LoginScreenState extends State<Login> {
     );
   }
 
-  Widget _buildSocialButton(String text, String asset) {
+  Widget _buildSocialButton(
+      String text,
+      String asset, {
+        required VoidCallback onTap,
+      }) {
     return GestureDetector(
-      onTap: () {},
+      onTap: onTap,
       child: Container(
         width: double.infinity,
-        padding: EdgeInsets.symmetric(vertical: 14),
+        padding: const EdgeInsets.symmetric(vertical: 14),
         decoration: BoxDecoration(
           border: Border.all(color: Colors.white),
           borderRadius: BorderRadius.circular(30),
@@ -279,13 +382,15 @@ class _LoginScreenState extends State<Login> {
             Text(
               text,
               style: const TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.white),
+                fontSize: 16,
+                fontWeight: FontWeight.bold,
+                color: Colors.white,
+              ),
             ),
           ],
         ),
       ),
     );
   }
+
 }

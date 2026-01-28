@@ -1,22 +1,19 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:soundhive2/model/user_model.dart';
-
 import 'package:soundhive2/lib/dashboard_provider/categoryProvider.dart';
-import '../../../lib/dashboard_provider/getMarketPlaceService.dart';
-import '../../../lib/dashboard_provider/sub_category_provider.dart';
-import '../../../lib/dashboard_provider/user_provider.dart';
-import '../../../lib/navigator_provider.dart';
+import 'package:soundhive2/lib/dashboard_provider/getMarketPlaceService.dart';
+import 'package:soundhive2/lib/dashboard_provider/sub_category_provider.dart';
+import 'package:soundhive2/lib/dashboard_provider/user_provider.dart';
+import 'package:soundhive2/lib/navigator_provider.dart';
 import '../../../model/category_model.dart';
 import '../../../model/sub_categories.dart';
-import '../../../utils/app_colors.dart';
 import 'service_list_screen.dart';
 
 class Categories extends ConsumerStatefulWidget {
   const Categories({super.key});
 
   @override
-  _CategoriesState createState() => _CategoriesState();
+  ConsumerState<Categories> createState() => _CategoriesState();
 }
 
 
@@ -71,12 +68,12 @@ class _CategoriesState extends ConsumerState<Categories> {
     }
   }
 
-  void _clearSearch() {
-    _searchController.clear();
-    _isSearching = false;
-    ref.read(categoryProvider.notifier).resetSearch();
-    ref.read(categoryProvider.notifier).getCategory();
-  }
+  // void _clearSearch() {
+  //   _searchController.clear();
+  //   _isSearching = false;
+  //   ref.read(categoryProvider.notifier).resetSearch();
+  //   ref.read(categoryProvider.notifier).getCategory();
+  // }
 
   void _loadSubcategories(int categoryId, String categoryName) {
     setState(() {
@@ -106,7 +103,7 @@ class _CategoriesState extends ConsumerState<Categories> {
           backgroundColor: Colors.transparent,
           elevation: 0,
           leading: IconButton(
-            icon: const Icon(Icons.arrow_back_ios, color: Colors.white),
+            icon: const Icon(Icons.arrow_back_ios),
             onPressed: () {
               if (_selectedCategoryId != null) {
                 // 🔙 If currently in subcategory view, go back to categories
@@ -128,7 +125,6 @@ class _CategoriesState extends ConsumerState<Categories> {
               const Text(
                 "Explore Hives/Service Categories",
                 style: TextStyle(
-                  color: Colors.white,
                   fontSize: 22,
                   fontWeight: FontWeight.w700,
                 ),
@@ -139,15 +135,14 @@ class _CategoriesState extends ConsumerState<Categories> {
               Container(
                 decoration: BoxDecoration(
                   borderRadius: BorderRadius.circular(10),
-                  border: Border.all(color: Colors.white24),
+                  border: Border.all(),
                 ),
                 child: TextField(
                   controller: _searchController,
-                  style: const TextStyle(color: Colors.white),
                   decoration: const InputDecoration(
                     hintText: "Search",
-                    hintStyle: TextStyle(color: Colors.white54),
-                    prefixIcon: Icon(Icons.search, color: Colors.white54),
+                    // hintStyle: TextStyle(color: Colors.white54),
+                    prefixIcon: Icon(Icons.search),
                     border: InputBorder.none,
                     contentPadding: EdgeInsets.all(16),
                   ),
@@ -155,7 +150,7 @@ class _CategoriesState extends ConsumerState<Categories> {
               ),
               const SizedBox(height: 20),
 
-          Expanded( child: _selectedCategoryId == null ? _buildCategoriesList(categoryState) : _buildSubcategoriesList(subcategoryState)),
+              Expanded( child: _selectedCategoryId == null ? _buildCategoriesList(categoryState) : _buildSubcategoriesList(subcategoryState)),
             ],
           ),
         ),
@@ -183,7 +178,6 @@ class _CategoriesState extends ConsumerState<Categories> {
               _isSearching
                   ? 'No categories found for "${_searchController.text}"'
                   : 'No categories found.',
-              style: const TextStyle(color: Colors.white60),
             ),
           );
         }
@@ -206,7 +200,7 @@ class _CategoriesState extends ConsumerState<Categories> {
               decoration: BoxDecoration(
                 color: Colors.transparent,
                 borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: Colors.white24, width: 1),
+                border: Border.all(width: 1),
               ),
               child: InkWell(
                 onTap: () => _loadSubcategories(category.id, category.name),
@@ -219,7 +213,6 @@ class _CategoriesState extends ConsumerState<Categories> {
                       Text(
                         category.name,
                         style: const TextStyle(
-                          color: Colors.white,
                           fontSize: 18,
                           fontWeight: FontWeight.w600,
                         ),
@@ -231,14 +224,13 @@ class _CategoriesState extends ConsumerState<Categories> {
                           child: Text(
                             category.description!,
                             style: const TextStyle(
-                              color: Colors.white70,
                               fontSize: 13,
                               height: 1.4,
                             ),
                           ),
                         ),
                       const SizedBox(height: 10),
-                      const Divider(color: Colors.white24),
+                      const Divider(),
                       const SizedBox(height: 4),
                       Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -304,7 +296,7 @@ class _CategoriesState extends ConsumerState<Categories> {
                 },
                 style: ElevatedButton.styleFrom(
                   backgroundColor: const Color(0xFF6A0DAD),
-                  foregroundColor: Colors.white,
+                  // foregroundColor: Colors.white,
                   side: const BorderSide(color: Colors.white12),
                   padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 16),
                   shape: RoundedRectangleBorder(
@@ -353,7 +345,7 @@ class _CategoriesState extends ConsumerState<Categories> {
                       },
                       style: ElevatedButton.styleFrom(
                         backgroundColor: Colors.transparent,
-                        foregroundColor: Colors.white,
+                        // foregroundColor: Colors.white,
                         side: const BorderSide(color: Colors.white12),
                         padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 16),
                         shape: RoundedRectangleBorder(

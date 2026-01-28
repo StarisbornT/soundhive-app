@@ -5,7 +5,6 @@ import 'package:soundhive2/screens/creator/artist_arena/add_songs.dart';
 import 'package:soundhive2/screens/creator/artist_arena/edit_artist_profile.dart';
 import 'package:soundhive2/screens/creator/artist_arena/song_screen.dart';
 import 'package:soundhive2/screens/creator/creator_dashboard.dart';
-import 'package:soundhive2/utils/app_colors.dart';
 import 'package:soundhive2/lib/dashboard_provider/artist_statistics_provider.dart';
 import 'package:soundhive2/utils/utils.dart';
 import '../../../model/song_stats.dart';
@@ -18,7 +17,6 @@ class ArtistProfileScreen extends ConsumerStatefulWidget {
   @override
   ConsumerState<ArtistProfileScreen> createState() => _ArtistProfileScreenState();
 }
-
 
 class _ArtistProfileScreenState extends ConsumerState<ArtistProfileScreen> {
   @override
@@ -37,7 +35,7 @@ class _ArtistProfileScreenState extends ConsumerState<ArtistProfileScreen> {
     final user = widget.user.user?.artist;
 
     return Scaffold(
-      backgroundColor: theme.colorScheme.background,
+      backgroundColor: theme.colorScheme.surface,
       body: SafeArea(
         child: statsAsync.when(
           data: (stats) {
@@ -116,7 +114,6 @@ class _EmptySongsSection extends StatelessWidget {
                 fontSize: 14,
               ),
             ),
-            // Add new song button
             Padding(
               padding: const EdgeInsets.all(12.0),
               child: RoundedButton(
@@ -285,7 +282,7 @@ class _EarningsSection extends ConsumerWidget {
 
         // Total Earnings
         Text(
-          earnings.formattedTotal,
+          ref.formatUserCurrency(earnings.totalEarned),
           style: TextStyle(
             color: theme.colorScheme.onSurface,
             fontSize: 24,
@@ -299,18 +296,18 @@ class _EarningsSection extends ConsumerWidget {
           children: [
             Icon(
               Icons.check_circle,
-              color: double.parse(earnings.formattedTotal) >= 0
+              color: earnings.totalEarned >= 0
                   ? Colors.green
                   : Colors.orange,
               size: 16,
             ),
             const SizedBox(width: 5),
             Text(
-              double.parse(earnings.formattedTotal) >= 0
+              earnings.totalEarned >= 0
                   ? 'Paid to Cre8Vest Wallet'
                   : 'Pending payment',
               style: TextStyle(
-                color: double.parse(earnings.formattedTotal) >= 0
+                color: earnings.totalEarned >= 0
                     ? Colors.green
                     : Colors.orange,
                 fontSize: 12,

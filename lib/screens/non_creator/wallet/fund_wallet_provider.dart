@@ -156,14 +156,13 @@ class _FundWalletModalState extends ConsumerState<FundWalletModal> {
             );
           }),
         ],
-        style: const TextStyle(color: Colors.black),
+
         decoration: InputDecoration(
           prefix: Text(
             '${widget.currency} ', // Use the passed currency symbol
-            style: const TextStyle(color: Colors.black),
+
           ),
           hintText: "Enter amount to fund",
-          hintStyle: const TextStyle(color: Colors.black54),
         ),
       ),
       actions: [

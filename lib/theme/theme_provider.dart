@@ -28,21 +28,21 @@ class ThemeModeNotifier extends StateNotifier<ThemeState> {
 
   // Default to light and loading: true
   ThemeModeNotifier(this._prefs)
-      : super(ThemeState(themeMode: ThemeMode.light, isLoading: true)) {
+      : super(ThemeState(themeMode: ThemeMode.dark, isLoading: true)) {
     _init();
   }
 
   void _init() {
-    // SharedPreferences is faster, we read the string saved
     final savedTheme = _prefs.getString(_themeKey);
 
-    if (savedTheme == 'dark') {
-      state = ThemeState(themeMode: ThemeMode.dark, isLoading: false);
-    } else {
-      // Default to light if nothing is saved or if 'light' is saved
+    if (savedTheme == 'light') {
       state = ThemeState(themeMode: ThemeMode.light, isLoading: false);
+    } else {
+      // Default to DARK
+      state = ThemeState(themeMode: ThemeMode.dark, isLoading: false);
     }
   }
+
 
   Future<void> toggleTheme(bool isDark) async {
     final mode = isDark ? ThemeMode.dark : ThemeMode.light;

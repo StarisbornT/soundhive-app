@@ -2,10 +2,12 @@ import 'dart:io';
 
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:soundhive2/components/label_text.dart';
 import 'package:soundhive2/components/rounded_button.dart';
+import 'package:soundhive2/screens/creator/profile/setup_screen.dart';
 import 'package:soundhive2/utils/app_colors.dart';
 import '../../../components/image_picker.dart';
 import '../../../components/success.dart';
@@ -226,7 +228,7 @@ class _VerifyIdentityScreenState extends ConsumerState<VerifyIdentity> {
       await _submitToBackend();
 
       LoaderService.hideLoader(context);
-      await ref.read(userProvider.notifier).loadUserProfile();
+     final user = await ref.read(userProvider.notifier).loadUserProfile();
 
       Navigator.pushReplacement(
         context,
@@ -238,7 +240,7 @@ class _VerifyIdentityScreenState extends ConsumerState<VerifyIdentity> {
             onButtonPressed: () {
               Navigator.push(
                 context,
-                MaterialPageRoute(builder: (_) => CreatorDashboard()),
+                MaterialPageRoute(builder: (_) => SetupScreen(user: user!)),
               );
             },
           ),
@@ -356,6 +358,10 @@ class _VerifyIdentityScreenState extends ConsumerState<VerifyIdentity> {
                       keyboardType: TextInputType.number,
                       hintText: 'Enter your BVN',
                       secondLabel: 'Why this?',
+                      inputFormatters: [
+                        FilteringTextInputFormatter.digitsOnly,
+                        LengthLimitingTextInputFormatter(11),
+                      ],
                     ),
                     const SizedBox(height: 10),
                     LabeledTextField(

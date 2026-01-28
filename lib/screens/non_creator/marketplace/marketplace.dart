@@ -19,6 +19,7 @@ import 'package:soundhive2/lib/dashboard_provider/getActiveInvestmentProvider.da
 import 'package:soundhive2/lib/dashboard_provider/getMarketPlaceService.dart';
 import '../../../lib/dashboard_provider/eventMarketPlaceProvider.dart';
 import '../../../lib/dashboard_provider/getMyTicketProvider.dart';
+import '../../../lib/dashboard_provider/getUserOfferProvider.dart';
 import '../../../main.dart';
 import '../../../model/creator_model.dart';
 import '../../../model/market_orders_service_model.dart';
@@ -46,14 +47,17 @@ class _MarketplaceState extends ConsumerState<Marketplace>
   final ScrollController _bookingsScrollController = ScrollController();
   final ScrollController _eventScrollController = ScrollController();
   final ScrollController _myEventScrollController = ScrollController();
+  final ScrollController _myOfferScrollController = ScrollController();
   bool _hasLoadedBookings = false;
   Timer? _searchDebounce;
   bool _isInitialized = false;
   final _searchController = TextEditingController();
+  late PageController _pageController;
 
   late List<String> _selectedFilters = [];
   bool _showFilters = true;
   int selectedEventSubTab = 0;
+  int selectedBookingSubTab = 0;
 
   @override
   void didChangeDependencies() {
@@ -78,6 +82,8 @@ class _MarketplaceState extends ConsumerState<Marketplace>
     _bookingsScrollController.dispose();
     _eventScrollController.dispose();
     _myEventScrollController.dispose();
+    _myOfferScrollController.dispose();
+    _pageController.dispose();
     super.dispose();
   }
 
@@ -86,7 +92,9 @@ class _MarketplaceState extends ConsumerState<Marketplace>
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) {
         ref.read(getMarketplaceServiceProvider.notifier).resetFilters();
-        ref.read(getMarketplaceServiceProvider.notifier).getMarketPlaceService();
+        ref
+            .read(getMarketplaceServiceProvider.notifier)
+            .getMarketPlaceService();
       }
     });
   }
@@ -96,7 +104,9 @@ class _MarketplaceState extends ConsumerState<Marketplace>
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) {
         ref.read(getMarketplaceServiceProvider.notifier).resetFilters();
-        ref.read(getMarketplaceServiceProvider.notifier).getMarketPlaceService();
+        ref
+            .read(getMarketplaceServiceProvider.notifier)
+            .getMarketPlaceService();
       }
     });
   }
@@ -105,11 +115,14 @@ class _MarketplaceState extends ConsumerState<Marketplace>
   void initState() {
     super.initState();
     _tabController = TabController(length: 3, vsync: this);
+    _pageController = PageController();
 
     _tabController.addListener(_handleTabChange);
     _bookingsScrollController.addListener(_scrollListener);
     _eventScrollController.addListener(_scrollEventListener);
     _myEventScrollController.addListener(_scrollMyEventListener);
+    _myOfferScrollController.addListener(_scrollOfferEventListener);
+    _pageController.addListener(_onPageScroll);
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) {
@@ -125,13 +138,34 @@ class _MarketplaceState extends ConsumerState<Marketplace>
     });
   }
 
+  void _onPageScroll() {
+    if (!_pageController.hasClients ||
+        !_pageController.position.hasContentDimensions) {
+      return;
+    }
+
+    final currentPage = _pageController.page ?? 0;
+    final servicesNotifier = ref.read(getMarketplaceServiceProvider.notifier);
+    final services = servicesNotifier.allServices;
+    final isLastPage = servicesNotifier.isLastPage;
+
+    // Calculate total pages (4 items per page)
+    final totalItems = services.length;
+    final totalPages = (totalItems / 4).ceil();
+
+    // Load more when we're on the last page
+    if (currentPage >= totalPages - 1 && !isLastPage) {
+      _loadMoreServices();
+    }
+  }
+
   Future<void> _loadInitialData() async {
     try {
       if (!mounted) return;
 
       await ref
           .read(getMarketplaceServiceProvider.notifier)
-          .getMarketPlaceService(pageSize: 20);
+          .getMarketPlaceService();
 
       if (!mounted) return;
       await Future.delayed(const Duration(milliseconds: 300));
@@ -168,16 +202,35 @@ class _MarketplaceState extends ConsumerState<Marketplace>
     }
   }
 
+  void _scrollOfferEventListener() {
+    if (_myOfferScrollController.position.pixels ==
+        _myOfferScrollController.position.maxScrollExtent) {
+      _loadMoreMyOffers();
+    }
+  }
+
   void _handleTabChange() {
     if (_tabController.index == 1 && !_hasLoadedBookings) {
-      ref.read(getActiveInvestmentProvider.notifier).getActiveInvestments(
+      // Reset to Offers tab when switching to Bookings
+      setState(() {
+        selectedBookingSubTab = 0;
+      });
+
+      // Load initial data for offers (default sub-tab)
+      ref.read(getUserOfferProvider.notifier).getMyOffers(
         pageSize: 10,
       );
       _hasLoadedBookings = true;
     } else if (_tabController.index == 2) {
+      // Reset to Explore tab when switching to Events
+      setState(() {
+        selectedEventSubTab = 0;
+      });
+
       ref.read(eventMarketPlaceProvider.notifier).getEventMarketplace();
       ref.read(getMyTicketProvider.notifier).getMyTicket();
     }
+
     if (mounted) {
       setState(() => selectedTabIndex = _tabController.index);
     }
@@ -204,6 +257,13 @@ class _MarketplaceState extends ConsumerState<Marketplace>
     }
   }
 
+  Future<void> _loadMoreMyOffers() async {
+    final notifier = ref.read(getUserOfferProvider.notifier);
+    if (!notifier.isLastPage && mounted) {
+      await notifier.getMyOffers(loadMore: true);
+    }
+  }
+
   void _onSearchChanged(String value) {
     if (_searchDebounce?.isActive ?? false) _searchDebounce?.cancel();
 
@@ -212,14 +272,16 @@ class _MarketplaceState extends ConsumerState<Marketplace>
         final searchTerm = value.trim();
 
         if (searchTerm.isEmpty) {
-          ref.read(getMarketplaceServiceProvider.notifier).resetMarketplaceState();
+          ref
+              .read(getMarketplaceServiceProvider.notifier)
+              .resetMarketplaceState();
         } else {
           ref
               .read(getMarketplaceServiceProvider.notifier)
               .getMarketPlaceService(
-            searchTerm: searchTerm,
-            pageSize: 20,
-          );
+                searchTerm: searchTerm,
+
+              );
         }
       }
     });
@@ -239,11 +301,11 @@ class _MarketplaceState extends ConsumerState<Marketplace>
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
 
-    ref.listenManual<AsyncValue<void>>(
-        getMarketplaceServiceProvider, (_, state) {
-      if (!mounted) return;
-      state.whenOrNull(error: (error, _) => debugPrint('Error: $error'));
-    });
+    ref.listenManual<AsyncValue<void>>(getMarketplaceServiceProvider,
+            (_, state) {
+          if (!mounted) return;
+          state.whenOrNull(error: (error, _) => debugPrint('Error: $error'));
+        });
 
     ref.listen<AsyncValue<void>>(creatorProvider, (_, state) {
       state.whenOrNull(
@@ -267,7 +329,8 @@ class _MarketplaceState extends ConsumerState<Marketplace>
                         Navigator.push(
                           context,
                           MaterialPageRoute(
-                            builder: (context) => SetupScreen(user: widget.user),
+                            builder: (context) =>
+                                SetupScreen(user: widget.user),
                           ),
                         );
                       },
@@ -279,7 +342,8 @@ class _MarketplaceState extends ConsumerState<Marketplace>
                         Navigator.push(
                           context,
                           MaterialPageRoute(
-                            builder: (context) => SetupScreen(user: widget.user),
+                            builder: (context) =>
+                                SetupScreen(user: widget.user),
                           ),
                         );
                       },
@@ -308,33 +372,9 @@ class _MarketplaceState extends ConsumerState<Marketplace>
               ),
 
               // Tab content with different scrolling behaviors
-              if (selectedTabIndex == 0)
-              // Marketplace - Scrollable page
-                Expanded(
-                  child: SingleChildScrollView(
-                    child: buildMarketPlaceUI(theme, isDark),
-                  ),
-                )
-              else if (selectedTabIndex == 1)
-              // Bookings - Full screen list with pagination
-                Expanded(
-                  child: buildMyBookingsUI(theme, isDark),
-                )
-              else
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      buildEventSubTabs(theme, isDark),
-                      const SizedBox(height: 12),
-                      Expanded(
-                        child: selectedEventSubTab == 0
-                            ? buildEventUI(theme, isDark)
-                            : buildMyEventUI(theme, isDark),
-                      ),
-                    ],
-                  ),
-                ),
+              Expanded(  // <-- SINGLE Expanded widget at the top level
+                child: _buildTabContent(theme, isDark),
+              ),
             ],
           ),
         ),
@@ -353,12 +393,50 @@ class _MarketplaceState extends ConsumerState<Marketplace>
             elevation: 6,
             child: Image.asset(
               "images/ai_chat.png",
-              color: theme.colorScheme.onPrimary,
+              color: Colors.white,
             ),
           ),
         ),
       ),
     );
+  }
+
+  Widget _buildTabContent(ThemeData theme, bool isDark) {
+    switch (selectedTabIndex) {
+      case 0: // Marketplace
+        return _buildMarketplaceContent(theme, isDark);
+
+      case 1: // Bookings
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            buildBookingSubTabs(theme, isDark),
+            const SizedBox(height: 12),
+            Expanded(  // <-- This is now OK because it's inside a Column with finite height
+              child: selectedBookingSubTab == 0
+                  ? buildMyOffersUI(theme, isDark)
+                  : buildMyBookingsUI(theme, isDark),
+            ),
+          ],
+        );
+
+      case 2: // Events
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            buildEventSubTabs(theme, isDark),
+            const SizedBox(height: 12),
+            Expanded(  // <-- This is also OK
+              child: selectedEventSubTab == 0
+                  ? buildEventUI(theme, isDark)
+                  : buildMyEventUI(theme, isDark),
+            ),
+          ],
+        );
+
+      default:
+        return const SizedBox();
+    }
   }
 
   Widget _buildTabButton(String title, bool isSelected, {VoidCallback? onTap}) {
@@ -373,8 +451,8 @@ class _MarketplaceState extends ConsumerState<Marketplace>
           color: isSelected
               ? AppColors.BUTTONCOLOR
               : isDark
-              ? Colors.grey[900]
-              : Colors.grey[200],
+                  ? Colors.grey[900]
+                  : Colors.grey[200],
           borderRadius: BorderRadius.circular(8),
         ),
         child: Text(
@@ -383,8 +461,8 @@ class _MarketplaceState extends ConsumerState<Marketplace>
             color: isSelected
                 ? Colors.white
                 : isDark
-                ? Colors.white70
-                : Colors.black87,
+                    ? Colors.white70
+                    : Colors.black87,
             fontSize: 14,
             fontWeight: isSelected ? FontWeight.w600 : FontWeight.w400,
           ),
@@ -418,26 +496,38 @@ class _MarketplaceState extends ConsumerState<Marketplace>
           );
         }
 
-        return Column(
-          children: [
-            Expanded(
-              child: NotificationListener<ScrollNotification>(
-                onNotification: (scrollNotification) {
-                  if (scrollNotification is ScrollEndNotification) {
-                    final metrics = scrollNotification.metrics;
-                    if (metrics.pixels >= metrics.maxScrollExtent * 0.8 &&
-                        !isLastPage &&
-                        !isLoadingMore) {
-                      _loadMoreBookings();
-                    }
-                  }
-                  return false;
-                },
+        // Use NotificationListener for pagination
+        return NotificationListener<ScrollNotification>(
+          onNotification: (scrollNotification) {
+            if (scrollNotification is ScrollEndNotification) {
+              final metrics = scrollNotification.metrics;
+              if (metrics.pixels >= metrics.maxScrollExtent * 0.8 &&
+                  !isLastPage &&
+                  !isLoadingMore) {
+                _loadMoreBookings();
+              }
+            }
+            return false;
+          },
+          child: Column(
+            children: [
+              Expanded(
                 child: ListView.builder(
                   controller: _bookingsScrollController,
                   padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                  itemCount: investments.length,
+                  itemCount: investments.length + (isLoadingMore ? 1 : 0),
                   itemBuilder: (context, index) {
+                    if (index >= investments.length) {
+                      return Center(
+                        child: Padding(
+                          padding: const EdgeInsets.all(16.0),
+                          child: CircularProgressIndicator(
+                            color: theme.colorScheme.primary,
+                          ),
+                        ),
+                      );
+                    }
+
                     final investment = investments[index];
                     final service = investment.service;
 
@@ -526,15 +616,172 @@ class _MarketplaceState extends ConsumerState<Marketplace>
                   },
                 ),
               ),
-            ),
 
-            // Loading indicator at bottom
-            if (isLoadingMore)
-              Container(
-                padding: const EdgeInsets.all(16.0),
-                child: Center(child: _buildLoadingIndicator(isDark)),
-              ),
-          ],
+              // Loading indicator at bottom if needed
+              if (isLoadingMore)
+                Container(
+                  padding: const EdgeInsets.all(16.0),
+                  child: Center(
+                    child: CircularProgressIndicator(
+                      color: theme.colorScheme.primary,
+                    ),
+                  ),
+                ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  Widget buildMyOffersUI(ThemeData theme, bool isDark) {
+    final investmentsState = ref.watch(getUserOfferProvider);
+    final investments = ref.read(getUserOfferProvider.notifier).allServices;
+    final isLastPage = ref.read(getUserOfferProvider.notifier).isLastPage;
+    final isLoadingMore = ref.read(getUserOfferProvider.notifier).isLoadingMore;
+
+    return investmentsState.when(
+      loading: () => _buildShimmerBookingsList(isDark),
+      error: (e, _) => Center(
+        child: Text(
+          "Error: $e",
+          style: TextStyle(color: theme.colorScheme.error),
+        ),
+      ),
+      data: (_) {
+        if (investments.isEmpty) {
+          return Center(
+            child: Text(
+              "No Offers found",
+              style: TextStyle(color: theme.colorScheme.onSurface),
+            ),
+          );
+        }
+
+        // Use Expanded to give ListView a bounded height
+        return Expanded(
+          child: NotificationListener<ScrollNotification>(
+            onNotification: (scrollNotification) {
+              if (scrollNotification is ScrollEndNotification) {
+                final metrics = scrollNotification.metrics;
+                if (metrics.pixels >= metrics.maxScrollExtent * 0.8 &&
+                    !isLastPage &&
+                    !isLoadingMore) {
+                  _loadMoreMyOffers();
+                }
+              }
+              return false;
+            },
+            child: Column(
+              children: [
+                Expanded(
+                  child: ListView.builder(
+                    controller: _myOfferScrollController,
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                    itemCount: investments.length + (isLoadingMore ? 1 : 0),
+                    itemBuilder: (context, index) {
+                      // Show loading indicator at the end
+                      if (index >= investments.length) {
+                        return Center(
+                          child: Padding(
+                            padding: const EdgeInsets.all(16.0),
+                            child: CircularProgressIndicator(
+                              color: theme.colorScheme.primary,
+                            ),
+                          ),
+                        );
+                      }
+
+                      final investment = investments[index];
+                      final service = investment.service;
+
+                      return GestureDetector(
+                        onTap: () {
+                          if (service != null) {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => MarketplaceDetails(
+                                  service: service,
+                                  user: widget.user,
+                                ),
+                              ),
+                            );
+                          }
+                        },
+                        child: Card(
+                          color: theme.cardColor,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          margin: const EdgeInsets.symmetric(vertical: 8),
+                          child: ListTile(
+                            leading: service?.coverImage != null
+                                ? ClipRRect(
+                              borderRadius: BorderRadius.circular(8),
+                              child: Image.network(
+                                service!.coverImage,
+                                width: 100,
+                                height: 78,
+                                fit: BoxFit.cover,
+                                errorBuilder: (_, __, ___) => Icon(
+                                  Icons.image,
+                                  color: theme.colorScheme.onSurface,
+                                ),
+                              ),
+                            )
+                                : CircleAvatar(
+                              backgroundColor: AppColors.BUTTONCOLOR,
+                              child: Icon(Icons.work,
+                                  color: theme.colorScheme.onPrimary),
+                            ),
+                            title: Text(
+                              service?.serviceName ?? "Booking #${investment.id}",
+                              style: TextStyle(
+                                  color: theme.colorScheme.onSurface,
+                                  fontSize: 14),
+                            ),
+                            subtitle: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  "Made on ${DateFormat('dd/MM/yyyy').format(DateTime.parse(investment.createdAt))}",
+                                  style: TextStyle(
+                                      color: theme.colorScheme.onSurface
+                                          .withOpacity(0.7),
+                                      fontSize: 12),
+                                ),
+                                const SizedBox(height: 10),
+                                Container(
+                                  padding: const EdgeInsets.symmetric(
+                                      horizontal: 8, vertical: 4),
+                                  decoration: BoxDecoration(
+                                    color: investment.status == "PENDING"
+                                        ? const Color.fromRGBO(255, 193, 7, 0.1)
+                                        : const Color.fromRGBO(76, 175, 80, 0.1),
+                                    borderRadius: BorderRadius.circular(12),
+                                  ),
+                                  child: Text(
+                                    investment.status,
+                                    style: TextStyle(
+                                      color: investment.status == "PENDING"
+                                          ? const Color(0xFFFFC107)
+                                          : const Color(0xFF4CAF50),
+                                      fontSize: 10,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      );
+                    },
+                  ),
+                ),
+              ],
+            ),
+          ),
         );
       },
     );
@@ -551,6 +798,9 @@ class _MarketplaceState extends ConsumerState<Marketplace>
             theme: theme,
             onTap: () {
               setState(() => selectedEventSubTab = 0);
+              ref.read(eventMarketPlaceProvider.notifier).getEventMarketplace(
+                pageSize: 10,
+              );
             },
           ),
           const SizedBox(width: 24),
@@ -560,6 +810,41 @@ class _MarketplaceState extends ConsumerState<Marketplace>
             theme: theme,
             onTap: () {
               setState(() => selectedEventSubTab = 1);
+              ref.read(getMyTicketProvider.notifier).getMyTicket(pageSize: 10);
+            },
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget buildBookingSubTabs(ThemeData theme, bool isDark) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16),
+      child: Row(
+        children: [
+          _eventSubTab(
+            title: "Offers",
+            isSelected: selectedBookingSubTab == 0,
+            theme: theme,
+            onTap: () {
+              setState(() => selectedBookingSubTab = 0);
+              ref.read(getUserOfferProvider.notifier).getMyOffers(
+                pageSize: 10,
+              );
+            },
+          ),
+          const SizedBox(width: 24),
+          _eventSubTab(
+            title: "My Bookings",
+            isSelected: selectedBookingSubTab == 1,
+            theme: theme,
+            onTap: () {
+              setState(() => selectedBookingSubTab = 1);
+              // Load bookings when this tab is selected
+              ref.read(getActiveInvestmentProvider.notifier).getActiveInvestments(
+                pageSize: 10,
+              );
             },
           ),
         ],
@@ -621,7 +906,7 @@ class _MarketplaceState extends ConsumerState<Marketplace>
         if (investments.isEmpty) {
           return Center(
             child: Text(
-              "No bookings found",
+              "No events found",
               style: TextStyle(color: theme.colorScheme.onSurface),
             ),
           );
@@ -644,7 +929,8 @@ class _MarketplaceState extends ConsumerState<Marketplace>
                 },
                 child: ListView.builder(
                   controller: _eventScrollController,
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                   itemCount: investments.length,
                   itemBuilder: (context, index) {
                     final investment = investments[index];
@@ -672,11 +958,12 @@ class _MarketplaceState extends ConsumerState<Marketplace>
                               height: 70,
                               child: (item.image.isNotEmpty)
                                   ? Image.network(
-                                item.image,
-                                fit: BoxFit.cover,
-                                errorBuilder: (context, error, stackTrace) =>
-                                    Utils.buildImagePlaceholder(),
-                              )
+                                      item.image,
+                                      fit: BoxFit.cover,
+                                      errorBuilder:
+                                          (context, error, stackTrace) =>
+                                              Utils.buildImagePlaceholder(),
+                                    )
                                   : Utils.buildImagePlaceholder(),
                             ),
                             const SizedBox(width: 15),
@@ -700,7 +987,8 @@ class _MarketplaceState extends ConsumerState<Marketplace>
                                       Expanded(
                                         child: Text(item.location,
                                             style: TextStyle(
-                                                color: theme.colorScheme.onSurface
+                                                color: theme
+                                                    .colorScheme.onSurface
                                                     .withOpacity(0.6),
                                                 fontSize: 12),
                                             overflow: TextOverflow.ellipsis),
@@ -717,17 +1005,17 @@ class _MarketplaceState extends ConsumerState<Marketplace>
                                           decoration: BoxDecoration(
                                             color: item.isUpcoming
                                                 ? const Color.fromRGBO(
-                                                255, 193, 7, 0.1)
+                                                    255, 193, 7, 0.1)
                                                 : item.isCompleted
-                                                ? const Color.fromRGBO(
-                                                76, 175, 80, 0.1)
-                                                : item.isOngoing
-                                                ? const Color.fromRGBO(
-                                                188, 174, 226, 0.1)
-                                                : const Color.fromRGBO(
-                                                244, 67, 54, 0.1),
+                                                    ? const Color.fromRGBO(
+                                                        76, 175, 80, 0.1)
+                                                    : item.isOngoing
+                                                        ? const Color.fromRGBO(
+                                                            188, 174, 226, 0.1)
+                                                        : const Color.fromRGBO(
+                                                            244, 67, 54, 0.1),
                                             borderRadius:
-                                            BorderRadius.circular(12),
+                                                BorderRadius.circular(12),
                                           ),
                                           child: Text(
                                             item.eventStatus,
@@ -735,12 +1023,12 @@ class _MarketplaceState extends ConsumerState<Marketplace>
                                               color: item.isUpcoming
                                                   ? const Color(0xFFFFC107)
                                                   : item.isCompleted
-                                                  ? const Color(0xFF4CAF50)
-                                                  : item.isOngoing
-                                                  ? const Color(
-                                                  0xFFBCAEE2)
-                                                  : const Color(
-                                                  0xFFF44336),
+                                                      ? const Color(0xFF4CAF50)
+                                                      : item.isOngoing
+                                                          ? const Color(
+                                                              0xFFBCAEE2)
+                                                          : const Color(
+                                                              0xFFF44336),
                                               fontSize: 10,
                                             ),
                                             overflow: TextOverflow.ellipsis,
@@ -768,8 +1056,8 @@ class _MarketplaceState extends ConsumerState<Marketplace>
                                     ? ref.formatUserCurrency(item.convertedRate)
                                     : item.type,
                                 style: TextStyle(
-                                    color:
-                                    theme.colorScheme.onSurface.withOpacity(0.6),
+                                    color: theme.colorScheme.onSurface
+                                        .withOpacity(0.6),
                                     fontSize: 14)),
                           ],
                         ),
@@ -810,7 +1098,7 @@ class _MarketplaceState extends ConsumerState<Marketplace>
         if (investments.isEmpty) {
           return Center(
             child: Text(
-              "No bookings found",
+              "No events found",
               style: TextStyle(color: theme.colorScheme.onSurface),
             ),
           );
@@ -833,7 +1121,8 @@ class _MarketplaceState extends ConsumerState<Marketplace>
                 },
                 child: ListView.builder(
                   controller: _myEventScrollController,
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                   itemCount: investments.length,
                   itemBuilder: (context, index) {
                     final investment = investments[index];
@@ -860,11 +1149,12 @@ class _MarketplaceState extends ConsumerState<Marketplace>
                               height: 70,
                               child: (item.image.isNotEmpty)
                                   ? Image.network(
-                                item.image,
-                                fit: BoxFit.cover,
-                                errorBuilder: (context, error, stackTrace) =>
-                                    Utils.buildImagePlaceholder(),
-                              )
+                                      item.image,
+                                      fit: BoxFit.cover,
+                                      errorBuilder:
+                                          (context, error, stackTrace) =>
+                                              Utils.buildImagePlaceholder(),
+                                    )
                                   : Utils.buildImagePlaceholder(),
                             ),
                             const SizedBox(width: 15),
@@ -888,7 +1178,8 @@ class _MarketplaceState extends ConsumerState<Marketplace>
                                       Expanded(
                                         child: Text(item.location,
                                             style: TextStyle(
-                                                color: theme.colorScheme.onSurface
+                                                color: theme
+                                                    .colorScheme.onSurface
                                                     .withOpacity(0.6),
                                                 fontSize: 12),
                                             overflow: TextOverflow.ellipsis),
@@ -904,17 +1195,17 @@ class _MarketplaceState extends ConsumerState<Marketplace>
                                           decoration: BoxDecoration(
                                             color: item.isUpcoming
                                                 ? const Color.fromRGBO(
-                                                255, 193, 7, 0.1)
+                                                    255, 193, 7, 0.1)
                                                 : item.isCompleted
-                                                ? const Color.fromRGBO(
-                                                76, 175, 80, 0.1)
-                                                : item.isOngoing
-                                                ? const Color.fromRGBO(
-                                                188, 174, 226, 0.1)
-                                                : const Color.fromRGBO(
-                                                244, 67, 54, 0.1),
+                                                    ? const Color.fromRGBO(
+                                                        76, 175, 80, 0.1)
+                                                    : item.isOngoing
+                                                        ? const Color.fromRGBO(
+                                                            188, 174, 226, 0.1)
+                                                        : const Color.fromRGBO(
+                                                            244, 67, 54, 0.1),
                                             borderRadius:
-                                            BorderRadius.circular(12),
+                                                BorderRadius.circular(12),
                                           ),
                                           child: Text(
                                             item.eventStatus,
@@ -922,12 +1213,12 @@ class _MarketplaceState extends ConsumerState<Marketplace>
                                               color: item.isUpcoming
                                                   ? const Color(0xFFFFC107)
                                                   : item.isCompleted
-                                                  ? const Color(0xFF4CAF50)
-                                                  : item.isOngoing
-                                                  ? const Color(
-                                                  0xFFBCAEE2)
-                                                  : const Color(
-                                                  0xFFF44336),
+                                                      ? const Color(0xFF4CAF50)
+                                                      : item.isOngoing
+                                                          ? const Color(
+                                                              0xFFBCAEE2)
+                                                          : const Color(
+                                                              0xFFF44336),
                                               fontSize: 10,
                                             ),
                                             overflow: TextOverflow.ellipsis,
@@ -955,8 +1246,8 @@ class _MarketplaceState extends ConsumerState<Marketplace>
                                     ? ref.formatUserCurrency(investment.amount)
                                     : item.type,
                                 style: TextStyle(
-                                    color:
-                                    theme.colorScheme.onSurface.withOpacity(0.6),
+                                    color: theme.colorScheme.onSurface
+                                        .withOpacity(0.6),
                                     fontSize: 14)),
                           ],
                         ),
@@ -980,27 +1271,225 @@ class _MarketplaceState extends ConsumerState<Marketplace>
   }
 
   Widget _buildShimmerBookingsList(bool isDark) {
-    return Expanded(
-      child: ListView.builder(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-        itemCount: 5,
-        itemBuilder: (context, index) {
-          return Padding(
-            padding: const EdgeInsets.symmetric(vertical: 8),
-            child: Shimmer.fromColors(
-              baseColor: isDark ? Colors.grey[800]! : Colors.grey[300]!,
-              highlightColor: isDark ? Colors.grey[600]! : Colors.grey[100]!,
-              child: Container(
-                height: 100,
-                decoration: BoxDecoration(
-                  color: isDark ? Colors.grey[700] : Colors.grey[200],
-                  borderRadius: BorderRadius.circular(12),
-                ),
+    return ListView.builder(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      itemCount: 5,
+      itemBuilder: (context, index) {
+        return Padding(
+          padding: const EdgeInsets.symmetric(vertical: 8),
+          child: Shimmer.fromColors(
+            baseColor: isDark ? Colors.grey[800]! : Colors.grey[300]!,
+            highlightColor: isDark ? Colors.grey[600]! : Colors.grey[100]!,
+            child: Container(
+              height: 100,
+              decoration: BoxDecoration(
+                color: isDark ? Colors.grey[700] : Colors.grey[200],
+                borderRadius: BorderRadius.circular(12),
               ),
             ),
-          );
-        },
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildMarketplaceContent(ThemeData theme, bool isDark) {
+    final marketplaceState = ref.watch(getMarketplaceServiceProvider);
+    final creatorState = ref.watch(creatorProvider);
+
+    return marketplaceState.when(
+      loading: () => _buildShimmerServicesGrid(isDark),
+      error: (e, _) => Center(
+        child:
+            Text("Error: $e", style: TextStyle(color: theme.colorScheme.error)),
       ),
+      data: (_) {
+        return ListView(
+          children: [
+            // Search Bar
+            Padding(
+              padding:
+                  const EdgeInsets.symmetric(horizontal: 10.0, vertical: 8.0),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: Container(
+                      decoration: BoxDecoration(
+                        color: theme.cardColor,
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: _selectedFilters.isEmpty
+                          ? TextFormField(
+                              controller: _searchController,
+                              style:
+                                  TextStyle(color: theme.colorScheme.onSurface),
+                              onChanged: _onSearchChanged,
+                              decoration: InputDecoration(
+                                border: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(8),
+                                  borderSide: BorderSide(
+                                      color:
+                                          theme.dividerColor.withOpacity(0.5)),
+                                ),
+                                hintText: 'Search',
+                                hintStyle: TextStyle(
+                                    color: theme.colorScheme.onSurface
+                                        .withOpacity(0.5)),
+                                prefixIcon: Icon(Icons.search,
+                                    color: theme.colorScheme.onSurface
+                                        .withOpacity(0.5)),
+                                contentPadding:
+                                    const EdgeInsets.symmetric(vertical: 14.0),
+                                suffixIcon: _searchController.text.isNotEmpty
+                                    ? IconButton(
+                                        icon: Icon(Icons.clear,
+                                            color: theme.colorScheme.onSurface
+                                                .withOpacity(0.5)),
+                                        onPressed: () {
+                                          _searchController.clear();
+                                          ref
+                                              .read(
+                                                  getMarketplaceServiceProvider
+                                                      .notifier)
+                                              .resetMarketplaceState();
+                                        },
+                                      )
+                                    : null,
+                              ),
+                            )
+                          : _buildFilterChips(theme),
+                    ),
+                  ),
+                  if (_showFilters) _buildFilterButton(theme, isDark),
+                ],
+              ),
+            ),
+
+            // Services Around You Section
+            Padding(
+              padding: const EdgeInsets.all(16.0),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    'Services around you',
+                    style: TextStyle(
+                      color: theme.colorScheme.onSurface,
+                      fontSize: 16,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  OutlinedButton(
+                    onPressed: () => Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => const Categories(),
+                      ),
+                    ),
+                    style: OutlinedButton.styleFrom(
+                      side: BorderSide(color: theme.dividerColor),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(100),
+                      ),
+                    ),
+                    child: Text(
+                      'Explore Hives',
+                      style: TextStyle(
+                          color: theme.colorScheme.onSurface.withOpacity(0.6),
+                          fontSize: 12),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+
+            // Services Grid with PageView
+            _buildServicesGrid(
+                ref.read(getMarketplaceServiceProvider.notifier).allServices,
+                theme,
+                isDark,
+                ref),
+
+            // Banner
+            Padding(
+              padding: const EdgeInsets.all(8.0),
+              child: GestureDetector(
+                onTap: () => Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (context) => const Streaming()),
+                ),
+                child: Image.asset('images/discover.png'),
+              ),
+            ),
+
+            // Creatives Section
+            creatorState.when(
+              loading: () => _buildShimmerCreativesSection(theme, isDark),
+              error: (e, _) => Center(
+                  child: Text("Error loading creators: $e",
+                      style: TextStyle(color: theme.colorScheme.error))),
+              data: (creatorListResponse) {
+                final creators = (creatorListResponse.user?.data ?? [])
+                    .where((c) => c.user != null)
+                    .toList();
+
+                final notifier = ref.read(creatorProvider.notifier);
+
+                return CreativesSection(
+                  creators: creators,
+                  notifier: notifier,
+                );
+              },
+            ),
+
+            // More Services Section
+            Padding(
+              padding: const EdgeInsets.all(16.0),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    'More services for you',
+                    style: TextStyle(
+                      color: theme.colorScheme.onSurface,
+                      fontSize: 16,
+                      fontWeight: FontWeight.w400,
+                    ),
+                  ),
+                  OutlinedButton(
+                    onPressed: () => Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => const Categories(),
+                      ),
+                    ),
+                    style: OutlinedButton.styleFrom(
+                      side: BorderSide(color: theme.dividerColor),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(100),
+                      ),
+                    ),
+                    child: Text(
+                      'Explore Hives',
+                      style: TextStyle(
+                          color: theme.colorScheme.onSurface.withOpacity(0.6),
+                          fontSize: 12),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+
+            // More Services List
+            _buildMoreServicesList(
+                ref.read(getMarketplaceServiceProvider.notifier).allServices,
+                theme,
+                isDark),
+
+            const SizedBox(height: 20),
+          ],
+        );
+      },
     );
   }
 
@@ -1025,40 +1514,40 @@ class _MarketplaceState extends ConsumerState<Marketplace>
                   ),
                   child: _selectedFilters.isEmpty
                       ? TextFormField(
-                    controller: _searchController,
-                    style: TextStyle(color: theme.colorScheme.onSurface),
-                    onChanged: _onSearchChanged,
-                    decoration: InputDecoration(
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(8),
-                        borderSide: BorderSide(
-                            color: theme.dividerColor.withOpacity(0.5)),
-                      ),
-                      hintText: 'Search',
-                      hintStyle: TextStyle(
-                          color: theme.colorScheme.onSurface
-                              .withOpacity(0.5)),
-                      prefixIcon: Icon(Icons.search,
-                          color: theme.colorScheme.onSurface
-                              .withOpacity(0.5)),
-                      contentPadding:
-                      const EdgeInsets.symmetric(vertical: 14.0),
-                      suffixIcon: _searchController.text.isNotEmpty
-                          ? IconButton(
-                        icon: Icon(Icons.clear,
-                            color: theme.colorScheme.onSurface
-                                .withOpacity(0.5)),
-                        onPressed: () {
-                          _searchController.clear();
-                          ref
-                              .read(
-                              getMarketplaceServiceProvider.notifier)
-                              .resetMarketplaceState();
-                        },
-                      )
-                          : null,
-                    ),
-                  )
+                          controller: _searchController,
+                          style: TextStyle(color: theme.colorScheme.onSurface),
+                          onChanged: _onSearchChanged,
+                          decoration: InputDecoration(
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(8),
+                              borderSide: BorderSide(
+                                  color: theme.dividerColor.withOpacity(0.5)),
+                            ),
+                            hintText: 'Search',
+                            hintStyle: TextStyle(
+                                color: theme.colorScheme.onSurface
+                                    .withOpacity(0.5)),
+                            prefixIcon: Icon(Icons.search,
+                                color: theme.colorScheme.onSurface
+                                    .withOpacity(0.5)),
+                            contentPadding:
+                                const EdgeInsets.symmetric(vertical: 14.0),
+                            suffixIcon: _searchController.text.isNotEmpty
+                                ? IconButton(
+                                    icon: Icon(Icons.clear,
+                                        color: theme.colorScheme.onSurface
+                                            .withOpacity(0.5)),
+                                    onPressed: () {
+                                      _searchController.clear();
+                                      ref
+                                          .read(getMarketplaceServiceProvider
+                                              .notifier)
+                                          .resetMarketplaceState();
+                                    },
+                                  )
+                                : null,
+                          ),
+                        )
                       : _buildFilterChips(theme),
                 ),
               ),
@@ -1236,7 +1725,8 @@ class _MarketplaceState extends ConsumerState<Marketplace>
               mainAxisSpacing: 6,
               crossAxisSpacing: 5,
               childAspectRatio: 0.75,
-              children: List.generate(4, (index) => _buildShimmerServiceItem(isDark)),
+              children:
+                  List.generate(4, (index) => _buildShimmerServiceItem(isDark)),
             ),
           );
         },
@@ -1262,7 +1752,7 @@ class _MarketplaceState extends ConsumerState<Marketplace>
               decoration: BoxDecoration(
                 color: isDark ? Colors.grey[600] : Colors.grey[300],
                 borderRadius:
-                const BorderRadius.vertical(top: Radius.circular(12)),
+                    const BorderRadius.vertical(top: Radius.circular(12)),
               ),
             ),
             Padding(
@@ -1387,7 +1877,8 @@ class _MarketplaceState extends ConsumerState<Marketplace>
                 padding: const EdgeInsets.symmetric(horizontal: 8.0),
                 child: Shimmer.fromColors(
                   baseColor: isDark ? Colors.grey[800]! : Colors.grey[300]!,
-                  highlightColor: isDark ? Colors.grey[600]! : Colors.grey[100]!,
+                  highlightColor:
+                      isDark ? Colors.grey[600]! : Colors.grey[100]!,
                   child: Container(
                     width: 150,
                     decoration: BoxDecoration(
@@ -1455,7 +1946,7 @@ class _MarketplaceState extends ConsumerState<Marketplace>
                     onRemove = () {
                       setState(() {
                         _selectedFilters.removeWhere((f) =>
-                        f.startsWith('Category:') ||
+                            f.startsWith('Category:') ||
                             f.startsWith('CategoryId:'));
                         if (_selectedFilters.isEmpty) {
                           _showFilters = true;
@@ -1494,7 +1985,7 @@ class _MarketplaceState extends ConsumerState<Marketplace>
                   return Container(
                     margin: const EdgeInsets.only(right: 8),
                     padding:
-                    const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                        const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                     decoration: BoxDecoration(
                       color: theme.cardColor,
                       borderRadius: BorderRadius.circular(12),
@@ -1511,8 +2002,8 @@ class _MarketplaceState extends ConsumerState<Marketplace>
                           onTap: onRemove,
                           child: Icon(Icons.close,
                               size: 14,
-                              color: theme.colorScheme.onSurface
-                                  .withOpacity(0.5)),
+                              color:
+                                  theme.colorScheme.onSurface.withOpacity(0.5)),
                         ),
                       ],
                     ),
@@ -1561,10 +2052,10 @@ class _MarketplaceState extends ConsumerState<Marketplace>
     }
 
     ref.read(getMarketplaceServiceProvider.notifier).applyFilters(
-      categoryId: categoryId,
-      minPrice: minPrice,
-      maxPrice: maxPrice,
-    );
+          categoryId: categoryId,
+          minPrice: minPrice,
+          maxPrice: maxPrice,
+        );
   }
 
   Widget _buildLoadingIndicator(bool isDark) {
@@ -1605,7 +2096,7 @@ class _MarketplaceState extends ConsumerState<Marketplace>
               final filters = await Navigator.of(context).push(
                 PageRouteBuilder(
                   pageBuilder: (context, animation, secondaryAnimation) =>
-                  const FilterScreen(),
+                      const FilterScreen(),
                   transitionsBuilder:
                       (context, animation, secondaryAnimation, child) {
                     const begin = Offset(0, 1);
@@ -1647,84 +2138,82 @@ class _MarketplaceState extends ConsumerState<Marketplace>
     final isLastPage = servicesNotifier.isLastPage;
     final isLoadingMore = servicesNotifier.isLoadingMore;
 
-    final pageCount = (services.length / 4).ceil();
-    final rowCount = (services.length / 2).ceil();
-    final gridHeight = rowCount * 220;
+    // API returns 4 items per page - use that
+    final itemsPerPage = 4;
+    final totalItems = services.length;
+    final totalPages = (totalItems / itemsPerPage).ceil();
+
+    // Only show loading page if we're not at the last page AND we have items
+    final showLoadingPage = !isLastPage && totalItems > 0;
+    final pageCount = showLoadingPage ? totalPages + 1 : totalPages;
 
     return SizedBox(
-      height: gridHeight.toDouble().clamp(220, 480),
-      child: NotificationListener<ScrollEndNotification>(
-        onNotification: (notification) {
-          final metrics = notification.metrics;
-          if (metrics.pixels >= metrics.maxScrollExtent * 0.8 &&
-              !isLastPage &&
-              !isLoadingMore) {
-            _loadMoreServices(servicesNotifier);
+      height: 480,
+      child: PageView.builder(
+        controller: _pageController,
+        scrollDirection: Axis.horizontal,
+        itemCount: pageCount,
+        onPageChanged: (pageIndex) {
+          // Load more when we reach the last loaded page
+          if (pageIndex >= totalPages - 1 && !isLastPage && !isLoadingMore) {
+            _loadMoreServices();
           }
-          return false;
         },
-        child: PageView.builder(
-          scrollDirection: Axis.horizontal,
-          itemCount: pageCount + (isLastPage ? 0 : 1),
-          itemBuilder: (context, pageIndex) {
-            if (pageIndex >= pageCount && !isLastPage) {
-              return Center(
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    CircularProgressIndicator(color: theme.colorScheme.primary),
-                    const SizedBox(height: 16),
-                    Text(
-                      'Loading more services...',
-                      style: TextStyle(
-                        color: theme.colorScheme.onSurface.withOpacity(0.7),
-                        fontSize: 14,
-                      ),
+        itemBuilder: (context, pageIndex) {
+          // Loading indicator page (only shows when more data is available)
+          if (pageIndex >= totalPages) {
+            return Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  CircularProgressIndicator(color: theme.colorScheme.primary),
+                  const SizedBox(height: 16),
+                  Text(
+                    'Loading more services...',
+                    style: TextStyle(
+                      color: theme.colorScheme.onSurface.withOpacity(0.7),
+                      fontSize: 14,
                     ),
-                  ],
-                ),
-              );
-            }
-
-            final startIndex = pageIndex * 4;
-            final endIndex = (startIndex + 4).clamp(0, services.length);
-            final pageItems = services.sublist(startIndex, endIndex);
-
-            final gridItems = List<Widget>.generate(4, (index) {
-              if (index < pageItems.length) {
-                return _buildServiceItem(pageItems[index], theme, isDark);
-              } else {
-                return const SizedBox.shrink();
-              }
-            });
-
-            return Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 8.0),
-              child: GridView.count(
-                physics: const NeverScrollableScrollPhysics(),
-                crossAxisCount: 2,
-                mainAxisSpacing: 6,
-                crossAxisSpacing: 5,
-                childAspectRatio: 0.75,
-                children: gridItems,
+                  ),
+                ],
               ),
             );
-          },
-        ),
+          }
+
+          // Calculate items for this page
+          final startIndex = pageIndex * itemsPerPage;
+          final endIndex = (startIndex + itemsPerPage).clamp(0, services.length);
+
+          // If no items for this page yet, show loading
+          if (startIndex >= services.length) {
+            return Center(
+              child: CircularProgressIndicator(color: theme.colorScheme.primary),
+            );
+          }
+
+          final pageItems = services.sublist(startIndex, endIndex);
+
+          return Container(
+            padding: const EdgeInsets.symmetric(horizontal: 8.0),
+            child: GridView.builder(
+              physics: const NeverScrollableScrollPhysics(),
+              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                crossAxisCount: 2,
+                mainAxisSpacing: 12,
+                crossAxisSpacing: 10,
+                childAspectRatio: 0.75,
+              ),
+              itemCount: pageItems.length,
+              itemBuilder: (context, index) {
+                return _buildServiceItem(pageItems[index], theme, isDark);
+              },
+            ),
+          );
+        },
       ),
     );
   }
-
-  Future<void> _loadMoreServices(
-      GetMyOrdersAssetNotifier servicesNotifier) async {
-    await servicesNotifier.getMarketPlaceService(
-      loadMore: true,
-      pageSize: 20,
-    );
-  }
-
-  Widget _buildServiceItem(
-      MarketOrder item, ThemeData theme, bool isDark) {
+  Widget _buildServiceItem(MarketOrder item, ThemeData theme, bool isDark) {
     return GestureDetector(
       onTap: () => Navigator.push(
         context,
@@ -1733,21 +2222,190 @@ class _MarketplaceState extends ConsumerState<Marketplace>
               MarketplaceDetails(service: item, user: widget.user),
         ),
       ),
-      child: _buildServiceCard(
-        context,
-        title: item.serviceName,
-        price: ref.formatUserCurrency(item.convertedRate),
-        name: "${item.user?.firstName} ${item.user?.lastName}",
-        rating: 4.5,
-        clients: '${item.bookingCount} clients',
-        location: item.status,
-        isRemote: item.status.toLowerCase().contains('remote'),
-        image: item.coverImage,
-        theme: theme,
-        isDark: isDark,
+      child: Container(
+        decoration: BoxDecoration(
+          color: theme.cardColor,
+          borderRadius: BorderRadius.circular(12),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Image container
+            Container(
+              height: 120, // Fixed height for image
+              width: double.infinity,
+              decoration: BoxDecoration(
+                color: AppColors.BUTTONCOLOR.withOpacity(0.3),
+                borderRadius: const BorderRadius.only(
+                  topLeft: Radius.circular(12),
+                  topRight: Radius.circular(12),
+                ),
+                image: DecorationImage(
+                  image: CachedNetworkImageProvider(item.coverImage),
+                  fit: BoxFit.cover,
+                ),
+              ),
+              child: item.status.toLowerCase().contains('remote')
+                  ? Align(
+                alignment: Alignment.topRight,
+                child: Padding(
+                  padding: const EdgeInsets.all(8.0),
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 6,
+                      vertical: 2,
+                    ),
+                    decoration: BoxDecoration(
+                      color: theme.colorScheme.onPrimary.withOpacity(0.8),
+                      borderRadius: BorderRadius.circular(4),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(Icons.arrow_back_ios,
+                            color: theme.colorScheme.primary, size: 12),
+                        const SizedBox(width: 2),
+                        Icon(Icons.arrow_forward_ios,
+                            color: theme.colorScheme.primary, size: 12),
+                      ],
+                    ),
+                  ),
+                ),
+              )
+                  : null,
+            ),
+            // Content
+            Padding(
+              padding: const EdgeInsets.all(10.0),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    item.serviceName,
+                    style: TextStyle(
+                      color: theme.colorScheme.onSurface,
+                      fontSize: 12,
+                      fontWeight: FontWeight.w600,
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    ref.formatUserCurrency(item.convertedRate),
+                    style: TextStyle(
+                      color: AppColors.BUTTONCOLOR,
+                      fontSize: 12,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                  const SizedBox(height: 6),
+                  Row(
+                    children: [
+                      Icon(Icons.person_outline,
+                          color: theme.colorScheme.onSurface.withOpacity(0.7),
+                          size: 14),
+                      const SizedBox(width: 4),
+                      Expanded(
+                        child: Text(
+                          "${item.user?.firstName ?? ''} ${item.user?.lastName ?? ''}",
+                          style: TextStyle(
+                            color: theme.colorScheme.onSurface.withOpacity(0.7),
+                            fontSize: 11,
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 4),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Row(
+                        children: [
+                          Icon(Icons.group_outlined,
+                              color: theme.colorScheme.onSurface.withOpacity(0.7),
+                              size: 14),
+                          const SizedBox(width: 4),
+                          Text(
+                            '${item.bookingCount} clients',
+                            style: TextStyle(
+                              color: theme.colorScheme.onSurface.withOpacity(0.7),
+                              fontSize: 10,
+                            ),
+                          ),
+                        ],
+                      ),
+                      Text(
+                        item.status,
+                        style: TextStyle(
+                          color: theme.colorScheme.onSurface.withOpacity(0.7),
+                          fontSize: 10,
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
+
+  Future<void> _loadMoreServices() async {
+    final notifier = ref.read(getMarketplaceServiceProvider.notifier);
+
+    // Prevent multiple calls
+    if (notifier.isLoadingMore || notifier.isLastPage) {
+      debugPrint('Skipping load more - isLoadingMore: ${notifier.isLoadingMore}, isLastPage: ${notifier.isLastPage}');
+      return;
+    }
+
+    try {
+      debugPrint('Loading more services...');
+      await notifier.getMarketPlaceService(
+        loadMore: true,
+      );
+
+
+      if (mounted) {
+        setState(() {});
+      }
+    } catch (e) {
+      debugPrint('Error loading more services: $e');
+    }
+  }
+
+  // Widget _buildServiceItem(MarketOrder item, ThemeData theme, bool isDark) {
+  //   return GestureDetector(
+  //     onTap: () => Navigator.push(
+  //       context,
+  //       MaterialPageRoute(
+  //         builder: (context) =>
+  //             MarketplaceDetails(service: item, user: widget.user),
+  //       ),
+  //     ),
+  //     child: _buildServiceCard(
+  //       context,
+  //       title: item.serviceName,
+  //       price: ref.formatUserCurrency(item.convertedRate),
+  //       name: "${item.user?.firstName} ${item.user?.lastName}",
+  //       rating: 4.5,
+  //       clients: '${item.bookingCount} clients',
+  //       location: item.status,
+  //       isRemote: item.status.toLowerCase().contains('remote'),
+  //       image: item.coverImage,
+  //       theme: theme,
+  //       isDark: isDark,
+  //     ),
+  //   );
+  // }
 
   Widget _buildMoreServicesList(
       List<MarketOrder> services, ThemeData theme, bool isDark) {
@@ -1770,7 +2428,8 @@ class _MarketplaceState extends ConsumerState<Marketplace>
               context,
               title: item.serviceName,
               price: ref.formatUserCurrency(item.convertedRate),
-              name: "${item.user?.firstName ?? ''} ${item.user?.lastName ?? ''}",
+              name:
+                  "${item.user?.firstName ?? ''} ${item.user?.lastName ?? ''}",
               rating: 4.5,
               clients: '20k clients',
               location: item.status,
@@ -1786,18 +2445,18 @@ class _MarketplaceState extends ConsumerState<Marketplace>
   }
 
   Widget _buildServiceCard(
-      BuildContext context, {
-        required String title,
-        required String price,
-        required String name,
-        required double rating,
-        required String clients,
-        required String location,
-        required String image,
-        required ThemeData theme,
-        required bool isDark,
-        bool isRemote = false,
-      }) {
+    BuildContext context, {
+    required String title,
+    required String price,
+    required String name,
+    required double rating,
+    required String clients,
+    required String location,
+    required String image,
+    required ThemeData theme,
+    required bool isDark,
+    bool isRemote = false,
+  }) {
     return Container(
       width: 180,
       margin: const EdgeInsets.only(left: 16.0, right: 8.0),
@@ -1813,7 +2472,8 @@ class _MarketplaceState extends ConsumerState<Marketplace>
             height: 110,
             decoration: BoxDecoration(
               color: AppColors.BUTTONCOLOR.withOpacity(0.3),
-              borderRadius: const BorderRadius.vertical(top: Radius.circular(12)),
+              borderRadius:
+                  const BorderRadius.vertical(top: Radius.circular(12)),
               image: DecorationImage(
                 image: CachedNetworkImageProvider(image),
                 fit: BoxFit.cover,
@@ -1821,21 +2481,21 @@ class _MarketplaceState extends ConsumerState<Marketplace>
             ),
             child: isRemote
                 ? Align(
-              alignment: Alignment.centerRight,
-              child: Padding(
-                padding: const EdgeInsets.all(8.0),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Icon(Icons.arrow_back_ios,
-                        color: theme.colorScheme.onPrimary, size: 16),
-                    const SizedBox(width: 4),
-                    Icon(Icons.arrow_forward_ios,
-                        color: theme.colorScheme.onPrimary, size: 16),
-                  ],
-                ),
-              ),
-            )
+                    alignment: Alignment.centerRight,
+                    child: Padding(
+                      padding: const EdgeInsets.all(8.0),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(Icons.arrow_back_ios,
+                              color: theme.colorScheme.onPrimary, size: 16),
+                          const SizedBox(width: 4),
+                          Icon(Icons.arrow_forward_ios,
+                              color: theme.colorScheme.onPrimary, size: 16),
+                        ],
+                      ),
+                    ),
+                  )
                 : null,
           ),
           Padding(
@@ -1845,7 +2505,8 @@ class _MarketplaceState extends ConsumerState<Marketplace>
               children: [
                 Text(
                   title,
-                  style: TextStyle(color: theme.colorScheme.onSurface, fontSize: 12),
+                  style: TextStyle(
+                      color: theme.colorScheme.onSurface, fontSize: 12),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                 ),
@@ -1889,7 +2550,8 @@ class _MarketplaceState extends ConsumerState<Marketplace>
                         Text(
                           clients,
                           style: TextStyle(
-                              color: theme.colorScheme.onSurface.withOpacity(0.7),
+                              color:
+                                  theme.colorScheme.onSurface.withOpacity(0.7),
                               fontSize: 8),
                         ),
                       ],
@@ -1919,6 +2581,7 @@ class _MarketplaceState extends ConsumerState<Marketplace>
     );
   }
 }
+
 const Color kPurpleAccent = AppColors.BUTTONCOLOR; // A shade of deep purple
 
 class FilterScreen extends ConsumerStatefulWidget {
@@ -2016,7 +2679,8 @@ class _FilterScreenState extends ConsumerState<FilterScreen> {
                                   if (selected) {
                                     selectedCategory = category.name;
                                     selectedCategoryId = category.id.toString();
-                                  } else if (selectedCategory == category.name) {
+                                  } else if (selectedCategory ==
+                                      category.name) {
                                     selectedCategory = null;
                                     selectedCategoryId = null;
                                   }
@@ -2029,18 +2693,27 @@ class _FilterScreenState extends ConsumerState<FilterScreen> {
                         loading: () => Wrap(
                           spacing: 8.0,
                           runSpacing: 8.0,
-                          children: List.generate(6, (index) => Shimmer.fromColors(
-                            baseColor: isDark ? Colors.grey[800]! : Colors.grey[300]!,
-                            highlightColor: isDark ? Colors.grey[600]! : Colors.grey[100]!,
-                            child: Container(
-                              width: 80,
-                              height: 32,
-                              decoration: BoxDecoration(
-                                color: isDark ? Colors.grey[700] : Colors.grey[200],
-                                borderRadius: BorderRadius.circular(100),
-                              ),
-                            ),
-                          )),
+                          children: List.generate(
+                              6,
+                              (index) => Shimmer.fromColors(
+                                    baseColor: isDark
+                                        ? Colors.grey[800]!
+                                        : Colors.grey[300]!,
+                                    highlightColor: isDark
+                                        ? Colors.grey[600]!
+                                        : Colors.grey[100]!,
+                                    child: Container(
+                                      width: 80,
+                                      height: 32,
+                                      decoration: BoxDecoration(
+                                        color: isDark
+                                            ? Colors.grey[700]
+                                            : Colors.grey[200],
+                                        borderRadius:
+                                            BorderRadius.circular(100),
+                                      ),
+                                    ),
+                                  )),
                         ),
                         error: (e, _) => Text(
                           'Error loading categories',
@@ -2072,7 +2745,8 @@ class _FilterScreenState extends ConsumerState<FilterScreen> {
                           const SizedBox(width: 8),
                           Text(
                             '-',
-                            style: TextStyle(color: theme.colorScheme.onSurface),
+                            style:
+                                TextStyle(color: theme.colorScheme.onSurface),
                           ),
                           const SizedBox(width: 8),
                           Expanded(
@@ -2147,15 +2821,17 @@ class FilterChip extends StatelessWidget {
       label: Text(
         label,
         style: TextStyle(
-          color: selected ? Colors.white : theme.colorScheme.onSurface.withOpacity(0.7),
+          color: selected
+              ? Colors.white
+              : theme.colorScheme.onSurface.withOpacity(0.7),
           fontSize: 14,
         ),
       ),
       backgroundColor: selected
           ? kPurpleAccent
           : isDark
-          ? const Color(0xFF1A191E)
-          : Colors.grey[200],
+              ? const Color(0xFF1A191E)
+              : Colors.grey[200],
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(100),
       ),
@@ -2225,11 +2901,11 @@ class _CreativesSectionState extends State<CreativesSection> {
               OutlinedButton(
                 onPressed: creators.isNotEmpty
                     ? () => Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => const CreatorsList(),
-                  ),
-                )
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => const CreatorsList(),
+                          ),
+                        )
                     : null,
                 style: OutlinedButton.styleFrom(
                   side: BorderSide(color: theme.dividerColor),
@@ -2255,7 +2931,8 @@ class _CreativesSectionState extends State<CreativesSection> {
               padding: const EdgeInsets.symmetric(vertical: 40.0),
               child: Text(
                 "No creatives found",
-                style: TextStyle(color: theme.colorScheme.onSurface.withOpacity(0.6)),
+                style: TextStyle(
+                    color: theme.colorScheme.onSurface.withOpacity(0.6)),
               ),
             ),
           )
@@ -2278,7 +2955,7 @@ class _CreativesSectionState extends State<CreativesSection> {
                   child: Utils.buildCreativeCard(
                     context,
                     name:
-                    '${creator.user?.firstName} ${creator.user?.lastName}',
+                        '${creator.user?.firstName} ${creator.user?.lastName}',
                     role: creator.jobTitle,
                     rating: Utils.getOverallRating(creator),
                     profileImage: creator.user?.image ?? '',
@@ -2294,4 +2971,3 @@ class _CreativesSectionState extends State<CreativesSection> {
     );
   }
 }
-

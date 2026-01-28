@@ -47,14 +47,12 @@ class _JustCuriousState extends ConsumerState<JustCurious> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               const SizedBox(height: 20),
-              Center(
-                child: Utils.logo(),
-              ),
+              Utils.logo(),
               const SizedBox(height: 30),
 
               // Title
               const Text(
-                "One last thing....",
+                "Welcome to Cre8Hive",
                 style: TextStyle(
                   color: Colors.white,
                   fontSize: 24,
@@ -62,24 +60,15 @@ class _JustCuriousState extends ConsumerState<JustCurious> {
                 ),
                 textAlign: TextAlign.center,
               ),
-              const SizedBox(height: 8),
-              const Text(
-                "We are just curious....",
-                style: TextStyle(
-                  color: Colors.white,
-                  fontSize: 24,
-                  fontWeight: FontWeight.w600,
-                ),
-                textAlign: TextAlign.center,
-              ),
+
               const SizedBox(height: 20),
               const Text(
-                "What is the first thing you want to do?",
+                "Everything you need to create, discover, and earn — all in one place.",
                 style: TextStyle(
                   color: Color(0xFFF2F2F2),
                   fontSize: 14.0,
                 ),
-                textAlign: TextAlign.center,
+
               ),
               const SizedBox(height: 40),
 

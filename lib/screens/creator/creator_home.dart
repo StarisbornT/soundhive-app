@@ -98,16 +98,12 @@ class _CreatorHomeState extends ConsumerState<CreatorHome> with SingleTickerProv
                 );
               }),
             ],
-            style: const TextStyle(color: Colors.black),
             decoration: InputDecoration(
               prefix: Text(
                 '${ref.userCurrency} ',
-                style: const TextStyle(
-                  color: Colors.black,
-                ),
+
               ),
               hintText: "Enter amount to fund",
-              hintStyle: const TextStyle(color: Colors.black54),
             ),
           ),
           actions: [

@@ -46,18 +46,20 @@ class _SetupScreenState extends ConsumerState<SetupScreen> {
   }
 
   Widget _buildContent() {
-    return Padding(
-      padding: const EdgeInsets.symmetric(
-        horizontal: _horizontalPadding,
-        vertical: _verticalPadding,
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          _buildHeader(),
-          const SizedBox(height: _spacingLarge),
-          ..._buildCards(),
-        ],
+    return SingleChildScrollView(
+      child: Padding(
+        padding: const EdgeInsets.symmetric(
+          horizontal: _horizontalPadding,
+          vertical: _verticalPadding,
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            _buildHeader(),
+            const SizedBox(height: _spacingLarge),
+            ..._buildCards(),
+          ],
+        ),
       ),
     );
   }
@@ -69,7 +71,7 @@ class _SetupScreenState extends ConsumerState<SetupScreen> {
         _BackButton(),
         SizedBox(height: 10),
         Text(
-          'Earn From the Creator Economy',
+          'Creator Verification & Access Setup',
           style: TextStyle(
             fontSize: 24,
             fontWeight: FontWeight.w400,
@@ -78,8 +80,8 @@ class _SetupScreenState extends ConsumerState<SetupScreen> {
         ),
         SizedBox(height: _spacingSmall),
         Text(
-          'After completing the information below, it gets reviewed by '
-              'soundhive, and after that your account would be good to go!',
+          'To fully access CreateHive as a creator and investor, we need to verify your identity and creator details.'
+   ' Completing the steps below helps us keep the platform secure, build trust, and unlock earnings, investments, and withdrawals.',
           style: TextStyle(
             color: Colors.white70,
             fontSize: 12,
@@ -110,13 +112,13 @@ class _SetupScreenState extends ConsumerState<SetupScreen> {
 
     return _SetupCard(
       icon: Icons.person_2_outlined,
-      title: 'Verify your account',
+      title: 'Identity & KYC Verification',
       subtitle:
-      'We want to know you in more detail, kindly provide your BVN, NIN, '
-          'a government issued ID and utility bill.',
+      'Verify your identity to unlock earnings, withdrawals, and investment access.'
+     ' This includes submitting your BVN or NIN, a government-issued ID, and proof of address where required.',
       status: isVerified ? 'Under review' : 'Not submitted',
       statusColor: isVerified ? _warningColor : _errorColor,
-      onTap: _creator?.hasVerifiedIdentity == false
+      onTap: !isVerified
           ? () => _navigateToVerification(isBusiness)
           : null,
     );
@@ -129,8 +131,8 @@ class _SetupScreenState extends ConsumerState<SetupScreen> {
       icon: Icons.person_2_outlined,
       title: 'Liveliness Check',
       subtitle:
-      'We want to know you in more detail, kindly provide your BVN, NIN, '
-          'a government issued ID and utility bill.',
+      'Complete a quick live photo check to confirm you are the rightful account owner.'
+     ' This helps prevent impersonation and protects creators and investors on the platform.',
       status: hasLiveTest ? 'Completed' : 'Not submitted',
       statusColor: hasLiveTest ? _successColor : _errorColor,
       onTap: () => _handleLivelinessTap(),
@@ -138,19 +140,19 @@ class _SetupScreenState extends ConsumerState<SetupScreen> {
   }
 
   Widget _buildKYCCard() {
-    final hasVerifiedCreativeProfile = _creator?.hasVerifiedCreativeProfile == false;
-    final status = hasVerifiedCreativeProfile ? 'Not submitted' : 'Under review';
-    final statusColor = hasVerifiedCreativeProfile ? _errorColor : _warningColor;
+    final hasVerifiedCreativeProfile = _creator?.hasVerifiedCreativeProfile == true;
+    final status = !hasVerifiedCreativeProfile ? 'Not submitted' : 'Under review';
+    final statusColor = !hasVerifiedCreativeProfile ? _errorColor : _warningColor;
 
     return _SetupCard(
       icon: Icons.work_outline,
-      title: 'Complete your KYC',
+      title: 'Creator / Business Profile Setup',
       subtitle:
-      'Unlock your ability to Invest in verifiable and quality '
-          'entertainment projects or artists, as well as share in their success.',
+      'Share details about your creative service or business.'
+      'Add your service category, offerings, pricing, and basic business information to help users discover and book you.',
       status: status,
       statusColor: statusColor,
-      onTap: () => hasVerifiedCreativeProfile ? _handleKYCTap() : null,
+      onTap: () => !hasVerifiedCreativeProfile ? _handleKYCTap() : null,
     );
   }
 
@@ -177,12 +179,33 @@ class _SetupScreenState extends ConsumerState<SetupScreen> {
   }
 
   void _handleKYCTap() {
-    if (_creator?.hasVerifiedIdentity == true) {
+    final creator = _creator;
+
+    if (creator == null) {
+      _showVerificationRequiredAlert();
+      return;
+    }
+
+    // Identity verification is mandatory for everyone
+    if (creator.hasVerifiedIdentity != true) {
+      _showVerificationRequiredAlert();
+      return;
+    }
+
+    // Business creators do NOT require live test
+    if (creator.role == "BUSINESS") {
+      _navigateToCreativeForm();
+      return;
+    }
+
+    // Non-business creators MUST have live test completed
+    if (creator.hasLiveTest == true) {
       _navigateToCreativeForm();
     } else {
       _showVerificationRequiredAlert();
     }
   }
+
 
   void _navigateToCreativeForm() {
     final user = _user;

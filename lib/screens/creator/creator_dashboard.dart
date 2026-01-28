@@ -10,6 +10,7 @@ import 'package:soundhive2/screens/non_creator/non_creator.dart';
 import 'package:soundhive2/utils/app_colors.dart';
 import 'package:soundhive2/lib/dashboard_provider/apiresponseprovider.dart';
 import 'package:soundhive2/lib/dashboard_provider/notification_provider.dart';
+import '../../utils/utils.dart';
 import '../auth/login.dart';
 import '../non_creator/settings/settings.dart';
 import '../non_creator/wallet/transaction_history.dart';
@@ -168,13 +169,13 @@ class CreatorDashboard extends ConsumerWidget {
                               ),
                             ),
                             const SizedBox(height: 5),
-                            const Row(
+                             Row(
                               children: [
-                                Icon(Icons.star, color: Colors.amber, size: 16),
-                                SizedBox(width: 5),
+                                const Icon(Icons.star, color: Colors.amber, size: 16),
+                                const SizedBox(width: 5),
                                 Text(
-                                  '4.5 overall rating',
-                                  style: TextStyle(
+                                  '${Utils.getOverallRating(user!.creator!)} overall rating',
+                                  style: const TextStyle(
                                     color: Color(0xFFC5AFFF),
                                     fontSize: 14,
                                   ),

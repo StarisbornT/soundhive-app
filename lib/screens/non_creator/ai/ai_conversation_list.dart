@@ -2,8 +2,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:soundhive2/screens/non_creator/ai/ai_chat_screen.dart';
-import 'package:soundhive2/utils/app_colors.dart';
-import '../../../lib/dashboard_provider/get_conversations_provider.dart';
+import 'package:soundhive2/lib/dashboard_provider/get_conversations_provider.dart';
 import '../../../model/ai_conversation_thread_model.dart';
 
 class AiChatConversationScreen extends ConsumerStatefulWidget {
@@ -112,7 +111,6 @@ class _AiChatConversationScreenState extends ConsumerState<AiChatConversationScr
     final conversationsState = ref.watch(getConversationProvider);
 
     return Scaffold(
-     
       body: SafeArea(
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -144,11 +142,9 @@ class _AiChatConversationScreenState extends ConsumerState<AiChatConversationScr
               child: conversationsState.when(
                 data: (response) {
                   final conversations = response.data.data;
-
                   if (conversations.isEmpty) {
                     return _buildEmptyState();
                   }
-
                   return _buildConversationsList(conversations);
                 },
                 loading: () => const Center(

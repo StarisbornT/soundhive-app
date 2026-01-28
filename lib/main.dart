@@ -98,7 +98,7 @@ class SoundHive extends ConsumerWidget {
     final themeState = ref.watch(themeModeProvider);
 
 
-    if (authState.isLoading) {
+    if (authState.isLoading || themeState.isLoading) {
       return const MaterialApp(home: Scaffold(body: Center(child: CircularProgressIndicator())));
     }
     final routeObserver = ref.read(routeObserverProvider);
@@ -107,18 +107,18 @@ class SoundHive extends ConsumerWidget {
       navigatorObservers: [routeObserver],
       navigatorKey: navigatorKey,
       themeMode: themeState.themeMode,
-
+      darkTheme: ThemeData(
+        brightness: Brightness.dark,
+        fontFamily: 'Nohemi',
+        scaffoldBackgroundColor: AppColors.BACKGROUNDCOLOR,
+      ),
       theme: ThemeData(
         brightness: Brightness.light,
         fontFamily: 'Nohemi',
         scaffoldBackgroundColor: Colors.white,
       ),
 
-      darkTheme: ThemeData(
-        brightness: Brightness.dark,
-        fontFamily: 'Nohemi',
-        scaffoldBackgroundColor: AppColors.BACKGROUNDCOLOR,
-      ),
+
       initialRoute: authState.token != null ? DashboardScreen.id : SplashScreen.id,
       routes: {
         SplashScreen.id: (context) => const SplashScreen(),

@@ -116,36 +116,44 @@ class _AiChatScreenState extends ConsumerState<AiChatScreen> {
                   metadata: metadata,
                   suggestedCreators: suggestedCreators,
                 ));
-
-                // Add AI response if exists
                 if (conversation.aiResponse.isNotEmpty) {
-                  // Try to parse the AI response
                   String aiText = conversation.aiResponse;
                   Map<String, dynamic>? workflowPlan;
+                  bool isGreeting = conversation.title == 'Greeting';
 
-                  // If it's JSON, extract the readable content
-                  try {
-                    final jsonResponse = json.decode(conversation.aiResponse);
-                    if (jsonResponse is Map) {
-                      // Store the workflow plan for options generation
-                      workflowPlan = Map<String, dynamic>.from(jsonResponse);
-                      aiText = _formatAiResponse(
-                        workflowPlan,
-                        suggestedCreators,
-                      );
-                    }
-                  } catch (e) {
-                    // If not JSON, use as-is
+                  // If it's a greeting, handle it specially
+                  if (isGreeting) {
+                    // Use the ai_response directly for greetings
                     aiText = conversation.aiResponse;
+                    workflowPlan = {
+                      'required_creators': [],
+                      'timeline': 'Not applicable',
+                      'cost_range': 'Not applicable',
+                      'steps': ['Start by describing your project']
+                    };
+                  } else {
+                    // Try to parse as JSON for workflow plans
+                    try {
+                      final jsonResponse = json.decode(conversation.aiResponse);
+                      if (jsonResponse is Map) {
+                        workflowPlan = Map<String, dynamic>.from(jsonResponse);
+                        aiText = _formatAiResponse(workflowPlan, suggestedCreators);
+                      }
+                    } catch (e) {
+                      // If not JSON, use as-is
+                      aiText = conversation.aiResponse;
+                    }
                   }
 
-                  // Generate options from the loaded data
+                  // Generate options
                   List<String>? options;
                   if (workflowPlan != null) {
-                    // Use workflow plan if we parsed it
-                    options = _generateOptionsFromResponse(workflowPlan, suggestedCreators);
+                    if (isGreeting) {
+                      options = ['Start a project'];
+                    } else {
+                      options = _generateOptionsFromResponse(workflowPlan, suggestedCreators);
+                    }
                   } else if (metadata.isNotEmpty) {
-                    // If no workflow plan but we have metadata, create options from metadata
                     final Map<String, dynamic> planFromMetadata = {
                       'required_creators': [],
                       'timeline': metadata['timeline'],
@@ -153,7 +161,6 @@ class _AiChatScreenState extends ConsumerState<AiChatScreen> {
                       'steps': metadata['steps'] ?? [],
                     };
 
-                    // Try to get required creators from suggestedCreators keys
                     if (suggestedCreators is Map) {
                       planFromMetadata['required_creators'] = suggestedCreators.keys.toList();
                     }
@@ -166,7 +173,7 @@ class _AiChatScreenState extends ConsumerState<AiChatScreen> {
                     text: aiText,
                     fullText: aiText,
                     timestamp: DateTime.parse(conversation.updatedAt),
-                    options: options, // Use the regenerated options
+                    options: options,
                     metadata: metadata,
                     suggestedCreators: suggestedCreators,
                     shouldAnimate: false,
@@ -295,24 +302,29 @@ class _AiChatScreenState extends ConsumerState<AiChatScreen> {
       final response = await ref.read(apiresponseProvider.notifier).generateWorkFlow(
         context: context,
         description: userMessage,
-        parentConversationId: _threadId, // Pass thread ID if exists
+        parentConversationId: _threadId,
       );
 
       if (response.status && response.data != null) {
         final apiData = response.data!;
 
-        // Check if we have the expected data structure
-        if (apiData['workflow_plan'] != null) {
+        // If this is a new thread, update the thread ID
+        if (_threadId == null && apiData['thread_starter_id'] != null) {
+          setState(() {
+            _threadId = apiData['thread_starter_id'];
+            _conversationTitle = apiData['title'] ?? _conversationTitle;
+          });
+        }
+
+        // Check if this is a greeting response (has ai_response in data)
+        if (apiData['ai_response'] != null) {
+          // This is likely a greeting or conversational response
+          _handleGreetingResponse(apiData);
+        }
+        // Check if we have the expected workflow data structure
+        else if (apiData['workflow_plan'] != null) {
           final workflowPlan = apiData['workflow_plan'] as Map<String, dynamic>;
           final suggestedCreators = apiData['suggested_creators'] ?? [];
-
-          // If this is a new thread, update the thread ID
-          if (_threadId == null && apiData['thread_starter_id'] != null) {
-            setState(() {
-              _threadId = apiData['thread_starter_id'];
-              _conversationTitle = apiData['title'] ?? _conversationTitle;
-            });
-          }
 
           // Format the AI response text
           final aiResponseText = _formatAiResponse(workflowPlan, suggestedCreators);
@@ -322,10 +334,12 @@ class _AiChatScreenState extends ConsumerState<AiChatScreen> {
             workflowPlan: workflowPlan,
             suggestedCreators: suggestedCreators,
           );
-          await ref.read(getConversationProvider.notifier).getConversations();
         } else {
-          _handleError("Invalid response format from server");
+          // Try to handle as simple text response
+          _handleSimpleTextResponse(apiData);
         }
+
+        await ref.read(getConversationProvider.notifier).getConversations();
       } else {
         _handleError("Failed to generate response: ${response.message}");
       }
@@ -349,71 +363,230 @@ class _AiChatScreenState extends ConsumerState<AiChatScreen> {
     }
   }
 
-  String _formatAiResponse(Map<dynamic, dynamic> workflowPlan, dynamic suggestedCreators) {
-    final StringBuffer response = StringBuffer();
+  void _handleGreetingResponse(Map<String, dynamic> apiData) {
+    final aiResponseText = apiData['ai_response'] as String?;
+    final workflowPlan = apiData['workflow_plan'] as Map<String, dynamic>?;
+    final suggestedCreators = apiData['suggested_creators'] ?? [];
 
-    response.writeln("Here's your personalized workflow plan:");
-    response.writeln();
+    if (aiResponseText != null) {
+      // For greeting responses, use the ai_response directly
+      setState(() {
+        // Remove the thinking message
+        messages.removeWhere((msg) => msg.isThinking == true);
 
-    // Add required creators
-    final requiredCreators = workflowPlan['required_creators'] ?? [];
-    if (requiredCreators.isNotEmpty) {
-      response.writeln("Required Creators:");
-      for (var creator in requiredCreators) {
-        response.writeln("- ${creator.toString()}");
-      }
-      response.writeln();
-    } else {
-      response.writeln("Based on your project description, here's what you might need:");
-      response.writeln();
+        // Create the AI response message with no options for greetings
+        final aiMessage = ChatMessage(
+          fromUser: false,
+          text: "",
+          fullText: aiResponseText,
+          timestamp: DateTime.now(),
+          options: _generateOptionsFromGreeting(workflowPlan, suggestedCreators),
+          metadata: workflowPlan ?? {},
+          suggestedCreators: suggestedCreators,
+          shouldAnimate: true,
+        );
+
+        // Add the message
+        messages.add(aiMessage);
+        _isGeneratingResponse = false;
+      });
+
+      // Start typing animation after a brief delay
+      Future.delayed(const Duration(milliseconds: 300), () {
+        final lastMessage = messages.last;
+        if (lastMessage.fullText != null && lastMessage.shouldAnimate) {
+          _startTypingAnimation(messages.length - 1, lastMessage.fullText!);
+        }
+      });
+    }
+  }
+
+  void _handleSimpleTextResponse(Map<String, dynamic> apiData) {
+    // Try to extract any text response
+    String aiResponseText = "I'm here to help you with your project planning!";
+
+    if (apiData['message'] != null) {
+      aiResponseText = apiData['message'].toString();
+    } else if (apiData['ai_response'] != null) {
+      aiResponseText = apiData['ai_response'].toString();
     }
 
-    // Add timeline
-    final timeline = workflowPlan['timeline'] ?? '2-4 weeks';
-    response.writeln("Timeline: $timeline");
-    response.writeln();
+    setState(() {
+      // Remove the thinking message
+      messages.removeWhere((msg) => msg.isThinking == true);
 
-    // Add cost range
-    final costRange = workflowPlan['cost_range'] ?? 'Varies based on requirements';
-    response.writeln("Estimated Cost: $costRange");
-    response.writeln();
+      // Create simple text response with no options
+      final aiMessage = ChatMessage(
+        fromUser: false,
+        text: "",
+        fullText: aiResponseText,
+        timestamp: DateTime.now(),
+        options: [],
+        metadata: {},
+        suggestedCreators: [],
+        shouldAnimate: true,
+      );
 
-    // Add steps
-    final steps = workflowPlan['steps'] ?? [];
-    if (steps.isNotEmpty) {
-      response.writeln("Action Steps:");
-      for (var i = 0; i < steps.length; i++) {
-        response.writeln("${i + 1}. ${steps[i]}");
+      // Add the message
+      messages.add(aiMessage);
+      _isGeneratingResponse = false;
+    });
+
+    // Start typing animation
+    Future.delayed(const Duration(milliseconds: 300), () {
+      final lastMessage = messages.last;
+      if (lastMessage.fullText != null && lastMessage.shouldAnimate) {
+        _startTypingAnimation(messages.length - 1, lastMessage.fullText!);
       }
-      response.writeln();
-    }
+    });
+  }
 
-    // Add suggested creators if available
-    if (suggestedCreators != null) {
-      bool hasCreators = false;
+  List<String> _generateOptionsFromGreeting(
+      Map<String, dynamic>? workflowPlan,
+      dynamic suggestedCreators
+      ) {
+    final List<String> options = [];
 
-      if (suggestedCreators is Map) {
-        for (var creatorType in suggestedCreators.keys) {
-          final creators = suggestedCreators[creatorType];
-          if (creators is List && creators.isNotEmpty) {
-            hasCreators = true;
-            break;
+    // For greeting responses, never show timeline or cost options
+    // Only show "Start a project" option
+    if (workflowPlan != null) {
+      final requiredCreators = workflowPlan['required_creators'] ?? [];
+
+      // Only add browse options if we have required creators
+      if (requiredCreators.isNotEmpty) {
+        for (var creatorType in requiredCreators) {
+          if (creatorType.toString().isNotEmpty) {
+            options.add("Browse ${creatorType}s");
           }
         }
       }
+    }
 
-      if (hasCreators) {
-        response.writeln("Available Creators:");
+    // For greetings, always add "Start a project" option
+    if (options.isEmpty) {
+      options.add("Start a project");
+    }
+
+    return options;
+  }
+
+  String _formatAiResponse(Map<dynamic, dynamic> workflowPlan, dynamic suggestedCreators) {
+    final StringBuffer response = StringBuffer();
+
+    // Check if this is a greeting/empty response
+    final requiredCreators = workflowPlan['required_creators'] ?? [];
+    final timeline = workflowPlan['timeline'] ?? 'Not applicable';
+    final costRange = workflowPlan['cost_range'] ?? 'Not applicable';
+    final steps = workflowPlan['steps'] ?? [];
+
+    final isWorkRelated = !_isNonApplicable(timeline.toString()) &&
+        !_isNonApplicable(costRange.toString()) &&
+        (requiredCreators.isNotEmpty || steps.isNotEmpty);
+
+    if (!isWorkRelated) {
+      // For non-work-related responses, check if we have an actual greeting text
+      // or use a default conversational response
+      bool hasConversationText = false;
+
+      // Check if we have any meaningful content
+      for (var step in steps) {
+        if (step.toString().contains('Start by describing') ||
+            step.toString().contains('Describe your project')) {
+          hasConversationText = true;
+          break;
+        }
+      }
+
+      if (hasConversationText) {
+        // This is a conversational/greeting response
+        response.writeln("Hi there! 👋");
+        response.writeln();
+        response.writeln("I'm Cre8hive's AI Assistant, ready to help you with:");
+        response.writeln("• Project planning and workflow creation");
+        response.writeln("• Timeline estimation");
+        response.writeln("• Cost range calculation");
+        response.writeln("• Connecting you with the right creators");
+        response.writeln();
+        response.writeln("What project would you like to work on today?");
+      } else if (steps.isNotEmpty) {
+        // Show steps if available
+        response.writeln("Here's what I suggest:");
+        response.writeln();
+        response.writeln("Action Steps:");
+        for (var i = 0; i < steps.length; i++) {
+          response.writeln("${i + 1}. ${steps[i]}");
+        }
+      } else {
+        // Default response
+        response.writeln("I'm here to help you with your creative projects!");
+        response.writeln();
+        response.writeln("Tell me about what you'd like to create, and I'll help you plan it step by step.");
+      }
+    } else {
+      // Regular workflow plan formatting
+      response.writeln("Here's your personalized workflow plan:");
+      response.writeln();
+
+      // Add required creators
+      if (requiredCreators.isNotEmpty) {
+        response.writeln("Required Creators:");
+        for (var creator in requiredCreators) {
+          response.writeln("- ${creator.toString()}");
+        }
+        response.writeln();
+      } else {
+        response.writeln("Based on your project description, here's what you might need:");
+        response.writeln();
+      }
+
+      // Add timeline only if meaningful
+      if (!_isNonApplicable(timeline.toString())) {
+        response.writeln("Timeline: $timeline");
+        response.writeln();
+      }
+
+      // Add cost range only if meaningful
+      if (!_isNonApplicable(costRange.toString())) {
+        response.writeln("Estimated Cost: $costRange");
+        response.writeln();
+      }
+
+      // Add steps
+      if (steps.isNotEmpty) {
+        response.writeln("Action Steps:");
+        for (var i = 0; i < steps.length; i++) {
+          response.writeln("${i + 1}. ${steps[i]}");
+        }
+        response.writeln();
+      }
+
+      // Add suggested creators if available
+      if (suggestedCreators != null) {
+        bool hasCreators = false;
 
         if (suggestedCreators is Map) {
           for (var creatorType in suggestedCreators.keys) {
             final creators = suggestedCreators[creatorType];
             if (creators is List && creators.isNotEmpty) {
-              for (var creator in creators) {
-                if (creator is Map) {
-                  final jobTitle = creator['job_title'] ?? creator['jobTitle'] ?? creatorType;
-                  final businessName = creator['business_name'] ?? creator['businessName'] ?? 'Creator';
-                  response.writeln("- $businessName ($jobTitle)");
+              hasCreators = true;
+              break;
+            }
+          }
+        }
+
+        if (hasCreators) {
+          response.writeln("Available Creators:");
+
+          if (suggestedCreators is Map) {
+            for (var creatorType in suggestedCreators.keys) {
+              final creators = suggestedCreators[creatorType];
+              if (creators is List && creators.isNotEmpty) {
+                for (var creator in creators) {
+                  if (creator is Map) {
+                    final jobTitle = creator['job_title'] ?? creator['jobTitle'] ?? creatorType;
+                    final businessName = creator['business_name'] ?? creator['businessName'] ?? 'Creator';
+                    response.writeln("- $businessName ($jobTitle)");
+                  }
                 }
               }
             }
@@ -466,25 +639,40 @@ class _AiChatScreenState extends ConsumerState<AiChatScreen> {
       ) {
     final List<String> options = [];
 
+    // Check if this is a work-related response
+    final isWorkRelated = _isWorkRelatedResponse(workflowPlan);
+
     // Add creator type options from workflow plan
     final requiredCreators = workflowPlan['required_creators'] ?? [];
     for (var creatorType in requiredCreators) {
-      options.add("Browse ${creatorType}s");
+      if (creatorType.toString().isNotEmpty) {
+        options.add("Browse ${creatorType}s");
+      }
     }
 
-    // Add general options
-    if (workflowPlan['timeline'] != null) {
-      options.add("View work plan timeline");
-    }
+    // Only add timeline and cost options if it's work-related
+    if (isWorkRelated) {
+      final timeline = workflowPlan['timeline'];
+      final costRange = workflowPlan['cost_range'];
 
-    if (workflowPlan['cost_range'] != null) {
-      options.add("See estimated cost range");
+      // Check if timeline is meaningful (not "Not applicable" or similar)
+      if (timeline != null &&
+          timeline.toString().isNotEmpty &&
+          !_isNonApplicable(timeline.toString())) {
+        options.add("View work plan timeline");
+      }
+
+      // Check if cost range is meaningful (not "Not applicable" or similar)
+      if (costRange != null &&
+          costRange.toString().isNotEmpty &&
+          !_isNonApplicable(costRange.toString())) {
+        options.add("See estimated cost range");
+      }
     }
 
     // Check if we have suggested creators to show "Book creators now"
+    bool hasCreators = false;
     if (suggestedCreators != null) {
-      bool hasCreators = false;
-
       if (suggestedCreators is Map) {
         // Check if any creator type has creators
         for (var creatorType in suggestedCreators.keys) {
@@ -497,13 +685,49 @@ class _AiChatScreenState extends ConsumerState<AiChatScreen> {
       } else if (suggestedCreators is List && suggestedCreators.isNotEmpty) {
         hasCreators = true;
       }
-
-      // if (hasCreators) {
-      //   options.add("Book creators now");
-      // }
     }
 
     return options;
+  }
+
+  bool _isWorkRelatedResponse(Map<String, dynamic> workflowPlan) {
+    final requiredCreators = workflowPlan['required_creators'] ?? [];
+    final timeline = workflowPlan['timeline']?.toString() ?? '';
+    final costRange = workflowPlan['cost_range']?.toString() ?? '';
+    final steps = workflowPlan['steps'] ?? [];
+
+    // Check if this is a greeting or non-project response
+    if (_isNonApplicable(timeline) && _isNonApplicable(costRange)) {
+      return false;
+    }
+
+    // Check if it's a greeting response (minimal steps)
+    if (steps.isNotEmpty && steps.length == 1) {
+      final step = steps[0].toString().toLowerCase();
+      if (step.contains('start by describing') ||
+          step.contains('describe your project')) {
+        return false;
+      }
+    }
+
+    // Check if we have meaningful content
+    final hasMeaningfulContent = requiredCreators.isNotEmpty ||
+        (!_isNonApplicable(timeline) && timeline.isNotEmpty) ||
+        (!_isNonApplicable(costRange) && costRange.isNotEmpty) ||
+        steps.isNotEmpty;
+
+    return hasMeaningfulContent;
+  }
+
+  bool _isNonApplicable(String value) {
+    if (value.isEmpty) return true;
+
+    final lowerValue = value.toLowerCase();
+    return lowerValue.contains('not applicable') ||
+        lowerValue.contains('n/a') ||
+        lowerValue.contains('varies') ||
+        lowerValue.contains('contact for') ||
+        lowerValue.contains('consult with');
   }
 
   void _handleError(String errorMessage) {
@@ -693,25 +917,26 @@ class _AiChatScreenState extends ConsumerState<AiChatScreen> {
         ),
       );
     } else if (option == "View work plan timeline") {
-      _showTimeline(message.metadata?['timeline']);
+      final timeline = message.metadata?['timeline'];
+      if (timeline != null && timeline.toString().isNotEmpty) {
+        _showTimeline(timeline.toString());
+      }
     } else if (option == "See estimated cost range") {
-      _showCostRange(message.metadata?['cost_range']);
+      final costRange = message.metadata?['cost_range'];
+      if (costRange != null && costRange.toString().isNotEmpty) {
+        _showCostRange(costRange.toString());
+      }
     } else if (option == "Book creators now") {
       // Extract suggested creators from message
       final suggestedCreators = message.suggestedCreators;
       String? jobTitleFilter;
 
-      // Try to extract job title from suggested creators
       if (suggestedCreators is Map) {
-        // Check if there's a single creator type or multiple
         final creatorTypes = suggestedCreators.keys.toList();
         if (creatorTypes.isNotEmpty) {
-          // Take the first creator type as job title filter
           final firstType = creatorTypes[0];
-          // Get the creators for this type
           final creators = suggestedCreators[firstType];
           if (creators is List && creators.isNotEmpty) {
-            // Take the job title from the first creator
             final firstCreator = creators[0];
             if (firstCreator is Map && firstCreator['job_title'] != null) {
               jobTitleFilter = firstCreator['job_title'];
@@ -719,14 +944,12 @@ class _AiChatScreenState extends ConsumerState<AiChatScreen> {
           }
         }
       } else if (suggestedCreators is List && suggestedCreators.isNotEmpty) {
-        // Handle if suggestedCreators is a list
         final firstCreator = suggestedCreators[0];
         if (firstCreator is Map && firstCreator['job_title'] != null) {
           jobTitleFilter = firstCreator['job_title'];
         }
       }
 
-      // Navigate to CreatorsList with job title filter
       Navigator.push(
         context,
         MaterialPageRoute(
@@ -735,6 +958,16 @@ class _AiChatScreenState extends ConsumerState<AiChatScreen> {
           ),
         ),
       );
+    } else if (option == "Start a project") {
+      // Focus the chat input and suggest some prompts
+      _controller.text = "I want to create...";
+      FocusScope.of(context).requestFocus(FocusNode());
+      Future.delayed(const Duration(milliseconds: 100), () {
+        _controller.selection = TextSelection(
+          baseOffset: 13,
+          extentOffset: 13,
+        );
+      });
     }
   }
 

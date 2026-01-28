@@ -23,7 +23,7 @@ class CreativeFormScreen extends ConsumerStatefulWidget {
   const CreativeFormScreen({super.key, required this.user});
 
   @override
-  _CreativeFormScreenState createState() => _CreativeFormScreenState();
+  ConsumerState<CreativeFormScreen> createState() => _CreativeFormScreenState();
 }
 
 extension StringExtension on String {
@@ -146,7 +146,7 @@ class _CreativeFormScreenState extends ConsumerState<CreativeFormScreen> {
       LoaderService.hideLoader(context);
 
       // 5. Navigate to success screen first
-     await ref.read(userProvider.notifier).loadUserProfile();
+    final user = await ref.read(userProvider.notifier).loadUserProfile();
       await Navigator.pushReplacement(
         context,
         MaterialPageRoute(
@@ -156,7 +156,7 @@ class _CreativeFormScreenState extends ConsumerState<CreativeFormScreen> {
             onButtonPressed: () {
               Navigator.pushReplacement(
                 context,
-                MaterialPageRoute(builder: (context) => CreatorDashboard()),
+                MaterialPageRoute(builder: (_) => CreatorDashboard()),
               );
             },
           ),
@@ -329,7 +329,7 @@ class _CreativeFormScreenState extends ConsumerState<CreativeFormScreen> {
   }
 
   void _handleContinue() {
-    if (_currentStep == 1) {
+    if (_currentStep == 0) {
       _submitForm();
     } else {
       _nextStep();
@@ -361,21 +361,6 @@ class _CreativeFormScreenState extends ConsumerState<CreativeFormScreen> {
         }
         if (locationController.text.isEmpty) {
           _showError("Location is required");
-          return false;
-        }
-        return true;
-
-      case 1: // Socials Step (all optional)
-        if (xController.text.isEmpty) {
-          _showError("X is required");
-          return false;
-        }
-        if (linkedInController.text.isEmpty) {
-          _showError("Linkedin is required");
-          return false;
-        }
-        if (instagramController.text.isEmpty) {
-          _showError("Instagram is required");
           return false;
         }
         return true;
@@ -416,8 +401,6 @@ class _CreativeFormScreenState extends ConsumerState<CreativeFormScreen> {
     switch (_currentStep) {
       case 0:
         return _buildBioStep();
-      case 1:
-        return _buildSocials();
       default:
         return const Center(child: Text("More steps to come", style: TextStyle(color: Colors.white)));
     }
@@ -470,40 +453,6 @@ class _CreativeFormScreenState extends ConsumerState<CreativeFormScreen> {
     );
   }
 
-  Widget _buildSocials() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        const SizedBox(height: 24),
-        const Text(
-          'Lets get some of your socials',
-          style: TextStyle(
-            fontSize: 24,
-            fontWeight: FontWeight.w400,
-            color: Colors.white,
-          ),
-        ),
-        const SizedBox(height: 20),
-        LabeledTextField(
-          label: 'Linkedin',
-          controller: linkedInController,
-          hintText: "Enter Link",
-        ),
-        const SizedBox(height: 10),
-        LabeledTextField(
-          label: 'X',
-          controller: xController,
-          hintText: "Enter Link",
-        ),
-        const SizedBox(height: 10),
-        LabeledTextField(
-            label: 'Instagram',
-            controller: instagramController,
-            hintText: "Enter Link"
-        ),
-      ],
-    );
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -521,11 +470,11 @@ class _CreativeFormScreenState extends ConsumerState<CreativeFormScreen> {
                   alignment: Alignment.centerLeft,
                   child: IconButton(
                     icon: const Icon(Icons.arrow_back_ios_new, color: Color(0xFFB0B0B6)),
-                    onPressed: _previousStep,
+                    onPressed: () => Navigator.pop(context),
                   ),
                 ),
-                _buildProgressDots(),
-                const SizedBox(height: 20),
+                // _buildProgressDots(),
+                // const SizedBox(height: 20),
                 Expanded(
                   child: SingleChildScrollView(
                     child: _buildStepContent(),
@@ -533,7 +482,7 @@ class _CreativeFormScreenState extends ConsumerState<CreativeFormScreen> {
                 ),
                 const SizedBox(height: 10),
                 RoundedButton(
-                  title: _currentStep == 1 ? 'Submit' : 'Continue',
+                  title: _currentStep == 0 ? 'Submit' : 'Continue',
                     onPressed: _handleContinue,
                   color: AppColors.BUTTONCOLOR,
                 ),

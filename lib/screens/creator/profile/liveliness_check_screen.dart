@@ -3,11 +3,11 @@ import 'package:camera/camera.dart';
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:soundhive2/screens/creator/profile/setup_screen.dart';
 import '../../../components/success.dart';
-import '../../../lib/dashboard_provider/apiresponseprovider.dart';
+import 'package:soundhive2/lib/dashboard_provider/apiresponseprovider.dart';
 import '../../../model/apiresponse_model.dart';
 import '../../../utils/alert_helper.dart';
-import '../../../utils/app_colors.dart';
 import '../creator_dashboard.dart';
 import 'package:soundhive2/lib/dashboard_provider/user_provider.dart';
 
@@ -101,18 +101,18 @@ class _LivelinessCheckScreenState extends ConsumerState<LivelinessCheckScreen> {
         },
       );
 
-      await ref.read(userProvider.notifier).loadUserProfile();
+     final user = await ref.read(userProvider.notifier).loadUserProfile();
 
       Navigator.pushReplacement(
         context,
         MaterialPageRoute(
-          builder: (_) => Success(
+          builder: (context) => Success(
             title: 'Submitted Successfully',
             subtitle: 'Your account is under review and you will get feedback within 24 hours.',
             onButtonPressed: () {
               Navigator.push(
                 context,
-                MaterialPageRoute(builder: (_) => CreatorDashboard()),
+                MaterialPageRoute(builder: (_) => SetupScreen(user: user!)),
               );
             }
           ),

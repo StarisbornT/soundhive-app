@@ -6,7 +6,9 @@ import 'package:flutter/services.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:soundhive2/components/success.dart';
+import 'package:soundhive2/screens/creator/profile/setup_screen.dart';
 import 'package:soundhive2/utils/app_colors.dart';
+import '../../model/user_model.dart';
 import '../../services/loader_service.dart';
 import '../../utils/alert_helper.dart';
 import '../creator/creator_dashboard.dart';
@@ -216,11 +218,14 @@ class _UpdateProfileState extends State<UpdateProfile1> {
       if (response.statusCode == 200) {
         LoaderService.hideLoader(context);
         if(identity?.toLowerCase() == "creator") {
-          Navigator.pushNamed(context, CreatorDashboard.id);
+          final user = MemberCreatorResponse.fromJson(response.data['user']);
+          Navigator.push(
+            context,
+            MaterialPageRoute(builder: (_) => SetupScreen(user: user)),
+          );
         }else {
           Navigator.pushNamed(context, JustCurious.id);
         }
-
       }
       else {
         showCustomAlert(

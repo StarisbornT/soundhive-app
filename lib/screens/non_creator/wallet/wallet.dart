@@ -545,7 +545,7 @@ class _WalletScreenState extends ConsumerState<WalletScreen> {
                 color: AppColors.BUTTONCOLOR,
                 borderRadius: BorderRadius.circular(12),
               ),
-              child: Center(
+              child: const Center(
                 child: Text(
                   'Activate Now',
                   style: TextStyle(
@@ -591,8 +591,6 @@ class _WalletScreenState extends ConsumerState<WalletScreen> {
             ),
           );
         }
-
-        final notifier = ref.read(getTransactionHistoryPlaceProvider.notifier);
 
         return Expanded(
           child: Column(
