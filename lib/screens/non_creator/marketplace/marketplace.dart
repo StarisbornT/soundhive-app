@@ -2293,7 +2293,7 @@ class _MarketplaceState extends ConsumerState<Marketplace>
                   const SizedBox(height: 4),
                   Text(
                     ref.formatUserCurrency(item.convertedRate),
-                    style: TextStyle(
+                    style: const TextStyle(
                       color: AppColors.BUTTONCOLOR,
                       fontSize: 12,
                       fontWeight: FontWeight.w500,
@@ -2308,7 +2308,9 @@ class _MarketplaceState extends ConsumerState<Marketplace>
                       const SizedBox(width: 4),
                       Expanded(
                         child: Text(
-                          "${item.user?.firstName ?? ''} ${item.user?.lastName ?? ''}",
+                          item.user?.creator?.businessName?.isNotEmpty == true
+                              ? item.user!.creator!.businessName!
+                              : "${item.user?.firstName ?? ''} ${item.user?.lastName ?? ''}".trim(),
                           style: TextStyle(
                             color: theme.colorScheme.onSurface.withOpacity(0.7),
                             fontSize: 11,
@@ -2954,12 +2956,12 @@ class _CreativesSectionState extends State<CreativesSection> {
                   ),
                   child: Utils.buildCreativeCard(
                     context,
-                    name:
+                    name: creator.businessName ??
                         '${creator.user?.firstName} ${creator.user?.lastName}',
                     role: creator.jobTitle,
                     rating: Utils.getOverallRating(creator),
                     profileImage: creator.user?.image ?? '',
-                    firstName: creator.user?.firstName ?? '',
+                    firstName: creator.businessName ?? creator.user?.firstName ?? '',
                     theme: theme,
                     isDark: isDark,
                   ),

@@ -249,11 +249,11 @@ class _CreatorsListState extends ConsumerState<CreatorsList> {
                         },
                         child: Utils.buildCreativeCard(
                           context,
-                          name: '${creator.user?.firstName} ${creator.user?.lastName}',
+                          name: creator.businessName ?? '${creator.user?.firstName} ${creator.user?.lastName}',
                           role: creator.jobTitle,
                           rating: getOverallRating(),
                           profileImage: creator.user?.image ?? '',
-                          firstName: creator.user?.firstName ?? '',
+                          firstName: creator.businessName ?? creator.user?.firstName ?? '',
                         ),
                       );
                     },

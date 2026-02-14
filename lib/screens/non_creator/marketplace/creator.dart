@@ -164,7 +164,7 @@ class _CreatorProfileState extends ConsumerState<CreatorProfile> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                "${widget.creator.user?.firstName} ${widget.creator.user?.lastName}",
+               widget.creator.businessName ?? "${widget.creator.user?.firstName} ${widget.creator.user?.lastName}",
                 style: TextStyle(
                   color: theme.colorScheme.onSurface,
                   fontSize: 18,
@@ -215,13 +215,16 @@ class _CreatorProfileState extends ConsumerState<CreatorProfile> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          'About ${widget.creator.user?.firstName} ${widget.creator.user?.lastName}',
+          'About ${widget.creator.businessName?.isNotEmpty == true
+              ? widget.creator.businessName!
+              : "${widget.creator.user?.firstName ?? ''} ${widget.creator.user?.lastName ?? ''}".trim()}',
           style: TextStyle(
             color: theme.colorScheme.onSurface,
             fontSize: 14,
             fontWeight: FontWeight.w400,
           ),
         ),
+
         const SizedBox(height: 10),
         Text(
           widget.creator.bio ?? '',

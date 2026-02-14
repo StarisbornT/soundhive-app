@@ -65,7 +65,7 @@ class NonCreatorDashboard extends ConsumerWidget {
                 ),
                 const SizedBox(width: 10),
                 Text(
-                  'Welcome ${user?.firstName ?? ''},',
+                  'Welcome ${user?.creator?.businessName ?? user?.firstName ?? ''},',
                   style: theme.textTheme.titleMedium,
                 ),
               ],
@@ -144,24 +144,24 @@ class NonCreatorDashboard extends ConsumerWidget {
                           children: [
                             CircleAvatar(
                               radius: 30,
-                              backgroundColor: colors.primary,
-                              backgroundImage: user?.image != null
+                              backgroundColor: AppColors.BUTTONCOLOR,
+                              backgroundImage: (user?.image != null)
                                   ? NetworkImage(user!.image!)
                                   : null,
-                              child: user?.image == null
-                                  ? Text(
-                                "${user?.firstName[0]}${user?.lastName[0]}",
-                                style: TextStyle(
-                                  color: colors.onPrimary,
+                              child:(user?.image == null)
+                                  ?  Text(
+                                (user?.firstName.isNotEmpty == true)
+                                    ? "${user?.firstName[0]}${user?.lastName[0]}"
+                                    : '?',
+                                style: const TextStyle(
                                   fontSize: 30,
                                   fontWeight: FontWeight.bold,
                                 ),
-                              )
-                                  : null,
+                              ): null,
                             ),
                             const SizedBox(height: 10),
                             Text(
-                              '${user?.firstName} ${user?.lastName}',
+                             user?.creator?.businessName ?? '${user?.firstName} ${user?.lastName}',
                               style: theme.textTheme.bodyLarge,
                             ),
                             const SizedBox(height: 5),

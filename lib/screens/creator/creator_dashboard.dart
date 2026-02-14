@@ -5,6 +5,7 @@ import 'package:soundhive2/screens/creator/artist_arena/aritst_arena.dart';
 import 'package:soundhive2/screens/creator/artist_arena/artist_profile_screen.dart';
 import 'package:soundhive2/screens/creator/chat_screen/chats.dart';
 import 'package:soundhive2/screens/creator/profile/profile_screen.dart';
+import 'package:soundhive2/screens/creator/profile/setup_screen.dart';
 import 'package:soundhive2/screens/creator/services/services.dart';
 import 'package:soundhive2/screens/non_creator/non_creator.dart';
 import 'package:soundhive2/utils/app_colors.dart';
@@ -32,6 +33,29 @@ class CreatorDashboard extends ConsumerWidget {
     final selectedIndex = ref.watch(creatorNavigationProvider);
     final unreadCount = ref.watch(notificationProvider);
 
+    ref.listen(userProvider, (previous, next) {
+      final userData = next.asData?.value;
+      final user = userData?.user;
+
+      if (user == null) return;
+
+      final needsSetup =
+          user.creator == null ||
+              user.creator!.hasVerifiedIdentity == false ||
+              user.creator!.hasVerifiedCreativeProfile == false;
+
+      if (needsSetup) {
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          Navigator.pushReplacement(
+            context,
+            MaterialPageRoute(
+              builder: (_) => SetupScreen(user: userData!),
+            ),
+          );
+        });
+      }
+    });
+
     return Scaffold(
       key: _scaffoldKey,
       appBar: AppBar(
@@ -44,7 +68,7 @@ class CreatorDashboard extends ConsumerWidget {
             return Row(
               children: [
                 Text(
-                  'Welcome ${user?.firstName ?? ''},',
+                  'Welcome ${user?.creator?.businessName ?? user?.firstName ?? ''},',
                   style: const TextStyle(
                     fontFamily: 'Nohemi',
                     fontSize: 18,
@@ -161,9 +185,8 @@ class CreatorDashboard extends ConsumerWidget {
                             ),
                             const SizedBox(height: 10),
                             Text(
-                              '${user?.firstName} ${user?.lastName}',
+                             user?.creator != null ? user?.creator?.businessName ?? "${user?.firstName} ${user?.lastName}" : "",
                               style: const TextStyle(
-                                
                                 fontSize: 16,
                                 fontWeight: FontWeight.w400,
                               ),
@@ -202,7 +225,7 @@ class CreatorDashboard extends ConsumerWidget {
                         );
                       }),
                       _buildDrawerItem(icon: 'images/artist.png', text: 'Artist Arena', onTap: () {
-                        if(user?.artist != null) {
+                        if(user.artist != null) {
                           Navigator.push(
                             context,
                             MaterialPageRoute(

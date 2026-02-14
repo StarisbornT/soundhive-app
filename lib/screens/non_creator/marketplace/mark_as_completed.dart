@@ -50,6 +50,20 @@ class _MarkAsCompletedScreenState extends ConsumerState<MarkAsCompletedScreen> {
     final disputeState = ref.watch(getCurrentUserDisputeProvider);
     final user = ref.watch(userProvider).value?.user;
 
+    final serviceUser = services.service?.user;
+
+    final displayName =
+    serviceUser?.creator?.businessName?.isNotEmpty == true
+        ? serviceUser!.creator!.businessName!
+        : "${serviceUser?.firstName ?? ''} ${serviceUser?.lastName ?? ''}".trim();
+
+    final avatarLetter =
+    serviceUser?.creator?.businessName?.isNotEmpty == true
+        ? serviceUser!.creator!.businessName!.characters.first.toUpperCase()
+        : (serviceUser?.firstName?.isNotEmpty == true
+        ? serviceUser!.firstName.characters.first.toUpperCase()
+        : "?");
+
     return PopScope(
       canPop: false,
       child: Scaffold(
@@ -102,14 +116,14 @@ class _MarkAsCompletedScreenState extends ConsumerState<MarkAsCompletedScreen> {
                   children: [
                     Row(
                       children: [
-                        services.service?.user?.image != null
+                        serviceUser?.image != null && serviceUser!.image!.isNotEmpty
                             ? Container(
                           width: 30,
                           height: 30,
                           decoration: BoxDecoration(
                             shape: BoxShape.circle,
                             image: DecorationImage(
-                              image: NetworkImage(services.service?.user?.image ?? ''),
+                              image: NetworkImage(serviceUser.image!),
                               fit: BoxFit.cover,
                             ),
                           ),
@@ -123,9 +137,7 @@ class _MarkAsCompletedScreenState extends ConsumerState<MarkAsCompletedScreen> {
                           ),
                           alignment: Alignment.center,
                           child: Text(
-                            services.service!.user!.firstName.isNotEmpty
-                                ? services.service!.user!.firstName[0].toUpperCase()
-                                : "?",
+                            avatarLetter,
                             style: TextStyle(
                               fontSize: 10,
                               fontWeight: FontWeight.bold,
@@ -139,29 +151,25 @@ class _MarkAsCompletedScreenState extends ConsumerState<MarkAsCompletedScreen> {
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Text(
-                                "${services.service?.user?.firstName} ${services.service?.user?.lastName}",
+                                displayName,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
                                 style: TextStyle(
-                                    color: theme.colorScheme.onSurface,
-                                    fontWeight: FontWeight.w600
+                                  color: theme.colorScheme.onSurface,
+                                  fontWeight: FontWeight.w600,
                                 ),
                               ),
                               Row(
                                 children: [
-                                  const Icon(
-                                      Icons.star,
-                                      color: Colors.amber,
-                                      size: 14
-                                  ),
+                                  const Icon(Icons.star, color: Colors.amber, size: 14),
                                   const SizedBox(width: 4),
                                   Text(
-                                    services.service?.user?.creator != null
-                                        ? Utils.getOverallRating(
-                                      services.service!.user!.creator!,
-                                    ).toString()
+                                    serviceUser?.creator != null
+                                        ? Utils.getOverallRating(serviceUser!.creator!).toString()
                                         : "0",
                                     style: TextStyle(
-                                        color: theme.colorScheme.onSurface.withOpacity(0.7),
-                                        fontSize: 12
+                                      color: theme.colorScheme.onSurface.withOpacity(0.7),
+                                      fontSize: 12,
                                     ),
                                   ),
                                 ],

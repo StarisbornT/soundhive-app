@@ -32,6 +32,7 @@ class _VerifyBusinessScreenState extends ConsumerState<VerifyBusinessScreen> {
   TextEditingController addressController = TextEditingController();
   TextEditingController bvnController = TextEditingController();
   final ValueNotifier<File?> _imageNotifier = ValueNotifier<File?>(null);
+  final ValueNotifier<File?> _logoNotifier = ValueNotifier<File?>(null);
 
   @override
   void initState() {
@@ -58,6 +59,7 @@ class _VerifyBusinessScreenState extends ConsumerState<VerifyBusinessScreen> {
   }
 
   String? _uploadedImageUrl;
+  String? _uploadedLogoUrl;
   @override
   void dispose() {
     businessNameController.dispose();
@@ -72,9 +74,10 @@ class _VerifyBusinessScreenState extends ConsumerState<VerifyBusinessScreen> {
 
   Future<void> _uploadMediaToCloudinary() async {
     final imageFile = _imageNotifier.value;
+    final logoFile = _logoNotifier.value;
 
-    if (imageFile == null) {
-      throw Exception('Image or utility bill is missing');
+    if (imageFile == null || logoFile == null) {
+      throw Exception('Image is missing');
     }
 
     // Upload both images
@@ -84,8 +87,15 @@ class _VerifyBusinessScreenState extends ConsumerState<VerifyBusinessScreen> {
       preset: 'soundhive',
     );
 
+    final logoUrl = await _uploadFileToCloudinary(
+      file: logoFile,
+      resourceType: 'image',
+      preset: 'soundhive',
+    );
+
 
     _uploadedImageUrl = imageUrl; // For ID image
+    _uploadedLogoUrl = logoUrl; // For ID image
   }
 
 
@@ -223,6 +233,7 @@ class _VerifyBusinessScreenState extends ConsumerState<VerifyBusinessScreen> {
           "business_address": addressController.text,
           "bvn" : bvnController.text,
           "cac_docs": _uploadedImageUrl,
+          "image": _uploadedLogoUrl,
         }
     );
     if(!response.status) {
@@ -277,6 +288,18 @@ class _VerifyBusinessScreenState extends ConsumerState<VerifyBusinessScreen> {
                         ),
                       ),
                       const SizedBox(height: 40),
+                      ImagePickerComponent(
+                        labelText: 'Business Logo',
+                        imageNotifier: _logoNotifier,
+                        hintText: 'Upload Logo',
+                        validator: (value) {
+                          if (value == null) {
+                            return ' image is required';
+                          }
+                          return null;
+                        },
+                      ),
+                      const SizedBox(height: 10),
                       LabeledTextField(
                         label: 'Business Name',
                         controller: businessNameController,

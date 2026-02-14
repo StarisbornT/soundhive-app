@@ -73,7 +73,7 @@ class _MarketplaceDetailsScreenState extends ConsumerState<MarketplaceDetails> {
           children: [
             Text(
               'The creator has countered your offer:',
-              style: TextStyle(color: theme.colorScheme.onSurface.withOpacity(0.7)),
+              style: TextStyle(color: theme.colorScheme.onSurface.withValues(alpha: 0.7)),
             ),
             const SizedBox(height: 16),
 
@@ -96,7 +96,7 @@ class _MarketplaceDetailsScreenState extends ConsumerState<MarketplaceDetails> {
                 child: Text(
                   'Message: ${offer.counterMessage}',
                   style: TextStyle(
-                    color: theme.colorScheme.onSurface.withOpacity(0.7),
+                    color: theme.colorScheme.onSurface.withValues(alpha: 0.7),
                     fontSize: 14,
                   ),
                 ),
@@ -107,7 +107,7 @@ class _MarketplaceDetailsScreenState extends ConsumerState<MarketplaceDetails> {
                 padding: const EdgeInsets.only(top: 8),
                 child: Text(
                   'Expires: ${_formatDate(offer.counterExpiresAt!)}',
-                  style: TextStyle(
+                  style: const TextStyle(
                     color: Colors.yellow,
                     fontSize: 12,
                   ),
@@ -128,7 +128,7 @@ class _MarketplaceDetailsScreenState extends ConsumerState<MarketplaceDetails> {
             style: ElevatedButton.styleFrom(
               backgroundColor: AppColors.BUTTONCOLOR,
             ),
-            child: Text(
+            child: const Text(
               'Accept',
               style: TextStyle(color: Colors.white),
             ),
@@ -149,8 +149,8 @@ class _MarketplaceDetailsScreenState extends ConsumerState<MarketplaceDetails> {
             label,
             style: TextStyle(
               color: isSecondary
-                  ? theme.colorScheme.onSurface.withOpacity(0.5)
-                  : theme.colorScheme.onSurface.withOpacity(0.7),
+                  ? theme.colorScheme.onSurface.withValues(alpha: 0.5)
+                  : theme.colorScheme.onSurface.withValues(alpha: 0.7),
               fontSize: isSecondary ? 12 : 14,
             ),
           ),
@@ -158,7 +158,7 @@ class _MarketplaceDetailsScreenState extends ConsumerState<MarketplaceDetails> {
             value,
             style: TextStyle(
               color: isSecondary
-                  ? theme.colorScheme.onSurface.withOpacity(0.5)
+                  ? theme.colorScheme.onSurface.withValues(alpha: 0.5)
                   : theme.colorScheme.onSurface,
               fontSize: isSecondary ? 12 : 14,
               fontWeight: isSecondary ? FontWeight.normal : FontWeight.w500,
@@ -270,7 +270,7 @@ class _MarketplaceDetailsScreenState extends ConsumerState<MarketplaceDetails> {
         return OutlinedButton(
           onPressed: null,
           style: OutlinedButton.styleFrom(
-            foregroundColor: theme.colorScheme.onSurface.withOpacity(0.5),
+            foregroundColor: theme.colorScheme.onSurface.withValues(alpha: 0.5),
             side: BorderSide(color: theme.dividerColor),
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(30),
@@ -278,7 +278,7 @@ class _MarketplaceDetailsScreenState extends ConsumerState<MarketplaceDetails> {
           ),
           child: Text(
             'Offer Accepted',
-            style: TextStyle(color: theme.colorScheme.onSurface.withOpacity(0.5)),
+            style: TextStyle(color: theme.colorScheme.onSurface.withValues(alpha: 0.5)),
           ),
         );
 
@@ -319,7 +319,7 @@ class _MarketplaceDetailsScreenState extends ConsumerState<MarketplaceDetails> {
         return OutlinedButton(
           onPressed: null,
           style: OutlinedButton.styleFrom(
-            foregroundColor: theme.colorScheme.onSurface.withOpacity(0.5),
+            foregroundColor: theme.colorScheme.onSurface.withValues(alpha: 0.5),
             side: BorderSide(color: theme.dividerColor),
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(30),
@@ -327,7 +327,7 @@ class _MarketplaceDetailsScreenState extends ConsumerState<MarketplaceDetails> {
           ),
           child: Text(
             'Offer Pending',
-            style: TextStyle(color: theme.colorScheme.onSurface.withOpacity(0.5)),
+            style: TextStyle(color: theme.colorScheme.onSurface.withValues(alpha: 0.5)),
           ),
         );
     }
@@ -415,16 +415,22 @@ class _MarketplaceDetailsScreenState extends ConsumerState<MarketplaceDetails> {
               child: (widget.service.user?.image == null ||
                   widget.service.user!.image!.isEmpty)
                   ? Text(
-                widget.service.user?.firstName.isNotEmpty == true
-                    ? widget.service.user!.firstName[0].toUpperCase()
-                    : '',
-                style: TextStyle(fontSize: 14, color: Colors.white),
+                (
+                    widget.service.user?.creator?.businessName?.isNotEmpty == true
+                        ? widget.service.user!.creator!.businessName!
+                        : widget.service.user?.firstName
+                )!
+                    .trim()
+                    .characters
+                    .first
+                    .toUpperCase(),
+                style: const TextStyle(fontSize: 14, color: Colors.white),
               )
                   : null,
             ),
             const SizedBox(width: 8),
             Text(
-              "${widget.service.user?.firstName} ${widget.service.user?.lastName}",
+              widget.service.user?.creator?.businessName ??  "${widget.service.user?.firstName} ${widget.service.user?.lastName}",
               style: TextStyle(color: theme.colorScheme.onSurface, fontSize: 14),
             ),
           ],
@@ -439,18 +445,18 @@ class _MarketplaceDetailsScreenState extends ConsumerState<MarketplaceDetails> {
                   : "0.0",
 
               style: TextStyle(
-                color: theme.colorScheme.onSurface.withOpacity(0.6),
+                color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
                 fontSize: 12,
               ),
             ),
             const SizedBox(width: 10),
             Icon(Icons.download,
-                color: theme.colorScheme.onSurface.withOpacity(0.6),
+                color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
                 size: 18),
             Text(
               '20k downloads',
               style: TextStyle(
-                color: theme.colorScheme.onSurface.withOpacity(0.6),
+                color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
                 fontSize: 12,
               ),
             ),
@@ -460,11 +466,11 @@ class _MarketplaceDetailsScreenState extends ConsumerState<MarketplaceDetails> {
         Row(
           children: [
             Icon(Icons.location_on_outlined,
-                color: theme.colorScheme.onSurface.withOpacity(0.6), size: 18),
+                color: theme.colorScheme.onSurface.withValues(alpha: 0.6), size: 18),
             Text(
               widget.service.user?.creator?.location ?? '',
               style: TextStyle(
-                color: theme.colorScheme.onSurface.withOpacity(0.6),
+                color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
                 fontSize: 12,
               ),
             ),
@@ -483,19 +489,22 @@ class _MarketplaceDetailsScreenState extends ConsumerState<MarketplaceDetails> {
         Text(
           widget.service.serviceDescription,
           style: TextStyle(
-            color: theme.colorScheme.onSurface.withOpacity(0.7),
+            color: theme.colorScheme.onSurface.withValues(alpha: 0.7),
             fontSize: 14,
           ),
         ),
         const SizedBox(height: 16),
         Text(
-          "About ${widget.service.user?.firstName} ${widget.service.user?.lastName}",
+          "About ${widget.service.user?.creator?.businessName?.isNotEmpty == true
+              ? widget.service.user!.creator!.businessName
+              : "${widget.service.user?.firstName ?? ''} ${widget.service.user?.lastName ?? ''}".trim()}",
           style: TextStyle(
             color: theme.colorScheme.onSurface,
             fontSize: 16,
             fontWeight: FontWeight.w400,
           ),
         ),
+
         const SizedBox(height: 8),
         Text(
           widget.service.user?.creator?.bio ?? '',
