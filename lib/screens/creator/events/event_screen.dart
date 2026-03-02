@@ -44,7 +44,7 @@ class _EventScreenState extends ConsumerState<EventScreen> with SingleTickerProv
     );
 
     return Scaffold(
-      backgroundColor: theme.colorScheme.background,
+      backgroundColor: theme.colorScheme.surface,
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,

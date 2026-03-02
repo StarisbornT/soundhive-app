@@ -17,9 +17,9 @@ import 'package:soundhive2/lib/dashboard_provider/categoryProvider.dart';
 import 'package:soundhive2/lib/dashboard_provider/creatorProvider.dart';
 import 'package:soundhive2/lib/dashboard_provider/getActiveInvestmentProvider.dart';
 import 'package:soundhive2/lib/dashboard_provider/getMarketPlaceService.dart';
-import '../../../lib/dashboard_provider/eventMarketPlaceProvider.dart';
-import '../../../lib/dashboard_provider/getMyTicketProvider.dart';
-import '../../../lib/dashboard_provider/getUserOfferProvider.dart';
+import 'package:soundhive2/lib/dashboard_provider/eventMarketPlaceProvider.dart';
+import 'package:soundhive2/lib/dashboard_provider/getMyTicketProvider.dart';
+import 'package:soundhive2/lib/dashboard_provider/getUserOfferProvider.dart';
 import '../../../main.dart';
 import '../../../model/creator_model.dart';
 import '../../../model/market_orders_service_model.dart';
@@ -2139,7 +2139,7 @@ class _MarketplaceState extends ConsumerState<Marketplace>
     final isLoadingMore = servicesNotifier.isLoadingMore;
 
     // API returns 4 items per page - use that
-    final itemsPerPage = 4;
+    const itemsPerPage = 4;
     final totalItems = services.length;
     final totalPages = (totalItems / itemsPerPage).ceil();
 
@@ -2515,7 +2515,7 @@ class _MarketplaceState extends ConsumerState<Marketplace>
                 const SizedBox(height: 4),
                 Text(
                   price,
-                  style: TextStyle(
+                  style: const TextStyle(
                     color: AppColors.BUTTONCOLOR,
                     fontSize: 12,
                     fontWeight: FontWeight.w500,

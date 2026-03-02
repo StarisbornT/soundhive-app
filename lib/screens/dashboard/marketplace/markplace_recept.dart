@@ -32,7 +32,7 @@ class _AssetScreenState extends ConsumerState<MarketplaceReceiptScreen> {
     final service = widget.service;
 
     return Scaffold(
-      backgroundColor: theme.colorScheme.background,
+      backgroundColor: theme.colorScheme.surface,
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,

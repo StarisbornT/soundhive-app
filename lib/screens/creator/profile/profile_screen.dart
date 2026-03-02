@@ -440,7 +440,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                 widget.user.user!.firstName.isNotEmpty
                     ? widget.user.user!.firstName[0].toUpperCase()
                     : '',
-                style: TextStyle(fontSize: 24, color: Colors.white),
+                style: const TextStyle(fontSize: 24, color: Colors.white),
               )
                   : null,
             ),

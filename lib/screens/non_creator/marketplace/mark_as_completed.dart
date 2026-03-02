@@ -60,7 +60,7 @@ class _MarkAsCompletedScreenState extends ConsumerState<MarkAsCompletedScreen> {
     final avatarLetter =
     serviceUser?.creator?.businessName?.isNotEmpty == true
         ? serviceUser!.creator!.businessName!.characters.first.toUpperCase()
-        : (serviceUser?.firstName?.isNotEmpty == true
+        : (serviceUser?.firstName.isNotEmpty == true
         ? serviceUser!.firstName.characters.first.toUpperCase()
         : "?");
 

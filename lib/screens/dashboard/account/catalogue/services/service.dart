@@ -11,7 +11,7 @@ import '../../../../../utils/utils.dart';
 
 class ServiceCatalogueScreen extends ConsumerStatefulWidget {
   final List<dynamic> services;
-  const ServiceCatalogueScreen({Key? key, required this.services}) : super(key: key);
+  const ServiceCatalogueScreen({super.key, required this.services});
   @override
   _ServiceCatalogoueScreenState createState() => _ServiceCatalogoueScreenState();
 }
@@ -84,12 +84,12 @@ class _ServiceCatalogoueScreenState extends ConsumerState<ServiceCatalogueScreen
       children: [
         Container(
           alignment: Alignment.topLeft,
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 16),
+          child: const Padding(
+            padding: EdgeInsets.symmetric(horizontal: 16.0, vertical: 16),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text(
+                Text(
                   'Service Catalogue',
                   style: TextStyle(
                     color: Colors.white,

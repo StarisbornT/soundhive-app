@@ -7,8 +7,8 @@ import 'package:image_picker/image_picker.dart';
 import 'package:soundhive2/model/user_model.dart';
 import 'package:soundhive2/utils/utils.dart';
 
-import '../../lib/dashboard_provider/apiresponseprovider.dart';
-import '../../lib/dashboard_provider/user_provider.dart';
+import 'package:soundhive2/lib/dashboard_provider/apiresponseprovider.dart';
+import 'package:soundhive2/lib/dashboard_provider/user_provider.dart';
 import '../../model/apiresponse_model.dart';
 import '../../utils/alert_helper.dart';
 import '../../utils/app_colors.dart';

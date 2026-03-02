@@ -1,0 +1,24 @@
+flutter_native_splash:
+  android: true
+  ios: true
+  web: false
+
+  # For iOS: prefer background_image_ios for reliability
+  background_image_ios: assets/images/splashscreen.png
+  background_image_dark_ios: assets/images/splashscreen.png # if you have dark mode support
+
+  # Keep general for Android
+  background_image: assets/images/splashscreen.png
+  background_image_dark: assets/images/splashscreen.png
+
+  # Optional: If using a centered logo instead of full bg, switch to 'image' (better for most cases)
+  # image: assets/images/splashlogo.png
+  # image_dark: assets/images/splashlogo_dark.png
+  # image_ios: assets/images/splashlogo.png  # platform-specific
+
+  # Comment out or remove this block for iOS testing
+  # android_12:
+  #   color: "#1EA6FC"
+  #   image: assets/images/splashlogo.png
+  #   color_dark: "#050110"
+  #   image_dark: assets/images/splashlogo.png

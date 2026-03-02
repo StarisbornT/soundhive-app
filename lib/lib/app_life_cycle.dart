@@ -12,7 +12,7 @@ class AppLifecycleManager extends StatefulWidget {
 class _AppLifecycleManagerState extends State<AppLifecycleManager>
     with WidgetsBindingObserver {
   // Track loader visibility and context
-  bool _isLoaderShowing = false;
+  final bool _isLoaderShowing = false;
   BuildContext? _loaderContext;
 
   @override

@@ -963,7 +963,7 @@ class _AiChatScreenState extends ConsumerState<AiChatScreen> {
       _controller.text = "I want to create...";
       FocusScope.of(context).requestFocus(FocusNode());
       Future.delayed(const Duration(milliseconds: 100), () {
-        _controller.selection = TextSelection(
+        _controller.selection = const TextSelection(
           baseOffset: 13,
           extentOffset: 13,
         );

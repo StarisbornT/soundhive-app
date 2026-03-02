@@ -9,7 +9,7 @@ import 'package:soundhive2/utils/utils.dart';
 
 class AssetsDetailsScreen extends ConsumerStatefulWidget {
   final Asset asset;
-  const AssetsDetailsScreen({Key? key, required this.asset}) : super(key: key);
+  const AssetsDetailsScreen({super.key, required this.asset});
 
   @override
   ConsumerState<AssetsDetailsScreen> createState() => _AssetScreenState();
@@ -17,6 +17,7 @@ class AssetsDetailsScreen extends ConsumerStatefulWidget {
 
 class _AssetScreenState extends ConsumerState<AssetsDetailsScreen> {
 
+  @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.black,
@@ -49,9 +50,9 @@ class _AssetScreenState extends ConsumerState<AssetsDetailsScreen> {
             const SizedBox(height: 8),
             Container(
               width: double.infinity,
-              padding: EdgeInsets.all(16),
+              padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
-                color: Color(0xFF1A191E),
+                color: const Color(0xFF1A191E),
                 borderRadius: BorderRadius.circular(10),
               ),
               child: Column(
@@ -68,9 +69,9 @@ class _AssetScreenState extends ConsumerState<AssetsDetailsScreen> {
             const SizedBox(height: 16),
              Container(
                width: double.infinity,
-               padding: EdgeInsets.all(16),
+               padding: const EdgeInsets.all(16),
                decoration: BoxDecoration(
-                 color: Color(0xFF1A191E),
+                 color: const Color(0xFF1A191E),
                  borderRadius: BorderRadius.circular(10),
                ),
                child: Column(
@@ -79,13 +80,13 @@ class _AssetScreenState extends ConsumerState<AssetsDetailsScreen> {
                  children: [
                    Text(
                     "About ${widget.asset.assetName}",
-                    style: TextStyle(
+                    style: const TextStyle(
                       color: Colors.white, fontSize: 16, fontWeight: FontWeight.w400,
                     ),
                                ),
                     Text(
                      widget.asset.assetDescription,
-                     style: TextStyle(color: Colors.grey, fontSize: 14),
+                     style: const TextStyle(color: Colors.grey, fontSize: 14),
                    ),
                  ],
                ),

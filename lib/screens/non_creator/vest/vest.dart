@@ -767,7 +767,7 @@ class _SoundhiveVestScreenState extends ConsumerState<SoundhiveVestScreen> with 
     return Container(
       height: 150,
       color: Colors.grey[800],
-      child: Icon(Icons.broken_image, color: Colors.white54),
+      child: const Icon(Icons.broken_image, color: Colors.white54),
     );
   }
 }

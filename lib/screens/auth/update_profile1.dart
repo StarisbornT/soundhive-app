@@ -550,7 +550,7 @@ class _InterestsStepState extends State<InterestsStep> {
                 selected: isSelected,
                 onSelected: (_) => toggleInterest(interest),
                 selectedColor: Colors.purple,
-                backgroundColor: Color(0xFF0C051F),
+                backgroundColor: const Color(0xFF0C051F),
                 labelStyle: TextStyle(
                   color: isSelected ? Colors.white : Colors.grey,
                 ),
@@ -899,7 +899,7 @@ class _PhoneNumberFieldState extends State<PhoneNumberField> {
             color: Color.fromRGBO(219, 33, 33, 0.76),
             fontSize: 12
         ),
-      ): Text(''),
+      ): const Text(''),
       // const SizedBox(height: 16),
     ]);
   }
@@ -918,7 +918,7 @@ class _PhoneNumberFieldState extends State<PhoneNumberField> {
         itemCount: countries.length,
         itemBuilder: (_, i) => ListTile(
           leading: Image.network(countries[i]['flag']!, width: 24, errorBuilder:
-              (_, __, ___) => Icon(Icons.flag)),
+              (_, __, ___) => const Icon(Icons.flag)),
           title: Text(countries[i]['name']!),
           subtitle: Text(countries[i]['dial_code']!),
           onTap: () => _selectCountry(countries[i]),

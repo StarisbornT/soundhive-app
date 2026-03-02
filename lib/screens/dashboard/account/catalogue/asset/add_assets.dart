@@ -16,6 +16,8 @@ import '../../../../../utils/alert_helper.dart';
 import '../catalogue.dart';
 
 class AddAssets extends ConsumerStatefulWidget {
+  const AddAssets({super.key});
+
   @override
   ConsumerState<AddAssets> createState() => _AddAssetScreenState();
 }
@@ -47,7 +49,7 @@ class _AddAssetScreenState extends ConsumerState<AddAssets> {
   final ValueNotifier<File?> _imageNotifier = ValueNotifier<File?>(null);
   String? _uploadedImageUrl;
   String? _uploadedAudioUrl;
-  bool _isUploading = false;
+  final bool _isUploading = false;
   Future<bool> _isValidLocalPath(String path) async {
     final tempDir = await getTemporaryDirectory();
     final tempPath = tempDir.path;
@@ -279,26 +281,26 @@ class _AddAssetScreenState extends ConsumerState<AddAssets> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(
+              const Text(
                 'Add Asset to Catalogue',
-                style: const TextStyle(
+                style: TextStyle(
                   color: Colors.white,
                   fontSize: 24,
                   fontWeight: FontWeight.w400,
                 ),
               ),
-              SizedBox(
+              const SizedBox(
                 height: 20,
               ),
-              Text(
+              const Text(
                 'Kindly complete the information below to add assets to your catalogue.',
-                style: const TextStyle(
+                style: TextStyle(
                   color: Colors.white,
                   fontSize: 14,
                   fontWeight: FontWeight.w400,
                 ),
               ),
-              SizedBox(
+              const SizedBox(
                 height: 40,
               ),
               _buildAssetTypeSection(),
@@ -335,7 +337,7 @@ class _AddAssetScreenState extends ConsumerState<AddAssets> {
               ),
               RoundedButton(
                 title: 'Submit for Review',
-                color: Color(0xFF4D3490),
+                color: const Color(0xFF4D3490),
                 borderRadius: 24,
                 onPressed: () {
                   print('Clicking');
@@ -364,7 +366,7 @@ class _AddAssetScreenState extends ConsumerState<AddAssets> {
                 isExpanded: true, // Important!
                 decoration: InputDecoration(
                   filled: true,
-                  fillColor: Color(0xFF0C051F),
+                  fillColor: const Color(0xFF0C051F),
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(8),
                     borderSide: const BorderSide(color: Colors.white70),
@@ -376,7 +378,7 @@ class _AddAssetScreenState extends ConsumerState<AddAssets> {
                 style: const TextStyle(color: Colors.white),
                 hint: const Text('Select asset type',
                     style: TextStyle(color: Colors.white54)),
-                value: _selectedAssetType,
+                initialValue: _selectedAssetType,
                 items: _assetTypes.map((String value) {
                   return DropdownMenuItem<String>(
                     value: value,
@@ -408,7 +410,7 @@ class _AddAssetScreenState extends ConsumerState<AddAssets> {
                   fontWeight: FontWeight.bold, color: Colors.white)),
           TextFormField(
             controller: controller,
-            style: TextStyle(color: Colors.white),
+            style: const TextStyle(color: Colors.white),
             decoration: InputDecoration(
               hintText: hint,
               border: const OutlineInputBorder(),
@@ -417,8 +419,9 @@ class _AddAssetScreenState extends ConsumerState<AddAssets> {
             keyboardType: isNumber ? TextInputType.number : TextInputType.text,
             inputFormatters: isNumber ? [CurrencyInputFormatter()] : [],
             validator: (value) {
-              if (value == null || value.isEmpty)
+              if (value == null || value.isEmpty) {
                 return 'This field is required';
+              }
               if (isNumber &&
                   !RegExp(r'^₦?\d+(,\d{3})*(\.\d+)?$').hasMatch(value)) {
                 return 'Invalid price format';
@@ -438,7 +441,7 @@ class _AddAssetScreenState extends ConsumerState<AddAssets> {
           TextFormField(
             controller: _descController,
             maxLines: 5,
-            style: TextStyle(color: Colors.white),
+            style: const TextStyle(color: Colors.white),
             decoration: const InputDecoration(
               hintText: 'Describe this asset',
               border: OutlineInputBorder(),
@@ -451,11 +454,11 @@ class _AddAssetScreenState extends ConsumerState<AddAssets> {
       );
   Widget _buildUploadStatus(String text, Color color) {
     return Padding(
-      padding: EdgeInsets.symmetric(vertical: 4),
+      padding: const EdgeInsets.symmetric(vertical: 4),
       child: Row(
         children: [
           Icon(Icons.check_circle, color: color, size: 16),
-          SizedBox(width: 8),
+          const SizedBox(width: 8),
           Text(text, style: TextStyle(color: color)),
         ],
       ),

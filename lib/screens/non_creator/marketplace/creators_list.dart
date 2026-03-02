@@ -156,7 +156,7 @@ class _CreatorsListState extends ConsumerState<CreatorsList> {
                         onPressed: () {
                           ref.read(creatorProvider.notifier).getCreators();
                         },
-                        child: Text('Retry'),
+                        child: const Text('Retry'),
                       ),
                     ],
                   ),

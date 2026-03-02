@@ -355,7 +355,7 @@ class LabeledMultiSelectField extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final _valueToLabel = {for (var item in items) item['value']!: item['label']!};
+    final valueToLabel = {for (var item in items) item['value']!: item['label']!};
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -412,7 +412,7 @@ class LabeledMultiSelectField extends StatelessWidget {
                   spacing: 6,
                   runSpacing: 6,
                   children: selectedValues.map((value) {
-                    final label = _valueToLabel[value] ?? value;
+                    final label = valueToLabel[value] ?? value;
                     return Container(
                       height: 32,
                       padding: const EdgeInsets.symmetric(
@@ -772,7 +772,7 @@ class _CurrencyInputFieldState extends ConsumerState<CurrencyInputField> {
             ),
             focusedBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(12.0),
-              borderSide: BorderSide(
+              borderSide: const BorderSide(
                 color: AppColors.BUTTONCOLOR,
                 width: 2.0,
               ),

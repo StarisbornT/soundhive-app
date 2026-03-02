@@ -155,7 +155,7 @@ class _EventDetailsScreenState extends ConsumerState<EventDetailsScreen> {
     final event = widget.event;
 
     return Scaffold(
-      backgroundColor: theme.colorScheme.background,
+      backgroundColor: theme.colorScheme.surface,
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,

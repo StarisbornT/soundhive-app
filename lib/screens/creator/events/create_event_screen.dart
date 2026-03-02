@@ -15,7 +15,7 @@ import '../../../components/success.dart';
 import 'package:soundhive2/lib/dashboard_provider/apiresponseprovider.dart';
 import 'package:soundhive2/lib/dashboard_provider/user_provider.dart';
 import '../../../components/widgets.dart';
-import '../../../lib/dashboard_provider/event_stats_provider.dart';
+import 'package:soundhive2/lib/dashboard_provider/event_stats_provider.dart';
 import '../../../model/apiresponse_model.dart';
 import '../../../model/user_model.dart';
 import '../../../services/loader_service.dart';

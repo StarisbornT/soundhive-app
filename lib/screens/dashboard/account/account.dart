@@ -6,7 +6,7 @@ import 'catalogue/catalogue.dart';
 
 class AccountScreen extends ConsumerStatefulWidget {
   final User user;
-  const AccountScreen({Key? key, required this.user}) : super(key: key);
+  const AccountScreen({super.key, required this.user});
 
   @override
   _AccountScreenState createState() => _AccountScreenState();
@@ -59,13 +59,13 @@ class _AccountScreenState extends ConsumerState<AccountScreen> {
                 CircleAvatar(
                   backgroundColor: const Color(0xFF715AFF),
                   child: Text(
-                    widget.user.firstName![0],
+                    widget.user.firstName[0],
                     style: const TextStyle(color: Colors.white, fontSize: 18),
                   ),
                 ),
                 const SizedBox(width: 10),
                 Text(
-                  widget.user.firstName!,
+                  widget.user.firstName,
                   style: const TextStyle(color: Colors.white, fontSize: 16),
                 )
               ],

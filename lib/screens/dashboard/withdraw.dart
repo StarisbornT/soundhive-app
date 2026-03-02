@@ -106,7 +106,9 @@ class _WithdrawFormState extends ConsumerState<WithdrawForm> {
 
   Future<void> _verifyAccount() async {
     if (selectedBank == null ||
-        accountNumberController.text.trim().length != 10) return;
+        accountNumberController.text.trim().length != 10) {
+      return;
+    }
 
     setState(() {
       _isVerifying = true;
@@ -496,15 +498,15 @@ class ConfirmWithdrawal extends ConsumerWidget {
 InputDecoration inputDecoration(String hint) {
   return InputDecoration(
     hintText: hint,
-    hintStyle: TextStyle(color: Colors.grey),
+    hintStyle: const TextStyle(color: Colors.grey),
     filled: true,
     fillColor: Colors.black,
     enabledBorder: OutlineInputBorder(
-      borderSide: BorderSide(color: Colors.grey),
+      borderSide: const BorderSide(color: Colors.grey),
       borderRadius: BorderRadius.circular(8),
     ),
     focusedBorder: OutlineInputBorder(
-      borderSide: BorderSide(color: Colors.purple),
+      borderSide: const BorderSide(color: Colors.purple),
       borderRadius: BorderRadius.circular(8),
     ),
   );

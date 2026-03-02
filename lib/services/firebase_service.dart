@@ -10,8 +10,8 @@ import 'package:soundhive2/lib/provider.dart';
 import 'package:soundhive2/lib/dashboard_provider/notification_provider.dart';
 import 'package:soundhive2/services/loader_service.dart';
 
-import '../lib/dashboard_provider/call_provider.dart';
-import '../lib/dashboard_provider/user_provider.dart';
+import 'package:soundhive2/lib/dashboard_provider/call_provider.dart';
+import 'package:soundhive2/lib/dashboard_provider/user_provider.dart';
 import '../screens/chats/call_screen.dart';
 import '../utils/app_colors.dart';
 

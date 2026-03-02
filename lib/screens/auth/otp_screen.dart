@@ -170,7 +170,7 @@ class _OtpScreenState extends ConsumerState<OtpScreen> with WidgetsBindingObserv
     }
     catch(error) {
       LoaderService.hideLoader(context);
-      if (error is DioError) {
+      if (error is DioException) {
         String errorMessage = "Login Failed, Please check input";
 
         if (error.response != null && error.response!.data != null) {
@@ -244,7 +244,7 @@ class _OtpScreenState extends ConsumerState<OtpScreen> with WidgetsBindingObserv
     }
     catch(error) {
       LoaderService.hideLoader(context);
-      if (error is DioError) {
+      if (error is DioException) {
         String errorMessage = "Login Failed, Please check input";
 
         if (error.response != null && error.response!.data != null) {

@@ -4,7 +4,7 @@ import 'package:soundhive2/model/ticket_model.dart';
 import 'package:soundhive2/screens/non_creator/marketplace/ticket_reciept_screen.dart';
 import 'package:soundhive2/utils/app_colors.dart';
 import '../../../components/rounded_button.dart';
-import '../../../lib/navigator_provider.dart';
+import 'package:soundhive2/lib/navigator_provider.dart';
 import '../../../utils/utils.dart';
 import '../non_creator.dart';
 

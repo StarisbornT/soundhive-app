@@ -10,7 +10,7 @@ import '../../../../components/success.dart';
 import 'package:soundhive2/lib/dashboard_provider/apiresponseprovider.dart';
 import 'package:soundhive2/lib/dashboard_provider/user_provider.dart';
 import 'package:soundhive2/lib/dashboard_provider/identifiers.dart';
-import '../../../../lib/dashboard_provider/verify_merchant_provider.dart';
+import 'package:soundhive2/lib/dashboard_provider/verify_merchant_provider.dart';
 import '../../../../model/apiresponse_model.dart';
 import '../../../../model/user_model.dart';
 import '../../../../model/verify_merchant_model.dart';

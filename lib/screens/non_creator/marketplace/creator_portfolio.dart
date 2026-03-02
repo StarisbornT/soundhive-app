@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../../components/audio_player.dart';
 import '../../../components/rounded_button.dart';
-import '../../../lib/dashboard_provider/user_provider.dart';
+import 'package:soundhive2/lib/dashboard_provider/user_provider.dart';
 import '../../../model/market_orders_service_model.dart';
 import '../../../utils/app_colors.dart';
 import '../../../utils/utils.dart';

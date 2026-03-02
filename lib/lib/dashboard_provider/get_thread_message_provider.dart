@@ -2,7 +2,6 @@ import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import '../../model/ai_conversation_thread_model.dart';
-import '../../model/artist_profile_id_model.dart';
 import '../provider.dart';
 
 final getThreadMessageProvider = StateNotifierProvider<GetThreadMessageNotifier, AsyncValue<ConversationSingleThreadResponse>>((ref) {

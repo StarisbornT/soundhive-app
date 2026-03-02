@@ -23,7 +23,7 @@ void initializeDioLogger(Dio dio) {
 
 // Define a provider for Dio
 final dioProvider = Provider<Dio>((ref) {
-  final storage = FlutterSecureStorage();
+  const storage = FlutterSecureStorage();
   final dio = Dio();
   dio.interceptors.add(BaseUrlInterceptor());
   dio.interceptors.add(TokenInterceptor(storage: storage));

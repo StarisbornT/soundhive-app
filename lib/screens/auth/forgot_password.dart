@@ -73,7 +73,7 @@ class _ForgotPasswordScreenState extends State<ForgotPassword> {
     }
     catch(error) {
       LoaderService.hideLoader(context);
-      if (error is DioError) {
+      if (error is DioException) {
         if (error.response?.statusCode == 400) {
 
           await widget.storage.write(key: 'email', value: emailController.text);
@@ -164,7 +164,7 @@ class _ForgotPasswordScreenState extends State<ForgotPassword> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(label, style: TextStyle(color: Colors.white)),
+        Text(label, style: const TextStyle(color: Colors.white)),
         const SizedBox(height: 8),
         TextField(
           obscureText: isPassword ? _isObscured : false,
@@ -173,7 +173,7 @@ class _ForgotPasswordScreenState extends State<ForgotPassword> {
             filled: true,
             fillColor: Colors.white10,
             hintText: hint,
-            hintStyle: TextStyle(color: Colors.white54),
+            hintStyle: const TextStyle(color: Colors.white54),
             border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
             suffixIcon: isPassword
                 ? IconButton(
@@ -189,7 +189,7 @@ class _ForgotPasswordScreenState extends State<ForgotPassword> {
             )
                 : null,
           ),
-          style: TextStyle(color: Colors.white),
+          style: const TextStyle(color: Colors.white),
         ),
       ],
     );
@@ -202,7 +202,7 @@ class _ForgotPasswordScreenState extends State<ForgotPassword> {
       },
       child: Container(
         width: double.infinity,
-        padding: EdgeInsets.symmetric(vertical: 16),
+        padding: const EdgeInsets.symmetric(vertical: 16),
         decoration: BoxDecoration(
           color: color,
           borderRadius: BorderRadius.circular(30),
@@ -210,7 +210,7 @@ class _ForgotPasswordScreenState extends State<ForgotPassword> {
         child: Center(
           child: Text(
             text,
-            style: TextStyle(
+            style: const TextStyle(
                 fontSize: 16, fontWeight: FontWeight.bold, color: Colors.white),
           ),
         ),
@@ -223,7 +223,7 @@ class _ForgotPasswordScreenState extends State<ForgotPassword> {
       onTap: () {},
       child: Container(
         width: double.infinity,
-        padding: EdgeInsets.symmetric(vertical: 14),
+        padding: const EdgeInsets.symmetric(vertical: 14),
         decoration: BoxDecoration(
           border: Border.all(color: Colors.white),
           borderRadius: BorderRadius.circular(30),
