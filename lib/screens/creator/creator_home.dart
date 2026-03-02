@@ -258,7 +258,7 @@ class _CreatorHomeState extends ConsumerState<CreatorHome> with SingleTickerProv
                 ),
                 const SizedBox(height: 16),
                 if (selectedTabIndex == 0)
-                  creatorHomeWidget((user.value?.user?.wallet?.escrowBalance ?? ''), (user.value?.user?.wallet?.amountEarned ?? ''))
+                  creatorHomeWidget((user.value?.user?.wallet?.escrowBalance.toString() ?? ''), (user.value?.user?.wallet?.amountEarned.toString() ?? ''))
                 else if (selectedTabIndex == 1)
                   buildMyBookingsUI()
                 else
