@@ -3,7 +3,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../model/creator_bookings_model.dart';
-import '../../utils/app_colors.dart';
 import '../../utils/utils.dart';
 
 class CreatorBookingsDetailScreen extends ConsumerStatefulWidget {

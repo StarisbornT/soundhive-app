@@ -9,7 +9,7 @@ import '../../../components/success.dart';
 import '../../../components/widgets.dart';
 import 'package:soundhive2/lib/dashboard_provider/apiresponseprovider.dart';
 import 'package:soundhive2/lib/dashboard_provider/user_provider.dart';
-import '../../../lib/dashboard_provider/getMyTicketProvider.dart';
+import 'package:soundhive2/lib/dashboard_provider/getMyTicketProvider.dart';
 import '../../../model/apiresponse_model.dart';
 import '../../../model/ticket_model.dart';
 import '../../../model/user_model.dart';

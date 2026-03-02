@@ -1,4 +1,3 @@
-import 'dart:convert';
 class ChatResponse {
   final String message;
   final List<ChatData> data;

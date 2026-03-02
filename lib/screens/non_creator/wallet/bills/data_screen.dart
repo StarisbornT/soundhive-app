@@ -400,10 +400,10 @@ class _DataScreenState extends ConsumerState<DataScreen> {
             child: CircularProgressIndicator(strokeWidth: 2),
           ),
         ),
-        error: (error, _) => Center(
+        error: (error, _) => const Center(
           child: Text(
             'Error loading',
-            style: const TextStyle(color: Colors.redAccent),
+            style: TextStyle(color: Colors.redAccent),
           ),
         ),
         data: (variations) {

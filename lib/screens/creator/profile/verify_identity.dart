@@ -17,7 +17,6 @@ import '../../../model/user_model.dart';
 import '../../../services/loader_service.dart';
 import '../../../utils/alert_helper.dart';
 
-
 class VerifyIdentity extends ConsumerStatefulWidget {
   final User user;
   const VerifyIdentity({super.key, required this.user});

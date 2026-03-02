@@ -7,8 +7,8 @@ import 'package:soundhive2/screens/non_creator/non_creator.dart';
 import 'package:soundhive2/utils/app_colors.dart';
 import 'package:soundhive2/utils/utils.dart';
 
-import '../../lib/dashboard_provider/user_provider.dart';
-import '../../lib/navigator_provider.dart';
+import 'package:soundhive2/lib/dashboard_provider/user_provider.dart';
+import 'package:soundhive2/lib/navigator_provider.dart';
 import '../non_creator/marketplace/categories.dart';
 import '../non_creator/marketplace/creators_list.dart';
 import '../non_creator/streaming/preference.dart';

@@ -57,7 +57,7 @@ class _IdentityScreenState extends State<CreatorIdentityScreen> {
                   decoration: BoxDecoration(
                     border: Border.all(
                       color: selectedIdentity == "individual"
-                          ? Color(0xFF2C2C2C)
+                          ? const Color(0xFF2C2C2C)
                           : Colors.white24,
                     ),
                     borderRadius: BorderRadius.circular(8),

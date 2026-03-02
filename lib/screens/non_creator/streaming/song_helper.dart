@@ -5,7 +5,7 @@ import 'package:soundhive2/screens/non_creator/streaming/play_music.dart';
 
 import '../../../components/label_text.dart';
 import '../../../components/rounded_button.dart';
-import '../../../lib/dashboard_provider/getPlayListProvider.dart';
+import 'package:soundhive2/lib/dashboard_provider/getPlayListProvider.dart';
 import '../../../model/artist_song_model.dart';
 import '../../../model/playlist_model.dart';
 import '../../../utils/app_colors.dart';

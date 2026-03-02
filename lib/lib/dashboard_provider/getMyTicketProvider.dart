@@ -1,6 +1,5 @@
 import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:soundhive2/model/event_model.dart';
 import '../../model/ticket_model.dart';
 import '../provider.dart';
 final getMyTicketProvider = StateNotifierProvider<GetMyTicketNotifier, AsyncValue<TicketModel>>((ref) {

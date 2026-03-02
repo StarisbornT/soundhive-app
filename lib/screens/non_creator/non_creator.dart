@@ -78,7 +78,7 @@ class NonCreatorDashboard extends ConsumerWidget {
               children: [
                 Icon(
                   Icons.notifications_sharp,
-                  color: colors.onBackground,
+                  color: colors.onSurface,
                 ),
                 if (unreadCount > 0)
                   Positioned(

@@ -459,7 +459,7 @@ class _CreatorHomeState extends ConsumerState<CreatorHome> with SingleTickerProv
                 fontSize: 16,
                 fontWeight: FontWeight.bold)),
 
-        SizedBox(height: 12),
+        const SizedBox(height: 12),
 
         // Analytics Filters
         // Wrap(
