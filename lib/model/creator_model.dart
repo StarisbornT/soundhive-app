@@ -85,7 +85,7 @@ class CreatorPaginatedData {
 
 class CreatorData {
   final int id;
-  final String userId;
+  final dynamic userId;
   final String? gender;
   final String role;
   final String? nin;

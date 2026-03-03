@@ -153,92 +153,15 @@ class User {
   }
 }
 
-// Placeholder classes for now
-class Creator {
-  final int id;
-  final String userId;
-  final String? gender;
-  final String? nin;
-  final String? role;
-  final String? idType;
-  final String? copyOfId;
-  final String? utilityBill;
-  final String? copyOfUtilityBill;
-  final String? jobTitle;
-  final String? bio;
-  final bool? active;
-  final bool? hasLiveTest;
-  final bool? hasVerifiedIdentity;
-  final bool? hasVerifiedCreativeProfile;
-  final String? location;
-  final String? linkedin;
-  final String? x;
-  final String? instagram;
-  final String createdAt;
-  final String updatedAt;
-  final String? baseCurrency;
-
-  Creator({
-    required this.id,
-    required this.userId,
-    this.gender,
-    this.nin,
-    this.role,
-    this.idType,
-    this.copyOfId,
-    this.utilityBill,
-    this.copyOfUtilityBill,
-    this.jobTitle,
-    this.bio,
-    this.active,
-    this.location,
-    this.linkedin,
-    this.x,
-    this.instagram,
-    required this.createdAt,
-    required this.updatedAt,
-    this.baseCurrency,
-    this.hasLiveTest,
-    this.hasVerifiedIdentity,
-    this.hasVerifiedCreativeProfile
-  });
-
-  factory Creator.fromJson(Map<String, dynamic> json) {
-    return Creator(
-      id: json['id'] ?? 0,
-      userId: json['user_id'] ?? '',
-      gender: json['gender'],
-      nin: json['nin'],
-      role: json['role'],
-      idType: json['id_type'],
-      copyOfId: json['copy_of_id'],
-      utilityBill: json['utility_bill'],
-      copyOfUtilityBill: json['copy_of_utility_bill'],
-      jobTitle: json['job_title'],
-      bio: json['bio'],
-      active: json['active'],
-      hasLiveTest: json['has_live_test'],
-      hasVerifiedIdentity: json['has_verified_identity'],
-      hasVerifiedCreativeProfile: json['has_verified_creative_profile'],
-      location: json['location'],
-      linkedin: json['linkedin'],
-      x: json['x'],
-      instagram: json['instagram'],
-      createdAt: json['created_at'] ?? '',
-      updatedAt: json['updated_at'] ?? '',
-      baseCurrency: json['base_currency'] ?? '',
-    );
-  }
-}
 
 class Artist {
   final int id;
-  final String userId;
+  final dynamic userId;
   final String? userName;
   final String? profilePhoto;
   final String? coverPhoto;
   final bool? status;
-  final String followers;
+  final dynamic followers;
   final String createdAt;
   final String updatedAt;
 
@@ -257,7 +180,7 @@ class Artist {
   factory Artist.fromJson(Map<String, dynamic> json) {
     return Artist(
       id: json['id'] ?? 0,
-      userId: json['user_id'] ?? '',
+      userId: json['user_id'],
       userName: json['username'],
       profilePhoto: json['profile_photo'],
       coverPhoto: json['cover_photo'],
@@ -271,14 +194,14 @@ class Artist {
 
 class Wallet {
   final int id;
-  final String userId;
+  final dynamic userId;
   final String? bankName;
   final String? accountNumber;
-  final String? balance;
+  final dynamic balance;
   final String createdAt;
   final String updatedAt;
-  final String escrowBalance;
-  final String amountEarned;
+  final dynamic escrowBalance;
+  final dynamic amountEarned;
   final String currency;
   final String dollarBalance;
   final bool hasActivatedDollarWallet;
@@ -300,7 +223,7 @@ class Wallet {
   factory Wallet.fromJson(Map<String, dynamic> json) {
     return Wallet(
       id: json['id'] ?? 0,
-      userId: json['user_id'] ?? '',
+      userId: json['user_id'],
       bankName: json['bank_name'],
       accountNumber: json['account_number'],
       balance: json['balance'],
@@ -310,7 +233,7 @@ class Wallet {
       amountEarned: json['amount_earned'] ?? '',
       currency: json['currency'] ?? '',
       dollarBalance: json['dollar_balance'] ?? '',
-      hasActivatedDollarWallet: json['has_activated_dollar_wallet'] ?? '',
+      hasActivatedDollarWallet: json['has_activated_dollar_wallet'] ?? false,
     );
   }
 }
