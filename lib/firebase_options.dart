@@ -63,5 +63,4 @@ class DefaultFirebaseOptions {
     iosClientId: '153492997340-qpuqmu0llf7pig08nqokps1732sgfgcf.apps.googleusercontent.com',
     iosBundleId: 'com.soundhive.techsavvyteacherintl',
   );
-
 }
