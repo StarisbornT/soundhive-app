@@ -6,7 +6,7 @@ import '../../model/user_model.dart';
 class HomeScreen extends ConsumerWidget {
   final User user;
 
-  HomeScreen({required this.user});
+  const HomeScreen({super.key, required this.user});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -14,7 +14,7 @@ class HomeScreen extends ConsumerWidget {
       backgroundColor: Colors.black,
 
       body: SingleChildScrollView(
-        padding: EdgeInsets.all(16),
+        padding: const EdgeInsets.all(16),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -39,7 +39,7 @@ class HomeScreen extends ConsumerWidget {
       padding: const EdgeInsets.symmetric(vertical: 10.0),
       child: Text(
         title,
-        style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold),
+        style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold),
       ),
     );
   }
@@ -63,9 +63,9 @@ class HomeScreen extends ConsumerWidget {
         height: 50,
         color: Colors.grey[800], // Placeholder for image
       ),
-      title: Text(title, style: TextStyle(color: Colors.white)),
-      subtitle: Text('$artist\n$plays', style: TextStyle(color: Colors.grey)),
-      trailing: Icon(Icons.more_vert, color: Colors.white),
+      title: Text(title, style: const TextStyle(color: Colors.white)),
+      subtitle: Text('$artist\n$plays', style: const TextStyle(color: Colors.grey)),
+      trailing: const Icon(Icons.more_vert, color: Colors.white),
     );
   }
 
@@ -96,9 +96,9 @@ class HomeScreen extends ConsumerWidget {
           height: 100,
           color: Colors.grey[800],
         ),
-        SizedBox(height: 5),
-        Text(title, style: TextStyle(color: Colors.white)),
-        Text(artist, style: TextStyle(color: Colors.grey, fontSize: 12)),
+        const SizedBox(height: 5),
+        Text(title, style: const TextStyle(color: Colors.white)),
+        Text(artist, style: const TextStyle(color: Colors.grey, fontSize: 12)),
       ],
     );
   }
@@ -129,9 +129,9 @@ class HomeScreen extends ConsumerWidget {
           height: 100,
           color: Colors.grey[800],
         ),
-        SizedBox(height: 5),
-        Text(title, style: TextStyle(color: Colors.white)),
-        Text(artists, style: TextStyle(color: Colors.grey, fontSize: 12)),
+        const SizedBox(height: 5),
+        Text(title, style: const TextStyle(color: Colors.white)),
+        Text(artists, style: const TextStyle(color: Colors.grey, fontSize: 12)),
       ],
     );
   }
@@ -154,9 +154,9 @@ class HomeScreen extends ConsumerWidget {
           radius: 30,
           backgroundColor: Colors.grey[800],
         ),
-        SizedBox(height: 5),
-        Text(name, style: TextStyle(color: Colors.white)),
-        Text(followers, style: TextStyle(color: Colors.grey, fontSize: 12)),
+        const SizedBox(height: 5),
+        Text(name, style: const TextStyle(color: Colors.white)),
+        Text(followers, style: const TextStyle(color: Colors.grey, fontSize: 12)),
       ],
     );
   }

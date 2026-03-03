@@ -162,9 +162,9 @@ class _TicketReceiptScreenState
                                   size: 16,
                                   color: Colors.white54,
                                 ),
-                                SizedBox(width: 8),
+                                const SizedBox(width: 8),
                                 Text(
-                                  "${event.date}",
+                                  event.date,
                                   style: const TextStyle(
                                     color: Colors.white54,
                                     fontSize: 14,

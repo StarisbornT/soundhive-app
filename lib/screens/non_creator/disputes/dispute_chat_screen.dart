@@ -8,7 +8,7 @@ import 'dart:io';
 import 'package:image_picker/image_picker.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:soundhive2/utils/app_colors.dart';
-import '../../../lib/dashboard_provider/user_provider.dart';
+import 'package:soundhive2/lib/dashboard_provider/user_provider.dart';
 import '../../../model/user_model.dart';
 
 class Message {

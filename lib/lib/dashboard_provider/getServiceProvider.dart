@@ -3,8 +3,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:soundhive2/model/service_model.dart';
 
-import '../../model/asset_market_response.dart';
-import '../../model/asset_model.dart';
 import '../provider.dart';
 final getServiceMarketPlaceProvider = StateNotifierProvider<GetServiceMarketPlaceNotifier, AsyncValue<ServiceResponse>>((ref) {
   final dio = ref.watch(dioProvider);

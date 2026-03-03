@@ -17,7 +17,6 @@ import '../../../model/apiresponse_model.dart';
 import '../../../model/user_model.dart';
 import '../../../services/loader_service.dart';
 import '../../../utils/alert_helper.dart';
-import '../creator_dashboard.dart';
 
 class VerifyIdentity extends ConsumerStatefulWidget {
   final User user;

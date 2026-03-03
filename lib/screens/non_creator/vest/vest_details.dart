@@ -15,7 +15,6 @@ import '../../../model/investment_model.dart';
 import '../../../model/user_model.dart';
 import '../../../utils/alert_helper.dart';
 import '../../../utils/utils.dart';
-import '../wallet/wallet.dart';
 final withdrawStateProvider = StateProvider<bool>((ref) => false);
 class VestDetailsScreen extends ConsumerStatefulWidget {
   final Investment investment;

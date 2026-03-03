@@ -144,7 +144,7 @@ class _ForgotOtpScreenScreenState extends ConsumerState<ForgotOtpScreen> with Wi
     }
     catch(error) {
       LoaderService.hideLoader(context);
-      if (error is DioError) {
+      if (error is DioException) {
         String errorMessage = "Login Failed, Please check input";
 
         if (error.response != null && error.response!.data != null) {
@@ -226,7 +226,7 @@ class _ForgotOtpScreenScreenState extends ConsumerState<ForgotOtpScreen> with Wi
                   child: Text(
                     'We just sent an OTP to ${maskEmail(email)},\nkindly enter it below',
                     textAlign: TextAlign.center,
-                    style: TextStyle(
+                    style: const TextStyle(
                       fontSize: 14,
                       fontWeight: FontWeight.w400,
                       color: Color(0xFFB0AEB8),
