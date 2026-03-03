@@ -123,7 +123,7 @@ class _WalletScreenState extends ConsumerState<WalletScreen> {
                   color: AppColors.BUTTONCOLOR.withOpacity(0.2),
                   shape: BoxShape.circle,
                 ),
-                child: Icon(
+                child: const Icon(
                   Icons.account_balance_wallet,
                   size: 40,
                   color: AppColors.BUTTONCOLOR,
@@ -511,7 +511,7 @@ class _WalletScreenState extends ConsumerState<WalletScreen> {
                     color: AppColors.BUTTONCOLOR.withOpacity(0.2),
                     borderRadius: BorderRadius.circular(8),
                   ),
-                  child: Icon(
+                  child: const Icon(
                     Icons.lock_open,
                     color: AppColors.BUTTONCOLOR,
                     size: 20,

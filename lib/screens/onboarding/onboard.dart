@@ -1,7 +1,5 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
-import 'package:soundhive2/screens/auth/create_account.dart';
 import 'package:soundhive2/utils/app_colors.dart';
 
 import '../auth/identity_screen.dart';

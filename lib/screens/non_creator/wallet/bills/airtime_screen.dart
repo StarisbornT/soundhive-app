@@ -8,7 +8,7 @@ import 'package:soundhive2/utils/utils.dart';
 
 import '../../../../components/success.dart';
 import 'package:soundhive2/lib/dashboard_provider/apiresponseprovider.dart';
-import '../../../../lib/dashboard_provider/user_provider.dart';
+import 'package:soundhive2/lib/dashboard_provider/user_provider.dart';
 import '../../../../model/apiresponse_model.dart';
 import '../../../../model/user_model.dart';
 import 'bill_confirmation_screen.dart';

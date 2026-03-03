@@ -6,7 +6,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:soundhive2/components/rounded_button.dart';
-import '../lib/dashboard_provider/getAccountBalanceProvider.dart';
+import 'package:soundhive2/lib/dashboard_provider/getAccountBalanceProvider.dart';
 import '../model/user_model.dart';
 import '../screens/creator/profile/setup_screen.dart';
 import '../screens/dashboard/transaction_history.dart';
@@ -83,7 +83,7 @@ class WalletCard extends ConsumerWidget {
                   Navigator.push(
                     context,
                     MaterialPageRoute(
-                      builder: (context) => WithdrawScreen(),
+                      builder: (context) => const WithdrawScreen(),
                     ),
                   );
                 },

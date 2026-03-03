@@ -143,7 +143,7 @@ class _CreatorHomeState extends ConsumerState<CreatorHome> with SingleTickerProv
         final result = await Navigator.push<String>(
           context,
           MaterialPageRoute(
-            builder: (context) => VerificationWebView(url: response.data!.checkoutUrl!, title: 'Add Money',),
+            builder: (context) => VerificationWebView(url: response.data!.checkoutUrl, title: 'Add Money',),
           ),
         );
         if (result == 'success') {
@@ -461,7 +461,7 @@ class _CreatorHomeState extends ConsumerState<CreatorHome> with SingleTickerProv
                 fontSize: 16,
                 fontWeight: FontWeight.bold)),
 
-        SizedBox(height: 12),
+        const SizedBox(height: 12),
 
         // Analytics Filters
         // Wrap(
