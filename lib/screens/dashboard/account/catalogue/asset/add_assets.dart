@@ -160,17 +160,7 @@ class _AddAssetScreenState extends ConsumerState<AddAssets> {
 
       final imageFile = _imageNotifier.value;
       final audioFile = _selectedFilePath;
-      bool imagePath = await _isValidLocalPath(imageFile!.path);
-      bool audioPath = await _isValidLocalPath(audioFile!);
-
-      // Validate image file
-      if (!await imageFile.exists() || !imagePath) {
-        throw Exception('Invalid or missing image file');
-      }
-      if (!File(audioFile).existsSync() || !audioPath) {
-        // Changed audioPath to !audioPath
-        throw Exception('Invalid or missing audio file');
-      }
+     
       await _uploadMediaToCloudinary();
 
       _submitToBackend();

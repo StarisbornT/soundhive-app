@@ -148,16 +148,7 @@ class _AddSongScreenState extends ConsumerState<AddSongScreen> {
   }
 
 
-  /// Check if the path is valid and local
-  Future<bool> _isValidLocalPath(String path) async {
-    final tempDir = await getTemporaryDirectory();
-    final tempPath = tempDir.path;
 
-    return path.startsWith(tempPath) ||
-        path.startsWith('/data') ||
-        path.startsWith('file://') ||
-        path.startsWith('content://');
-  }
 
   /// Submit form to backend
   void _submitForm() async {
@@ -198,9 +189,9 @@ class _AddSongScreenState extends ConsumerState<AddSongScreen> {
 
       final audioFile = _audioFileNotifier.value!;
 
-      bool isAudioValid = await _isValidLocalPath(audioFile.path);
+     
 
-      if (!await audioFile.exists() || !isAudioValid) {
+      if (!await audioFile.exists()) {
         throw Exception('Invalid or missing audio file');
       }
 

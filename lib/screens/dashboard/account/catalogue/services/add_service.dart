@@ -146,12 +146,7 @@ class _AddServiceScreenState extends ConsumerState<AddService> {
       }
       // _validatePaths();
       final imageFile = _imageNotifier.value;
-      bool imagePath = await _isValidLocalPath(imageFile!.path);
-
-      // Validate image file
-      if (!await imageFile.exists() || !imagePath) { // Changed imagePath to !imagePath
-        throw Exception('Invalid or missing image file');
-      }
+    
       await _uploadMediaToCloudinary();
 
       _submitToBackend();

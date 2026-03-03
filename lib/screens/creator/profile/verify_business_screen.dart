@@ -3,9 +3,9 @@ import 'dart:io';
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:path_provider/path_provider.dart';
 import 'package:soundhive2/components/label_text.dart';
 import 'package:soundhive2/components/rounded_button.dart';
+import 'package:soundhive2/screens/creator/profile/setup_screen.dart';
 import 'package:soundhive2/utils/app_colors.dart';
 import '../../../components/image_picker.dart';
 import '../../../components/success.dart';
@@ -15,7 +15,6 @@ import '../../../model/apiresponse_model.dart';
 import '../../../model/user_model.dart';
 import '../../../services/loader_service.dart';
 import '../../../utils/alert_helper.dart';
-import '../creator_dashboard.dart';
 
 class VerifyBusinessScreen extends ConsumerStatefulWidget {
   final User user;
@@ -120,17 +119,6 @@ class _VerifyBusinessScreenState extends ConsumerState<VerifyBusinessScreen> {
 
     return response.data['secure_url'] as String;
   }
-
-  Future<bool> _isValidLocalPath(String path) async {
-    final tempDir = await getTemporaryDirectory();
-    final tempPath = tempDir.path;
-    // Check if the path is in the app's temporary directory or a valid URI
-    return path.startsWith(tempPath) ||
-        path.startsWith('/data') ||
-        path.startsWith('file://') ||
-        path.startsWith('content://');
-  }
-
   void _submitForm() async {
     print('🔄 Starting submission');
 
@@ -161,9 +149,8 @@ class _VerifyBusinessScreenState extends ConsumerState<VerifyBusinessScreen> {
 
       final imageFile = _imageNotifier.value!;
 
-      bool isImageValid = await _isValidLocalPath(imageFile.path);
 
-      if (!await imageFile.exists() || !isImageValid) {
+      if (!await imageFile.exists()) {
         throw Exception('Invalid or missing ID image file');
       }
 
@@ -174,7 +161,7 @@ class _VerifyBusinessScreenState extends ConsumerState<VerifyBusinessScreen> {
       await _submitToBackend();
 
       LoaderService.hideLoader(context);
-      await ref.read(userProvider.notifier).loadUserProfile();
+      final user = await ref.read(userProvider.notifier).loadUserProfile();
 
       Navigator.pushReplacement(
         context,
@@ -186,7 +173,7 @@ class _VerifyBusinessScreenState extends ConsumerState<VerifyBusinessScreen> {
             onButtonPressed: () {
               Navigator.push(
                 context,
-                MaterialPageRoute(builder: (_) => CreatorDashboard()),
+                MaterialPageRoute(builder: (_) => SetupScreen(user: user!)),
               );
             },
           ),

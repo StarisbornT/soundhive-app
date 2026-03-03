@@ -7,7 +7,6 @@ import 'package:intl/intl.dart';
 import 'package:shimmer/shimmer.dart';
 import 'package:soundhive2/screens/creator/profile/setup_screen.dart';
 import 'package:soundhive2/screens/dashboard/withdraw.dart';
-import 'package:soundhive2/screens/non_creator/streaming/streaming.dart';
 import 'package:soundhive2/utils/app_colors.dart';
 import 'package:soundhive2/utils/utils.dart';
 import '../../components/success.dart';
@@ -143,7 +142,7 @@ class _CreatorHomeState extends ConsumerState<CreatorHome> with SingleTickerProv
         final result = await Navigator.push<String>(
           context,
           MaterialPageRoute(
-            builder: (context) => VerificationWebView(url: response.data!.checkoutUrl!, title: 'Add Money',),
+            builder: (context) => VerificationWebView(url: response.data!.checkoutUrl, title: 'Add Money',),
           ),
         );
         if (result == 'success') {
@@ -263,7 +262,6 @@ class _CreatorHomeState extends ConsumerState<CreatorHome> with SingleTickerProv
                   buildMyBookingsUI()
                 else
                   const SizedBox(),
-
               ],
             ),
           ),

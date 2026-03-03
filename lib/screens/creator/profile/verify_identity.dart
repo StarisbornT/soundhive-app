@@ -4,7 +4,6 @@ import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:path_provider/path_provider.dart';
 import 'package:soundhive2/components/label_text.dart';
 import 'package:soundhive2/components/rounded_button.dart';
 import 'package:soundhive2/screens/creator/profile/setup_screen.dart';
@@ -17,7 +16,7 @@ import '../../../model/apiresponse_model.dart';
 import '../../../model/user_model.dart';
 import '../../../services/loader_service.dart';
 import '../../../utils/alert_helper.dart';
-import '../creator_dashboard.dart';
+
 
 class VerifyIdentity extends ConsumerStatefulWidget {
   final User user;
@@ -119,16 +118,6 @@ class _VerifyIdentityScreenState extends ConsumerState<VerifyIdentity> {
     return response.data['secure_url'] as String;
   }
 
-  Future<bool> _isValidLocalPath(String path) async {
-    final tempDir = await getTemporaryDirectory();
-    final tempPath = tempDir.path;
-    // Check if the path is in the app's temporary directory or a valid URI
-    return path.startsWith(tempPath) ||
-        path.startsWith('/data') ||
-        path.startsWith('file://') ||
-        path.startsWith('content://');
-  }
-
   void _submitForm() async {
     print('🔄 Starting submission');
 
@@ -210,14 +199,11 @@ class _VerifyIdentityScreenState extends ConsumerState<VerifyIdentity> {
       final imageFile = _imageNotifier.value!;
       final utilityFile = _utilityNotifier.value!;
 
-      bool isImageValid = await _isValidLocalPath(imageFile.path);
-      bool isUtilityValid = await _isValidLocalPath(utilityFile.path);
-
-      if (!await imageFile.exists() || !isImageValid) {
+      if (!await imageFile.exists()) {
         throw Exception('Invalid or missing ID image file');
       }
 
-      if (!await utilityFile.exists() || !isUtilityValid) {
+      if (!await utilityFile.exists()) {
         throw Exception('Invalid or missing Utility Bill file');
       }
 
