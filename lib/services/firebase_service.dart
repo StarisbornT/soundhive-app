@@ -67,29 +67,91 @@ class FirebaseService {
     _setupNotificationInteractions();
     _setupTokenRefresh();
   }
+Future<void> _setupNotificationChannels() async {
+  // Android channel (only applies to Android)
+  const AndroidNotificationChannel channel = AndroidNotificationChannel(
+    'high_importance_channel',              // id
+    'Important Notifications',               // name
+    description: 'This channel is used for important notifications',
+    importance: Importance.high,
+    // playSound: true,                      // optional
+    // sound: RawResourceAndroidNotificationSound('custom_sound'), // if you have custom sound
+  );
 
-  Future<void> _setupNotificationChannels() async {
-    const AndroidNotificationChannel channel = AndroidNotificationChannel(
-      'high_importance_channel',
-      'Important Notifications',
-      description: 'This channel is used for important notifications',
-      importance: Importance.high,
-    );
+  // Create Android channel (safe — does nothing on iOS)
+  await notificationsPlugin
+      .resolvePlatformSpecificImplementation<
+          AndroidFlutterLocalNotificationsPlugin>()
+      ?.createNotificationChannel(channel);
 
-    // Initialize plugin with icon
-    const AndroidInitializationSettings initializationSettingsAndroid =
-    AndroidInitializationSettings('app_icon');
+  // iOS / macOS initialization settings
+  const DarwinInitializationSettings initializationSettingsDarwin =
+      DarwinInitializationSettings(
+    // Optional: request permissions right away (recommended)
+    requestAlertPermission: true,
+    requestBadgePermission: true,
+    requestSoundPermission: true,
+    // If you want default notification sound → usually not needed
+    // defaultPresentAlert: true,
+    // defaultPresentBadge: true,
+    // defaultPresentSound: true,
+  );
 
-    await notificationsPlugin.initialize(
-      const InitializationSettings(
-        android: initializationSettingsAndroid,
-      ),
-    );
+  // Android initialization (you already had this)
+  const AndroidInitializationSettings initializationSettingsAndroid =
+      AndroidInitializationSettings('app_icon'); // ← make sure this icon exists
 
-    await notificationsPlugin
-        .resolvePlatformSpecificImplementation<AndroidFlutterLocalNotificationsPlugin>()
-        ?.createNotificationChannel(channel);
-  }
+  // Combine both
+  const InitializationSettings initializationSettings = InitializationSettings(
+    android: initializationSettingsAndroid,
+    iOS: initializationSettingsDarwin,           // ← this was missing
+    // macOS: initializationSettingsDarwin,      // if you support macOS
+  );
+
+  // Initialize the plugin
+  await notificationsPlugin.initialize(
+    initializationSettings,
+    // Very useful: handle when user taps a notification
+    onDidReceiveNotificationResponse: (NotificationResponse response) {
+      // Handle payload / navigate / etc.
+      // print('Notification tapped: ${response.payload}');
+    },
+    // onDidReceiveBackgroundNotificationResponse: ... (for background)
+  );
+
+  // Optional but strongly recommended for iOS:
+  // Request permissions explicitly (especially iOS 10+)
+  await notificationsPlugin
+      .resolvePlatformSpecificImplementation<
+          IOSFlutterLocalNotificationsPlugin>()
+      ?.requestPermissions(
+        alert: true,
+        badge: true,
+        sound: true,
+      );
+}
+  // Future<void> _setupNotificationChannels() async {
+  //   const AndroidNotificationChannel channel = AndroidNotificationChannel(
+  //     'high_importance_channel',
+  //     'Important Notifications',
+  //     description: 'This channel is used for important notifications',
+  //     importance: Importance.high,
+  //   );
+
+  //   // Initialize plugin with icon
+  //   const AndroidInitializationSettings initializationSettingsAndroid =
+  //   AndroidInitializationSettings('app_icon');
+
+  //   await notificationsPlugin.initialize(
+  //     const InitializationSettings(
+  //       android: initializationSettingsAndroid,
+  //     ),
+  //   );
+
+  //   await notificationsPlugin
+  //       .resolvePlatformSpecificImplementation<AndroidFlutterLocalNotificationsPlugin>()
+  //       ?.createNotificationChannel(channel);
+  // }
 
   Future<void> _requestPermissions() async {
     await FirebaseMessaging.instance.requestPermission(

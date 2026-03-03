@@ -52,11 +52,12 @@ class _VerifyIdentityScreenState extends ConsumerState<VerifyIdentity> {
       text: widget.user.gender ?? '',
     );
   }
-  final List<Map<String, String>> gender =[
+
+  final List<Map<String, String>> gender = [
     {'label': 'Male', 'value': 'male'},
     {'label': 'Female', 'value': 'female'},
   ];
-  final List<Map<String, String>> utilityBill =[
+  final List<Map<String, String>> utilityBill = [
     {'label': 'Light Bill', 'value': 'light_bill'},
   ];
   final List<Map<String, String>> idTypeOptions = [
@@ -67,7 +68,6 @@ class _VerifyIdentityScreenState extends ConsumerState<VerifyIdentity> {
   ];
   String? _uploadedImageUrl;
   String? _uploadedUtilityUrl;
-
 
   Future<void> _uploadMediaToCloudinary() async {
     final imageFile = _imageNotifier.value;
@@ -94,11 +94,10 @@ class _VerifyIdentityScreenState extends ConsumerState<VerifyIdentity> {
     _uploadedUtilityUrl = utilityUrl; // Add this new variable
   }
 
-
   Future<String> _uploadFileToCloudinary(
       {required File file,
-        required String resourceType,
-        required String preset}) async {
+      required String resourceType,
+      required String preset}) async {
     final formData = FormData.fromMap({
       'file': await MultipartFile.fromFile(file.path),
       'upload_preset': preset,
@@ -213,7 +212,7 @@ class _VerifyIdentityScreenState extends ConsumerState<VerifyIdentity> {
       await _submitToBackend();
 
       LoaderService.hideLoader(context);
-     final user = await ref.read(userProvider.notifier).loadUserProfile();
+      final user = await ref.read(userProvider.notifier).loadUserProfile();
 
       Navigator.pushReplacement(
         context,
@@ -221,7 +220,7 @@ class _VerifyIdentityScreenState extends ConsumerState<VerifyIdentity> {
           builder: (context) => Success(
             title: 'Your information has been submitted successfully',
             subtitle:
-            'Your account is currently under review, and will get feedback within the next 24 hours',
+                'Your account is currently under review, and will get feedback within the next 24 hours',
             onButtonPressed: () {
               Navigator.push(
                 context,
@@ -262,20 +261,18 @@ class _VerifyIdentityScreenState extends ConsumerState<VerifyIdentity> {
   }
 
   Future<ApiResponseModel> _submitToBackend() async {
-
-    final response = await ref.read(apiresponseProvider.notifier).verifyIdentity(
-      context: context,
-     payload: {
-       "gender": selectedGender,
-       "bvn": bvnController.text,
-       "nin": ninController.text,
-       "id_type": selectedIdType,
-       "copy_of_id": _uploadedImageUrl,
-       "utility_bill" : selectedUtility,
-       "copy_of_utility_bill": _uploadedUtilityUrl,
-     }
-    );
-    if(!response.status) {
+    final response = await ref
+        .read(apiresponseProvider.notifier)
+        .verifyIdentity(context: context, payload: {
+      "gender": selectedGender,
+      "bvn": bvnController.text,
+      "nin": ninController.text,
+      "id_type": selectedIdType,
+      "copy_of_id": _uploadedImageUrl,
+      "utility_bill": selectedUtility,
+      "copy_of_utility_bill": _uploadedUtilityUrl,
+    });
+    if (!response.status) {
       throw DioException(
         requestOptions: RequestOptions(path: ''),
         response: Response(
@@ -283,147 +280,147 @@ class _VerifyIdentityScreenState extends ConsumerState<VerifyIdentity> {
           data: {'message': response.message},
         ),
       );
-
     }
 
     return response;
-
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-    backgroundColor: const Color(0xFF0C0513),
-    body: SafeArea(
-      child: LayoutBuilder(
-        builder: (context, constraints) {
-          return Stack(
-            children: [
-              // Scrollable form
-              SingleChildScrollView(
-                padding: const EdgeInsets.fromLTRB(20, 10, 20, 100),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    IconButton(
-                      icon: const Icon(Icons.arrow_back_ios_new, color: Color(0xFFB0B0B6)),
-                      onPressed: () => Navigator.pop(context),
-                    ),
-                    const SizedBox(height: 10),
-                    const Text(
-                      'Verify your Identity',
-                      style: TextStyle(
-                        fontSize: 24,
-                        fontWeight: FontWeight.w400,
-                        color: Colors.white,
-                      ),
-                    ),
-                    const SizedBox(height: 8),
-                    const Text(
-                      'Kindly provide the information below',
-                      style: TextStyle(
-                        color: Colors.white70,
-                        fontSize: 12,
-                      ),
-                    ),
-                    const SizedBox(height: 40),
-                    LabeledSelectField(
-                      label: "Gender",
-                      controller: genderController,
-                      items: gender,
-                      hintText: 'Select gender',
-                      onChanged: (value) {
-                        selectedGender= value;
-                      },
-                    ),
-                    const SizedBox(height: 10),
-                    LabeledTextField(
-                      label: 'Bank Verification Number (BVN)',
-                      controller: bvnController,
-                      keyboardType: TextInputType.number,
-                      hintText: 'Enter your BVN',
-                      secondLabel: 'Why this?',
-                      inputFormatters: [
-                        FilteringTextInputFormatter.digitsOnly,
-                        LengthLimitingTextInputFormatter(11),
+      backgroundColor: const Color(0xFF0C0513),
+      body: GestureDetector(
+        onTap: () => FocusScope.of(context).unfocus(),
+        child: SafeArea(
+          child: LayoutBuilder(
+            builder: (context, constraints) {
+              return Stack(
+                children: [
+                  // Scrollable form
+                  SingleChildScrollView(
+                    padding: const EdgeInsets.fromLTRB(20, 10, 20, 100),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        IconButton(
+                          icon: const Icon(Icons.arrow_back_ios_new,
+                              color: Color(0xFFB0B0B6)),
+                          onPressed: () => Navigator.pop(context),
+                        ),
+                        const SizedBox(height: 10),
+                        const Text(
+                          'Verify your Identity',
+                          style: TextStyle(
+                            fontSize: 24,
+                            fontWeight: FontWeight.w400,
+                            color: Colors.white,
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        const Text(
+                          'Kindly provide the information below',
+                          style: TextStyle(
+                            color: Colors.white70,
+                            fontSize: 12,
+                          ),
+                        ),
+                        const SizedBox(height: 40),
+                        LabeledSelectField(
+                          label: "Gender",
+                          controller: genderController,
+                          items: gender,
+                          hintText: 'Select gender',
+                          onChanged: (value) {
+                            selectedGender = value;
+                          },
+                        ),
+                        const SizedBox(height: 10),
+                        LabeledTextField(
+                          label: 'Bank Verification Number (BVN)',
+                          controller: bvnController,
+                          keyboardType: TextInputType.number,
+                          hintText: 'Enter your BVN',
+                          secondLabel: 'Why this?',
+                          inputFormatters: [
+                            FilteringTextInputFormatter.digitsOnly,
+                            LengthLimitingTextInputFormatter(11),
+                          ],
+                        ),
+                        const SizedBox(height: 10),
+                        LabeledTextField(
+                          label: 'National Identification Number (NIN)',
+                          controller: ninController,
+                          keyboardType: TextInputType.number,
+                          hintText: 'Enter your NIN',
+                          secondLabel: 'Why this?',
+                        ),
+                        const SizedBox(height: 10),
+                        LabeledSelectField(
+                          label: "ID Type",
+                          controller: idTypeController,
+                          items: idTypeOptions,
+                          hintText: 'Select an ID Type',
+                          onChanged: (value) {
+                            selectedIdType = value;
+                          },
+                        ),
+                        const SizedBox(height: 10),
+                        ImagePickerComponent(
+                          labelText: 'Copy of ID',
+                          imageNotifier: _imageNotifier,
+                          hintText: 'Upload Document',
+                          validator: (value) {
+                            if (value == null) {
+                              return ' image is required';
+                            }
+                            return null;
+                          },
+                        ),
+                        const SizedBox(height: 10),
+                        LabeledSelectField(
+                          label: "Utility Bill",
+                          controller: utilityBillController,
+                          items: utilityBill,
+                          hintText: 'Select an Utility Bill',
+                          onChanged: (value) {
+                            selectedUtility = value;
+                          },
+                        ),
+                        ImagePickerComponent(
+                          labelText: 'Copy of Utility',
+                          imageNotifier: _utilityNotifier,
+                          hintText: 'Upload Document',
+                          validator: (value) {
+                            if (value == null) {
+                              return ' image is required';
+                            }
+                            return null;
+                          },
+                        ),
+                        const SizedBox(height: 20),
                       ],
                     ),
-                    const SizedBox(height: 10),
-                    LabeledTextField(
-                      label: 'National Identification Number (NIN)',
-                      controller: ninController,
-                      keyboardType: TextInputType.number,
-                      hintText: 'Enter your NIN',
-                      secondLabel: 'Why this?',
-                    ),
-                    const SizedBox(height: 10),
-                    LabeledSelectField(
-                      label: "ID Type",
-                      controller: idTypeController,
-                      items: idTypeOptions,
-                      hintText: 'Select an ID Type',
-                      onChanged: (value) {
-                        selectedIdType = value;
-                      },
-                    ),
-                    const SizedBox(height: 10),
-                    ImagePickerComponent(
-                      labelText: 'Copy of ID',
-                      imageNotifier: _imageNotifier,
-                      hintText: 'Upload Document',
-                      validator: (value) {
-                        if (value == null) {
-                          return ' image is required';
-                        }
-                        return null;
-                      },
-                    ),
-                    const SizedBox(height: 10),
-                    LabeledSelectField(
-                      label: "Utility Bill",
-                      controller: utilityBillController,
-                      items: utilityBill,
-                      hintText: 'Select an Utility Bill',
-                      onChanged: (value) {
-                        selectedUtility  = value;
-                      },
-                    ),
-                    ImagePickerComponent(
-                      labelText: 'Copy of Utility',
-                      imageNotifier: _utilityNotifier,
-                      hintText: 'Upload Document',
-                      validator: (value) {
-                        if (value == null) {
-                          return ' image is required';
-                        }
-                        return null;
-                      },
-                    ),
-                    const SizedBox(height: 20),
-                  ],
-                ),
-              ),
+                  ),
 
-              // Fixed button
-              Positioned(
-                bottom: 20,
-                left: 20,
-                right: 20,
-                child: RoundedButton(
-                  title: 'Submit',
-                  onPressed: () {
-                   _submitForm();
-                  },
-                  color: AppColors.PRIMARYCOLOR,
-                ),
-              ),
-            ],
-          );
-        },
+                  // Fixed button
+                  Positioned(
+                    bottom: 20,
+                    left: 20,
+                    right: 20,
+                    child: RoundedButton(
+                      title: 'Submit',
+                      onPressed: () {
+                        _submitForm();
+                      },
+                      color: AppColors.PRIMARYCOLOR,
+                    ),
+                  ),
+                ],
+              );
+            },
+          ),
+        ),
       ),
-    ),
-  );
-
-
+    );
   }
 }
