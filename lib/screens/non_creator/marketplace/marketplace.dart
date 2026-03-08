@@ -88,18 +88,6 @@ class _MarketplaceState extends ConsumerState<Marketplace>
   }
 
   @override
-  void didPopNext() {
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (mounted) {
-        ref.read(getMarketplaceServiceProvider.notifier).resetFilters();
-        ref
-            .read(getMarketplaceServiceProvider.notifier)
-            .getMarketPlaceService();
-      }
-    });
-  }
-
-  @override
   void didPush() {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) {

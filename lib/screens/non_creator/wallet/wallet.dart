@@ -643,7 +643,7 @@ class _WalletScreenState extends ConsumerState<WalletScreen> {
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               Text(
-                'Error loading transactions',
+                'Error loading transactions $error',
                 style: TextStyle(color: theme.colorScheme.error),
               ),
               const SizedBox(height: 10),
