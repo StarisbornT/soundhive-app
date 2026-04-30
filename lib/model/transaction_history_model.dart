@@ -85,7 +85,7 @@ class Transaction {
   final String userId;
   final String walletId;
   final String title;
-  final String? bookingId;
+  final dynamic bookingId;
   final String reference;
   final String amount;
   final String totalAmount;
@@ -100,7 +100,7 @@ class Transaction {
   final String? sourceBankName;
   final String? currency;
   final String? feeAmount;
-  final String? feePercent;
+  final int? feePercent;
   final String createdAt;
   final String updatedAt;
   final String vestId;

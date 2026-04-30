@@ -116,14 +116,13 @@ class _AiChatScreenState extends ConsumerState<AiChatScreen> {
                   metadata: metadata,
                   suggestedCreators: suggestedCreators,
                 ));
+
                 if (conversation.aiResponse.isNotEmpty) {
                   String aiText = conversation.aiResponse;
                   Map<String, dynamic>? workflowPlan;
                   bool isGreeting = conversation.title == 'Greeting';
 
-                  // If it's a greeting, handle it specially
                   if (isGreeting) {
-                    // Use the ai_response directly for greetings
                     aiText = conversation.aiResponse;
                     workflowPlan = {
                       'required_creators': [],
@@ -132,20 +131,19 @@ class _AiChatScreenState extends ConsumerState<AiChatScreen> {
                       'steps': ['Start by describing your project']
                     };
                   } else {
-                    // Try to parse as JSON for workflow plans
                     try {
-                      final jsonResponse = json.decode(conversation.aiResponse);
+                      final cleaned = _stripJsonFences(conversation.aiResponse);
+                      final jsonResponse = json.decode(cleaned);
                       if (jsonResponse is Map) {
                         workflowPlan = Map<String, dynamic>.from(jsonResponse);
                         aiText = _formatAiResponse(workflowPlan, suggestedCreators);
                       }
                     } catch (e) {
-                      // If not JSON, use as-is
                       aiText = conversation.aiResponse;
                     }
                   }
 
-                  // Generate options
+                  // ✅ THIS BLOCK WAS MISSING — actually add the AI message
                   List<String>? options;
                   if (workflowPlan != null) {
                     if (isGreeting) {
@@ -153,19 +151,6 @@ class _AiChatScreenState extends ConsumerState<AiChatScreen> {
                     } else {
                       options = _generateOptionsFromResponse(workflowPlan, suggestedCreators);
                     }
-                  } else if (metadata.isNotEmpty) {
-                    final Map<String, dynamic> planFromMetadata = {
-                      'required_creators': [],
-                      'timeline': metadata['timeline'],
-                      'cost_range': metadata['cost_range'],
-                      'steps': metadata['steps'] ?? [],
-                    };
-
-                    if (suggestedCreators is Map) {
-                      planFromMetadata['required_creators'] = suggestedCreators.keys.toList();
-                    }
-
-                    options = _generateOptionsFromResponse(planFromMetadata, suggestedCreators);
                   }
 
                   messages.add(ChatMessage(
@@ -174,9 +159,9 @@ class _AiChatScreenState extends ConsumerState<AiChatScreen> {
                     fullText: aiText,
                     timestamp: DateTime.parse(conversation.updatedAt),
                     options: options,
-                    metadata: metadata,
+                    metadata: workflowPlan ?? metadata,
                     suggestedCreators: suggestedCreators,
-                    shouldAnimate: false,
+                    shouldAnimate: false, // false = show immediately, no typing effect for history
                   ));
                 }
               }
@@ -291,6 +276,17 @@ class _AiChatScreenState extends ConsumerState<AiChatScreen> {
     _scrollToBottom(animated: false);
   }
 
+  String _stripJsonFences(String raw) {
+    String cleaned = raw.trim();
+    if (cleaned.startsWith('```')) {
+      cleaned = cleaned
+          .replaceFirst(RegExp(r'^```json\s*\n?'), '')
+          .replaceFirst(RegExp(r'\n?```$'), '')
+          .trim();
+    }
+    return cleaned;
+  }
+
   void generateChat() async {
     final userMessage = _controller.text.trim();
     if (userMessage.isEmpty) return;
@@ -323,10 +319,18 @@ class _AiChatScreenState extends ConsumerState<AiChatScreen> {
         }
         // Check if we have the expected workflow data structure
         else if (apiData['workflow_plan'] != null) {
-          final workflowPlan = apiData['workflow_plan'] as Map<String, dynamic>;
-          final suggestedCreators = apiData['suggested_creators'] ?? [];
+          // ✅ Strip fences if workflow_plan is a raw string
+          final rawPlan = apiData['workflow_plan'];
+          Map<String, dynamic> workflowPlan;
 
-          // Format the AI response text
+          if (rawPlan is String) {
+            final cleaned = _stripJsonFences(rawPlan);
+            workflowPlan = Map<String, dynamic>.from(json.decode(cleaned));
+          } else {
+            workflowPlan = rawPlan as Map<String, dynamic>;
+          }
+
+          final suggestedCreators = apiData['suggested_creators'] ?? [];
           final aiResponseText = _formatAiResponse(workflowPlan, suggestedCreators);
 
           _updateAiMessageWithResponse(

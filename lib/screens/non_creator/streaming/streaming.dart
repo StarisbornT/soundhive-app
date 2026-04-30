@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:soundhive2/model/artist_song_model.dart';
@@ -41,12 +43,20 @@ class _StreamingState extends ConsumerState<Streaming> {
   final TextEditingController _playlistTitleController = TextEditingController();
   final TextEditingController _renameController = TextEditingController();
   String? selectedType;
+  final ScrollController _scrollController = ScrollController();
+  Timer? _debounce;
 
   @override
   void initState() {
     super.initState();
+    _scrollController.addListener(() {
+      if (_scrollController.position.pixels >=
+          _scrollController.position.maxScrollExtent - 300) {
+        ref.read(getAllSongsProvider.notifier).loadMore();
+      }
+    });
     WidgetsBinding.instance.addPostFrameCallback((_) async {
-      await ref.read(getAllSongsProvider.notifier).getAllSongs();
+      await ref.read(getAllSongsProvider.notifier).searchSongs('');
       await ref.read(getPlaylistProvider.notifier).getPlaylists();
     });
   }
@@ -55,6 +65,13 @@ class _StreamingState extends ConsumerState<Streaming> {
     "Gospel", "Metal", "Rock", "Hip-Pop", "Reggae",
     "Country", "Classical", "Jazz", "Blues", "Afrofusion", "Agro Beat", "Juju", "Other Genres"
   ];
+  void _onSearchChanged(String value) {
+    if (_debounce?.isActive ?? false) _debounce!.cancel();
+
+    _debounce = Timer(const Duration(milliseconds: 500), () {
+      ref.read(getAllSongsProvider.notifier).searchSongs(value);
+    });
+  }
 
   Widget _buildSearchAndFilter(ThemeData theme, bool isDark) {
     return Row(
@@ -96,113 +113,111 @@ class _StreamingState extends ConsumerState<Streaming> {
                       isDense: true,
                       contentPadding: EdgeInsets.zero,
                     ),
-                    onSubmitted: (value) {
-                      ref.read(getAllSongsProvider.notifier).getAllSongs(search: value);
-                    },
+                    onChanged: _onSearchChanged,
                   ),
                 ),
               ],
             ),
           ),
         ),
-        const SizedBox(width: 10.0),
-        Container(
-          decoration: BoxDecoration(
-            color: isDark ? AppColors.BACKGROUNDCOLOR : Colors.grey[100],
-            borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: theme.dividerColor),
-          ),
-          child: TextButton.icon(
-            onPressed: () => _showTypeFilterBottomSheet(theme, isDark),
-            icon: Icon(
-              Icons.filter_list,
-              color: theme.colorScheme.onSurface,
-            ),
-            label: Text(
-              'Filter',
-              style: TextStyle(
-                color: theme.colorScheme.onSurface.withOpacity(0.6),
-                fontSize: 12,
-              ),
-            ),
-          ),
-        ),
+        // const SizedBox(width: 10.0),
+        // Container(
+        //   decoration: BoxDecoration(
+        //     color: isDark ? AppColors.BACKGROUNDCOLOR : Colors.grey[100],
+        //     borderRadius: BorderRadius.circular(12),
+        //     border: Border.all(color: theme.dividerColor),
+        //   ),
+        //   child: TextButton.icon(
+        //     onPressed: () => _showTypeFilterBottomSheet(theme, isDark),
+        //     icon: Icon(
+        //       Icons.filter_list,
+        //       color: theme.colorScheme.onSurface,
+        //     ),
+        //     label: Text(
+        //       'Filter',
+        //       style: TextStyle(
+        //         color: theme.colorScheme.onSurface.withOpacity(0.6),
+        //         fontSize: 12,
+        //       ),
+        //     ),
+        //   ),
+        // ),
       ],
     );
   }
 
-  void _showTypeFilterBottomSheet(ThemeData theme, bool isDark) {
-    showModalBottomSheet(
-      context: context,
-      backgroundColor: theme.cardColor,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
-      ),
-      builder: (context) {
-        return Padding(
-          padding: const EdgeInsets.all(16.0),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                'Select Song Type',
-                style: TextStyle(
-                  color: theme.colorScheme.onSurface,
-                  fontSize: 16,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-              const SizedBox(height: 12),
-              Wrap(
-                spacing: 8,
-                children: types.map((type) {
-                  final isSelected = selectedType == type;
-                  return ChoiceChip(
-                    label: Text(
-                      type,
-                      style: TextStyle(
-                        color: isSelected
-                            ? Colors.white
-                            : theme.colorScheme.onSurface.withOpacity(0.8),
-                      ),
-                    ),
-                    selected: isSelected,
-                    selectedColor: AppColors.BUTTONCOLOR,
-                    backgroundColor: isDark
-                        ? const Color(0xFF2C2C2C)
-                        : Colors.grey[200],
-                    onSelected: (_) {
-                      Navigator.pop(context);
-                      setState(() => selectedType = type);
-                      ref.read(getAllSongsProvider.notifier).getAllSongs(type: type);
-                    },
-                  );
-                }).toList(),
-              ),
-              const SizedBox(height: 8),
-              if (selectedType != null)
-                TextButton(
-                  onPressed: () {
-                    Navigator.pop(context);
-                    setState(() => selectedType = null);
-                    ref.read(getAllSongsProvider.notifier).getAllSongs();
-                  },
-                  child: Text(
-                    'Clear Filter',
-                    style: TextStyle(
-                      color: theme.colorScheme.onSurface.withOpacity(0.7),
-                    ),
-                  ),
-                ),
-            ],
-          ),
-        );
-      },
-    );
-  }
+  // void _showTypeFilterBottomSheet(ThemeData theme, bool isDark) {
+  //   showModalBottomSheet(
+  //     context: context,
+  //     backgroundColor: theme.cardColor,
+  //     shape: const RoundedRectangleBorder(
+  //       borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+  //     ),
+  //     builder: (context) {
+  //       return Padding(
+  //         padding: const EdgeInsets.all(16.0),
+  //         child: Column(
+  //           mainAxisSize: MainAxisSize.min,
+  //           crossAxisAlignment: CrossAxisAlignment.start,
+  //           children: [
+  //             Text(
+  //               'Select Song Type',
+  //               style: TextStyle(
+  //                 color: theme.colorScheme.onSurface,
+  //                 fontSize: 16,
+  //                 fontWeight: FontWeight.bold,
+  //               ),
+  //             ),
+  //             const SizedBox(height: 12),
+  //             Wrap(
+  //               spacing: 8,
+  //               children: types.map((type) {
+  //                 final isSelected = selectedType == type;
+  //                 return ChoiceChip(
+  //                   label: Text(
+  //                     type,
+  //                     style: TextStyle(
+  //                       color: isSelected
+  //                           ? Colors.white
+  //                           : theme.colorScheme.onSurface.withOpacity(0.8),
+  //                     ),
+  //                   ),
+  //                   selected: isSelected,
+  //                   selectedColor: AppColors.BUTTONCOLOR,
+  //                   backgroundColor: isDark
+  //                       ? const Color(0xFF2C2C2C)
+  //                       : Colors.grey[200],
+  //                   onSelected: (_) {
+  //                     Navigator.pop(context);
+  //                     setState(() => selectedType = type);
+  //                     ref.read(getAllSongsProvider.notifier).getAllSongs(type: type);
+  //                   },
+  //                 );
+  //               }).toList(),
+  //             ),
+  //             const SizedBox(height: 8),
+  //             if (selectedType != null)
+  //               TextButton(
+  //                 onPressed: () {
+  //                   Navigator.pop(context);
+  //                   setState(() => selectedType = null);
+  //                   ref.read(getAllSongsProvider.notifier).getAllSongs();
+  //                 },
+  //                 child: Text(
+  //                   'Clear Filter',
+  //                   style: TextStyle(
+  //                     color: theme.colorScheme.onSurface.withOpacity(0.7),
+  //                   ),
+  //                 ),
+  //               ),
+  //           ],
+  //         ),
+  //       );
+  //     },
+  //   );
+  // }
 
-  Widget _buildTrackItem(SongItem song, ThemeData theme, bool isDark) {
+  Widget _buildTrackItem(SongItemData song, ThemeData theme, bool isDark) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 12.0),
       child: Container(
@@ -218,7 +233,7 @@ class _StreamingState extends ConsumerState<Streaming> {
             decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(8.0),
               image: DecorationImage(
-                image: NetworkImage(song.coverPhoto),
+                image: NetworkImage(song.cover),
                 fit: BoxFit.cover,
               ),
             ),
@@ -235,14 +250,7 @@ class _StreamingState extends ConsumerState<Streaming> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                "${song.artist?.userName ?? "Unknown Artist"} - ${song.artist?.followers} followers",
-                style: TextStyle(
-                  color: theme.colorScheme.onSurface.withOpacity(0.6),
-                  fontSize: 12,
-                ),
-              ),
-              Text(
-                "${song.plays} plays",
+                song.artist,
                 style: TextStyle(
                   color: theme.colorScheme.onSurface.withOpacity(0.6),
                   fontSize: 12,
@@ -259,11 +267,11 @@ class _StreamingState extends ConsumerState<Streaming> {
           ),
           onTap: () {
             final songsState = ref.read(getAllSongsProvider);
-            List<SongItem>? playlist;
+            List<SongItemData>? playlist;
 
             songsState.when(
               data: (songModel) {
-                playlist = songModel.data.data;
+                playlist = songModel.data;
               },
               loading: () => playlist = null,
               error: (e, _) => playlist = null,
@@ -284,7 +292,7 @@ class _StreamingState extends ConsumerState<Streaming> {
     );
   }
 
-  void _showSongOptions(SongItem song, ThemeData theme, bool isDark) {
+  void _showSongOptions(SongItemData song, ThemeData theme, bool isDark) {
     SharedBottomSheets.showSongOptions(
       context: context,
       song: song,
@@ -296,7 +304,7 @@ class _StreamingState extends ConsumerState<Streaming> {
     );
   }
 
-  void _showAddToPlaylist(SongItem song, ThemeData theme, bool isDark) {
+  void _showAddToPlaylist(SongItemData song, ThemeData theme, bool isDark) {
     SharedBottomSheets.showAddToPlaylist(
       context: context,
       song: song,
@@ -310,7 +318,7 @@ class _StreamingState extends ConsumerState<Streaming> {
     );
   }
 
-  void _onPlaylistTap(Playlist playlist, SongItem songToAdd) {
+  void _onPlaylistTap(Playlist playlist, SongItemData songToAdd) {
     Navigator.pop(context);
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
@@ -379,15 +387,15 @@ class _StreamingState extends ConsumerState<Streaming> {
     }
   }
 
-  void _navigateToArtistProfile(SongItem song) {
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (context) => ArtistProfile(
-          artistId: int.parse(song.artistId),
-        ),
-      ),
-    );
+  void _navigateToArtistProfile(SongItemData song) {
+    // Navigator.push(
+    //   context,
+    //   MaterialPageRoute(
+    //     builder: (context) => ArtistProfile(
+    //       artistId: int.parse(song.artistId),
+    //     ),
+    //   ),
+    // );
   }
 
   void _showCreatePlaylistBottomSheet(ThemeData theme, bool isDark) {
@@ -463,16 +471,16 @@ class _StreamingState extends ConsumerState<Streaming> {
 
     return GestureDetector(
       onTap: () {
-        Navigator.push(
-          context,
-          MaterialPageRoute(
-            builder: (context) => PlayMusic(
-              song: currentSong,
-              playlist: audioState.playlist,
-              fromMiniPlayer: true,
-            ),
-          ),
-        );
+        // Navigator.push(
+        //   context,
+        //   MaterialPageRoute(
+        //     builder: (context) => PlayMusic(
+        //       song: currentSong,
+        //       playlist: audioState,
+        //       fromMiniPlayer: true,
+        //     ),
+        //   ),
+        // );
       },
       child: Container(
         height: 70.0,
@@ -486,9 +494,9 @@ class _StreamingState extends ConsumerState<Streaming> {
               margin: const EdgeInsets.only(right: 10.0),
               child: ClipRRect(
                 borderRadius: BorderRadius.circular(8.0),
-                child: currentSong.coverPhoto.isNotEmpty
+                child: currentSong.cover.isNotEmpty
                     ? Image.network(
-                  currentSong.coverPhoto,
+                  currentSong.cover,
                   fit: BoxFit.cover,
                   width: 50,
                   height: 50,
@@ -532,7 +540,7 @@ class _StreamingState extends ConsumerState<Streaming> {
                     overflow: TextOverflow.ellipsis,
                   ),
                   Text(
-                    currentSong.artist?.userName ?? 'Unknown Artist',
+                    currentSong.artist,
                     style: TextStyle(
                       color: theme.colorScheme.onSurface.withOpacity(0.6),
                       fontSize: 12,
@@ -562,40 +570,37 @@ class _StreamingState extends ConsumerState<Streaming> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
-    final user = ref.watch(userProvider);
     final songsState = ref.watch(getAllSongsProvider);
 
-    Widget buildDiscoverSection() {
-      return songsState.when(
-        data: (songModel) {
-          final tracks = songModel.data.data;
-          if (tracks.isEmpty) {
-            return Center(
-              child: Padding(
-                padding: const EdgeInsets.all(20),
-                child: Text(
-                  'No songs found',
-                  style: TextStyle(color: theme.colorScheme.onSurface.withOpacity(0.6)),
-                ),
-              ),
-            );
-          }
+    Widget buildDiscoverSection(DeepFreezerModel songModel) {
+      final tracks = songModel.data;
 
-          return Column(
-            children: tracks.map((song) {
-              return _buildTrackItem(song, theme, isDark);
-            }).toList(),
-          );
-        },
-        loading: () => Center(
-          child: CircularProgressIndicator(color: theme.colorScheme.primary),
-        ),
-        error: (e, _) => Center(
-          child: Text(
-            'Error: $e',
-            style: TextStyle(color: theme.colorScheme.error),
+      if (tracks.isEmpty) {
+        return Center(
+          child: Padding(
+            padding: const EdgeInsets.all(20),
+            child: Text(
+              'No songs found',
+              style: TextStyle(
+                color: theme.colorScheme.onSurface.withOpacity(0.6),
+              ),
+            ),
           ),
-        ),
+        );
+      }
+
+      return Column(
+        children: [
+          ...tracks.map((song) => _buildTrackItem(song, theme, isDark)),
+
+          if (songModel.hasMore)
+            Padding(
+              padding: const EdgeInsets.all(16),
+              child: CircularProgressIndicator(
+                color: theme.colorScheme.primary,
+              ),
+            ),
+        ],
       );
     }
 
@@ -611,72 +616,84 @@ class _StreamingState extends ConsumerState<Streaming> {
           onPressed: () => Navigator.pop(context),
         ),
       ),
-      body: SingleChildScrollView(
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 10),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: <Widget>[
+
+      body: ListView(
+        controller: _scrollController,
+        padding: const EdgeInsets.symmetric(horizontal: 10),
+        children: [
+          const SizedBox(height: 10),
+
+          Text(
+            'SoundHive - Stream Music',
+            style: TextStyle(
+              fontSize: 24,
+              fontWeight: FontWeight.w500,
+              color: theme.colorScheme.onSurface,
+            ),
+          ),
+
+          const SizedBox(height: 10),
+
+          Image.asset('images/music_banner.png'),
+
+          const SizedBox(height: 10),
+
+          _buildSearchAndFilter(theme, isDark),
+
+          const SizedBox(height: 10),
+
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
               Text(
-                'SoundHive- Stream Music',
+                'Discover',
                 style: TextStyle(
-                  fontSize: 24,
-                  fontWeight: FontWeight.w500,
                   color: theme.colorScheme.onSurface,
+                  fontSize: 16,
+                  fontWeight: FontWeight.w400,
                 ),
               ),
-              const SizedBox(height: 10,),
-              Image.asset('images/music_banner.png'),
-              const SizedBox(height: 10,),
-              _buildSearchAndFilter(theme, isDark),
-              const SizedBox(height: 10,),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Text(
-                    'Discover',
-                    style: TextStyle(
-                      color: theme.colorScheme.onSurface,
-                      fontSize: 16.0,
-                      fontWeight: FontWeight.w400,
-                    ),
-                  ),
-                  OutlinedButton(
-                    onPressed: () {
-                      // Navigate to categories if needed
-                    },
-                    style: OutlinedButton.styleFrom(
-                      side: BorderSide(color: theme.dividerColor),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(100),
-                      ),
-                    ),
-                    child: Text(
-                      'View More',
-                      style: TextStyle(
-                        color: theme.colorScheme.onSurface.withOpacity(0.6),
-                        fontSize: 12,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 10.0),
-              buildDiscoverSection(),
-              const SizedBox(height: 70.0),
             ],
           ),
-        ),
+
+          const SizedBox(height: 10),
+
+          songsState.when(
+            data: (songModel) => buildDiscoverSection(songModel),
+            loading: () => Center(
+              child: Padding(
+                padding: const EdgeInsets.all(20),
+                child: CircularProgressIndicator(
+                  color: theme.colorScheme.primary,
+                ),
+              ),
+            ),
+            error: (e, _) => Center(
+              child: Padding(
+                padding: const EdgeInsets.all(20),
+                child: Text(
+                  'Error: $e',
+                  style: TextStyle(color: theme.colorScheme.error),
+                ),
+              ),
+            ),
+          ),
+
+          const SizedBox(height: 80),
+        ],
       ),
+
       bottomNavigationBar: _buildMiniPlayer(theme, isDark),
     );
   }
 
   @override
   void dispose() {
+    _scrollController.dispose();
     _searchController.dispose();
     _playlistTitleController.dispose();
     _renameController.dispose();
+    _debounce?.cancel();
     super.dispose();
   }
 }

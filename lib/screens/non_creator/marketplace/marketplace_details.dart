@@ -20,6 +20,7 @@ import '../../../utils/alert_helper.dart';
 import '../../../utils/app_colors.dart';
 import '../../creator/profile/profile_screen.dart';
 import '../../dashboard/marketplace/markplace_recept.dart';
+import '../../dashboard/verification_webview.dart';
 
 final withdrawStateProvider = StateProvider<bool>((ref) => false);
 
@@ -882,8 +883,7 @@ class _MarketplaceDetailsScreenState extends ConsumerState<MarketplaceDetails> {
       final offerAmount = offerState.value?.offer?.amount;
 
       // Use accepted offer amount if available, otherwise use service rate
-      final bookingAmount =
-      hasAcceptedOffer ? offerAmount : widget.service.convertedRate;
+      final bookingAmount = hasAcceptedOffer ? double.parse(offerAmount!) : widget.service.convertedRate;
 
       final payload = {
         "service_id": widget.service.id,
@@ -892,6 +892,11 @@ class _MarketplaceDetailsScreenState extends ConsumerState<MarketplaceDetails> {
             .toList(),
         "amount": bookingAmount,
       };
+
+      // Add payment method to payload
+      if (selectedPaymentOption != null) {
+        payload["payment_method"] = selectedPaymentOption;
+      }
 
       final response = await ref.read(apiresponseProvider.notifier).buyServices(
         context: context,
@@ -903,30 +908,76 @@ class _MarketplaceDetailsScreenState extends ConsumerState<MarketplaceDetails> {
         ref.read(getActiveInvestmentProvider.notifier).getActiveInvestments(
           pageSize: 10,
         );
-        final bookings = ActiveInvestment.fromMap(response.data);
 
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(
-            builder: (context) => Success(
-              title: 'Booked Successfully',
-              subtitle: 'You have successfully booked this service',
-              onButtonPressed: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => MarketplaceReceiptScreen(
-                      service: bookings,
-                      paymentMethod: selectedPaymentOption ?? '',
-                      price: bookingAmount.toString(),
-                      availability: availabilityDates,
-                    ),
-                  ),
-                );
-              },
+        // Check if it's a Flutterwave payment (has payment_link)
+        if (response.data != null && response.data['payment_link'] != null) {
+          // Open Flutterwave webview for payment
+          final result = await Navigator.push<String>(
+            context,
+            MaterialPageRoute(
+              builder: (context) => VerificationWebView(
+                url: response.data['payment_link'],
+                title: 'Complete Payment',
+              ),
             ),
-          ),
-        );
+          );
+
+          if (result == 'success' && mounted) {
+            // Refresh after successful payment
+            await ref.read(userProvider.notifier).loadUserProfile();
+            await ref.read(getActiveInvestmentProvider.notifier).getActiveInvestments(
+              pageSize: 10,
+            );
+
+            if (mounted) {
+              Navigator.pushReplacement(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => Success(
+                    title: 'Booking Confirmed',
+                    subtitle: 'Your booking has been confirmed successfully!',
+                    onButtonPressed: () {
+                      Navigator.pop(context);
+                    },
+                  ),
+                ),
+              );
+            }
+          } else if (result != 'success' && mounted) {
+            showCustomAlert(
+              context: context,
+              isSuccess: false,
+              title: 'Payment Failed',
+              message: 'Payment was not completed. Please try again.',
+            );
+          }
+        } else {
+          // Wallet payment - success
+          final bookings = ActiveInvestment.fromMap(response.data);
+
+          Navigator.pushReplacement(
+            context,
+            MaterialPageRoute(
+              builder: (context) => Success(
+                title: 'Booked Successfully',
+                subtitle: 'You have successfully booked this service',
+                onButtonPressed: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => MarketplaceReceiptScreen(
+                        service: bookings,
+                        paymentMethod: selectedPaymentOption ?? '',
+                        price: bookingAmount.toString(),
+                        availability: availabilityDates,
+                      ),
+                    ),
+                  );
+                },
+              ),
+            ),
+          );
+        }
       }
     } catch (error) {
       _handleBookingError(error);

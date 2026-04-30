@@ -1,21 +1,16 @@
-
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
 import 'package:shimmer/shimmer.dart';
 import 'package:soundhive2/screens/creator/profile/setup_screen.dart';
 import 'package:soundhive2/screens/dashboard/withdraw.dart';
 import 'package:soundhive2/utils/app_colors.dart';
 import 'package:soundhive2/utils/utils.dart';
-import '../../components/success.dart';
-import 'package:soundhive2/lib/dashboard_provider/add_money_provider.dart';
 import 'package:soundhive2/lib/dashboard_provider/user_provider.dart';
 import 'package:soundhive2/lib/dashboard_provider/getCreatorBookings.dart';
-import '../../model/add_money_model.dart';
 import '../../model/user_model.dart';
-import '../dashboard/verification_webview.dart';
+import '../non_creator/wallet/add_money_screen.dart';
+import '../non_creator/wallet/fund_wallet_provider.dart';
 import '../non_creator/wallet/wallet.dart';
 import 'creator_bookings_detail.dart';
 
@@ -26,6 +21,7 @@ class CreatorHome extends ConsumerStatefulWidget {
   @override
   ConsumerState<CreatorHome> createState() => _CreatorHomeState();
 }
+
 class _CreatorHomeState extends ConsumerState<CreatorHome> with SingleTickerProviderStateMixin  {
   int selectedTabIndex = 0;
   final ScrollController _bookingsScrollController = ScrollController();
@@ -47,22 +43,25 @@ class _CreatorHomeState extends ConsumerState<CreatorHome> with SingleTickerProv
     _tabController.addListener(_handleTabChange);
     _bookingsScrollController.addListener(_scrollListener);
   }
+
   void _handleTabChange() {
     if (_tabController.index == 1 ) {
       ref.read(getCreatorBookingProvider.notifier).getActiveInvestments(
-        pageSize: 10, // Add pagination limit
+        pageSize: 10,
       );
     }
     if (mounted) {
       setState(() => selectedTabIndex = _tabController.index);
     }
   }
+
   void _scrollListener() {
     if (_bookingsScrollController.position.pixels ==
         _bookingsScrollController.position.maxScrollExtent) {
       _loadMoreBookings();
     }
   }
+
   Future<void> _loadMoreBookings() async {
     final notifier = ref.read(getCreatorBookingProvider.notifier);
     if (!notifier.isLastPage && mounted) {
@@ -70,132 +69,21 @@ class _CreatorHomeState extends ConsumerState<CreatorHome> with SingleTickerProv
     }
   }
 
-  TextEditingController amountController = TextEditingController();
-  void _showAmountInputModal() {
-
-    final formatter = NumberFormat.currency(locale: 'en_US', symbol: '', decimalDigits: 0);
-
+  void _showAmountInputModal(String currency) {
     showDialog(
       context: context,
-      builder: (_) {
-        return AlertDialog(
-          title: const Text("Enter Amount"),
-          content: TextField(
-            controller: amountController,
-            keyboardType: TextInputType.number,
-            inputFormatters: [
-              FilteringTextInputFormatter.digitsOnly,
-              TextInputFormatter.withFunction((oldValue, newValue) {
-                String newText = newValue.text.replaceAll(',', '');
-                if (newText.isEmpty) return newValue.copyWith(text: '');
-                final number = int.tryParse(newText);
-                if (number == null) return oldValue;
-                final newFormatted = formatter.format(number);
-                return TextEditingValue(
-                  text: newFormatted,
-                  selection: TextSelection.collapsed(offset: newFormatted.length),
-                );
-              }),
-            ],
-            decoration: InputDecoration(
-              prefix: Text(
-                '${ref.userCurrency} ',
-
-              ),
-              hintText: "Enter amount to fund",
-            ),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () {
-                Navigator.of(context).pop();
-              },
-              child: const Text("Cancel"),
-            ),
-            ElevatedButton(
-              onPressed: () {
-                String cleanText = amountController.text.replaceAll(',', '');
-                int? amount = int.tryParse(cleanText);
-                if (amount != null && amount > 0) {
-                  Navigator.of(context).pop();
-                  fundWallet(); // will now work
-                }
-              },
-              child: const Text("Continue"),
-            ),
-          ],
-        );
-      },
+      builder: (_) => AddMoneyScreen(
+        user: widget.user.user!,
+        currency: currency,
+      ),
     );
   }
 
-  void fundWallet() async {
-    try {
-      final cleanAmount = amountController.text.replaceAll(',', '');
-      final response = await ref.read(addMoneyProvider.notifier).addMoney(
-        context: context,
-        amount: double.parse(cleanAmount),
-        currency: 'NGN'
-      );
-      if (response.data != null) {
-        if (!mounted) return;
-        final result = await Navigator.push<String>(
-          context,
-          MaterialPageRoute(
-            builder: (context) => VerificationWebView(url: response.data!.checkoutUrl, title: 'Add Money',),
-          ),
-        );
-        if (result == 'success') {
-          if (mounted) {
-            await ref.read(userProvider.notifier).loadUserProfile();
-            Navigator.push(
-              context,
-              MaterialPageRoute(
-                builder: (context) => Success(
-                  title: 'Money Added Successfully',
-                  subtitle: 'You have funded your wallet',
-                  onButtonPressed: () {
-                    Navigator.pop(context);
-                  },
-                ),
-              ),
-            );
-
-          }
-        }
-      }
-    } catch (error) {
-      String errorMessage = 'An unexpected error occurred';
-      if (error is DioException) {
-        if (error.response?.data != null) {
-          try {
-            final apiResponse = AddMoneyModel.fromJson(error.response?.data);
-            errorMessage = apiResponse.message;
-          } catch (e) {
-            errorMessage = 'Failed to parse error message';
-          }
-        } else {
-          errorMessage = error.message ?? 'Network error occurred';
-        }
-      }
-      print("Error: $errorMessage");
-    }
-  }
-
-
-  Widget _buildBalanceCard() {
-    final user = ref.watch(userProvider);
-    if(user.value?.user?.wallet == null) {
-      return _walletCard("Account balance", "Error", showButton: true);
-    }else {
-     return _walletCard(
-       "Account balance",
-      (ref.formatUserCurrency(user.value?.user?.wallet?.balance)),
-       showButton: true,
-     );
-
-    }
-
+  void _navigateToWithdraw() {
+    Navigator.push(
+      context,
+      MaterialPageRoute(builder: (context) => const WithdrawScreen()),
+    );
   }
 
   @override
@@ -205,7 +93,6 @@ class _CreatorHomeState extends ConsumerState<CreatorHome> with SingleTickerProv
     return PopScope(
       canPop: false,
       child: Scaffold(
-       
         body: SafeArea(
           child: SingleChildScrollView(
             padding: const EdgeInsets.all(16),
@@ -214,15 +101,15 @@ class _CreatorHomeState extends ConsumerState<CreatorHome> with SingleTickerProv
               children: [
                 if((widget.user.user?.creator == null || widget.user.user?.creator?.hasVerifiedIdentity == false || widget.user.user?.creator?.hasVerifiedCreativeProfile == false))...[
                   GestureDetector(
-                    onTap: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => SetupScreen(user: widget.user),
-                        ),
-                      );
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => SetupScreen(user: widget.user),
+                          ),
+                        );
 
-                    },
+                      },
                       child: Image.asset('images/banner.png')
                   )
                 ]else if(!(widget.user.user?.creator!.active ?? false))...[
@@ -238,7 +125,7 @@ class _CreatorHomeState extends ConsumerState<CreatorHome> with SingleTickerProv
                       ),
                     ),
                   ),
-             ],
+                ],
                 const SizedBox(height: 16),
                 // Menu buttons
                 SingleChildScrollView(
@@ -269,6 +156,7 @@ class _CreatorHomeState extends ConsumerState<CreatorHome> with SingleTickerProv
       ),
     );
   }
+
   Widget _buildShimmerBookingsList() {
     return ListView.builder(
       padding: const EdgeInsets.symmetric(horizontal: 16),
@@ -293,6 +181,7 @@ class _CreatorHomeState extends ConsumerState<CreatorHome> with SingleTickerProv
       },
     );
   }
+
   Widget buildMyBookingsUI() {
     final investmentsState = ref.watch(getCreatorBookingProvider);
     final investments = ref.read(getCreatorBookingProvider.notifier).allServices;
@@ -408,6 +297,7 @@ class _CreatorHomeState extends ConsumerState<CreatorHome> with SingleTickerProv
       },
     );
   }
+
   Widget _buildLoadingIndicator() {
     return Padding(
       padding: const EdgeInsets.all(16.0),
@@ -427,6 +317,7 @@ class _CreatorHomeState extends ConsumerState<CreatorHome> with SingleTickerProv
       ),
     );
   }
+
   Widget creatorHomeWidget(String escrowBalance, String amountEarned) {
     return Column(
       children: [
@@ -435,7 +326,6 @@ class _CreatorHomeState extends ConsumerState<CreatorHome> with SingleTickerProv
           scrollDirection: Axis.horizontal,
           child: Row(
             children: [
-
               _buildBalanceCard(),
               const SizedBox(width: 16),
               _walletCard(
@@ -449,58 +339,28 @@ class _CreatorHomeState extends ConsumerState<CreatorHome> with SingleTickerProv
             ],
           ),
         ),
-
         const SizedBox(height: 16),
-
-        // Analytics Section
-        const Text("Analytics",
-            style: TextStyle(
-                color: Colors.white,
-                fontSize: 16,
-                fontWeight: FontWeight.bold)),
-
-        SizedBox(height: 12),
-
-        // Analytics Filters
-        // Wrap(
-        //   spacing: 8,
-        //   runSpacing: 8,
-        //   children: [
-        //     _filterChip("Lyrics Writing", selected: true),
-        //     _filterChip("Music production"),
-        //     _filterChip("DJ Booking"),
-        //     _filterChip("Content creation"),
-        //   ],
-        // ),
-        //
-        // SizedBox(height: 12),
-        //
-        // Wrap(
-        //   spacing: 8,
-        //   children: [
-        //     _filterChip("Earnings", selected: true),
-        //     _filterChip("Booking"),
-        //     _filterChip("Rating"),
-        //     _filterChip("Last 30days", icon: Icons.keyboard_arrow_down),
-        //   ],
-        // ),
-        //
-        // SizedBox(height: 16),
-        //
-        // // Earnings Summary
-        // amountEarned > 0
-        //     ? _earningsGraph(amountEarned)
-        //     : Center(
-        //   child: Text(
-        //     "No transaction done yet!",
-        //     style: TextStyle(color: Colors.grey),
-        //   ),
-        // )
       ],
     );
   }
 
+  Widget _buildBalanceCard() {
+    final user = ref.watch(userProvider);
+    if(user.value?.user?.wallet == null) {
+      return _walletCard("Account balance", "Error", showButton: true);
+    } else {
+      return _walletCard(
+        "Account balance",
+        (ref.formatUserCurrency(user.value?.user?.wallet?.balance)),
+        showButton: true,
+      );
+    }
+  }
+
   Widget _walletCard(String title, String amount, {bool showButton = false, String? note}) {
+    final user = ref.watch(userProvider);
+    final userCurrency = ref.userCurrency;
+
     return Container(
       width: 300,
       height: 162,
@@ -535,13 +395,13 @@ class _CreatorHomeState extends ConsumerState<CreatorHome> with SingleTickerProv
           ],
           if (showButton) ...[
             const SizedBox(height: 16),
-            if(widget.user.user?.wallet != null) ...[
+            if(user.value?.user?.wallet != null) ...[
               Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   ElevatedButton.icon(
                     onPressed: () {
-                      _showAmountInputModal();
+                      _showAmountInputModal(userCurrency);
                     },
                     icon: const Icon(Icons.add, color: Color(0xFF4D3490), size: 18),
                     label: const Text(
@@ -558,14 +418,7 @@ class _CreatorHomeState extends ConsumerState<CreatorHome> with SingleTickerProv
                   ),
                   const SizedBox(width: 10),
                   OutlinedButton.icon(
-                    onPressed: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => const WithdrawScreen(),
-                        ),
-                      );
-                    },
+                    onPressed: _navigateToWithdraw,
                     icon: const Icon(Icons.download, color: Colors.white, size: 18),
                     label: const Text(
                       'Withdraw',
@@ -581,7 +434,7 @@ class _CreatorHomeState extends ConsumerState<CreatorHome> with SingleTickerProv
                   ),
                 ],
               ),
-            ]else...[
+            ] else ...[
               ElevatedButton.icon(
                 style: ElevatedButton.styleFrom(
                   backgroundColor: Colors.white,
@@ -593,18 +446,15 @@ class _CreatorHomeState extends ConsumerState<CreatorHome> with SingleTickerProv
                   Navigator.push(
                     context,
                     MaterialPageRoute(
-                      builder: (context) =>  WalletScreen(user: widget.user.user!,),
+                      builder: (context) => WalletScreen(user: widget.user.user!,),
                     ),
                   );
                 },
               ),
             ]
-
-
           ],
         ],
       ),
     );
   }
-
 }

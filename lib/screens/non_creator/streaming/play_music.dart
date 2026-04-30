@@ -21,8 +21,8 @@ import '../../../utils/alert_helper.dart';
 import 'artist_profile.dart';
 
 class PlayMusic extends ConsumerStatefulWidget {
-  final SongItem song;
-  final List<SongItem>? playlist;
+  final SongItemData song;
+  final List<SongItemData>? playlist;
   final bool fromMiniPlayer;
 
   const PlayMusic({
@@ -353,7 +353,7 @@ class _PlayMusicState extends ConsumerState<PlayMusic> {
         });
 
         if (_listenDuration == 30) {
-          _countPlay(audioState.currentSong!);
+          // _countPlay(audioState.currentSong!);
         }
       }
     });
@@ -364,7 +364,7 @@ class _PlayMusicState extends ConsumerState<PlayMusic> {
     _listenDuration = 0;
   }
 
-  void _countPlay(SongItem currentSong) async {
+  void _countPlay(SongItemData currentSong) async {
     if (_playCounted || _apiCallMade) return;
 
     setState(() {
@@ -381,7 +381,7 @@ class _PlayMusicState extends ConsumerState<PlayMusic> {
       setState(() {
         _playCounted = true;
       });
-      ref.read(getAllSongsProvider.notifier).getAllSongs();
+      ref.read(getAllSongsProvider.notifier).searchSongs('');
       final currentState = ref.read(playTrackingProvider);
       ref.read(playTrackingProvider.notifier).state = {
         ...currentState,
@@ -413,7 +413,7 @@ class _PlayMusicState extends ConsumerState<PlayMusic> {
 
   // ========== BOTTOM SHEET METHODS ==========
 
-  void showAddToPlaylistBottomSheet(BuildContext context, SongItem songToAdd) {
+  void showAddToPlaylistBottomSheet(BuildContext context, SongItemData songToAdd) {
     BottomSheetHelper.showCommonBottomSheet(
       context: context,
       isScrollControlled: true,
@@ -421,7 +421,7 @@ class _PlayMusicState extends ConsumerState<PlayMusic> {
     );
   }
 
-  Widget _buildAddToPlaylistContent(SongItem songToAdd) {
+  Widget _buildAddToPlaylistContent(SongItemData songToAdd) {
     return BottomSheetHelper.buildBottomSheetWrapper(
       context: context,
       child: Column(
@@ -440,7 +440,7 @@ class _PlayMusicState extends ConsumerState<PlayMusic> {
     );
   }
 
-  Widget _buildPlaylistList(SongItem songToAdd) {
+  Widget _buildPlaylistList(SongItemData songToAdd) {
     return Consumer(
       builder: (context, ref, child) {
         final playlistsAsyncValue = ref.watch(getPlaylistProvider);
@@ -457,7 +457,7 @@ class _PlayMusicState extends ConsumerState<PlayMusic> {
     );
   }
 
-  Widget _buildPlaylistListView(List<Playlist> playlists, SongItem songToAdd, GetPlaylistNotifier playlistNotifier) {
+  Widget _buildPlaylistListView(List<Playlist> playlists, SongItemData songToAdd, GetPlaylistNotifier playlistNotifier) {
     if (playlists.isEmpty) {
       return const Padding(
         padding: EdgeInsets.only(top: 50, bottom: 50),
@@ -491,7 +491,7 @@ class _PlayMusicState extends ConsumerState<PlayMusic> {
     );
   }
 
-  Widget _buildPlaylistTile(Playlist playlist, SongItem songToAdd) {
+  Widget _buildPlaylistTile(Playlist playlist, SongItemData songToAdd) {
     return _PlaylistTile(
       playlist: playlist,
       onTap: () => _onPlaylistTap(playlist, songToAdd),
@@ -500,7 +500,7 @@ class _PlayMusicState extends ConsumerState<PlayMusic> {
     );
   }
 
-  void _onPlaylistTap(Playlist playlist, SongItem songToAdd) {
+  void _onPlaylistTap(Playlist playlist, SongItemData songToAdd) {
     Navigator.pop(context);
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
@@ -730,14 +730,14 @@ class _PlayMusicState extends ConsumerState<PlayMusic> {
         label: "Check artist profile",
         onTap: () {
           Navigator.pop(context);
-          Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder: (context) => ArtistProfile(
-                artistId: int.parse(widget.song.artistId),
-              ),
-            ),
-          );
+          // Navigator.push(
+          //   context,
+          //   MaterialPageRoute(
+          //     builder: (context) => ArtistProfile(
+          //       artistId: int.parse(widget.song.artist),
+          //     ),
+          //   ),
+          // );
         },
       ),
       _BottomOption(
@@ -853,12 +853,12 @@ class _PlayMusicState extends ConsumerState<PlayMusic> {
     );
   }
 
-  Widget _buildAlbumArt(SongItem currentSong) {
+  Widget _buildAlbumArt(SongItemData currentSong) {
     return ClipRRect(
       borderRadius: BorderRadius.circular(20),
-      child: currentSong.coverPhoto.isNotEmpty
+      child: currentSong.cover.isNotEmpty
           ? Image.network(
-        currentSong.coverPhoto,
+        currentSong.cover,
         height: 340,
         width: 340,
         fit: BoxFit.cover,
@@ -880,7 +880,7 @@ class _PlayMusicState extends ConsumerState<PlayMusic> {
     );
   }
 
-  Widget _buildSongInfo(SongItem currentSong) {
+  Widget _buildSongInfo(SongItemData currentSong) {
     return Column(
       children: [
         Text(
@@ -896,7 +896,7 @@ class _PlayMusicState extends ConsumerState<PlayMusic> {
         ),
         const SizedBox(height: 6),
         Text(
-          currentSong.artist?.userName ?? 'Unknown Artist',
+          currentSong.artist,
           style: TextStyle(
             color: Colors.white.withOpacity(0.7),
             fontSize: 16,
@@ -955,10 +955,10 @@ class _PlayMusicState extends ConsumerState<PlayMusic> {
           onPressed: audioState.playlist != null && audioState.playlist!.length > 1
               ? _playNext : null,
         ),
-        IconButton(
-          onPressed: () => showSongOptionsBottomSheet(context),
-          icon: const Icon(Icons.more_vert, color: Colors.white70, size: 28),
-        ),
+        // IconButton(
+        //   onPressed: () => showSongOptionsBottomSheet(context),
+        //   icon: const Icon(Icons.more_vert, color: Colors.white70, size: 28),
+        // ),
       ],
     );
   }

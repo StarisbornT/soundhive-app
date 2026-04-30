@@ -6,6 +6,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:soundhive2/components/rounded_button.dart';
+import '../lib/dashboard_provider/checkOfferProvider.dart';
 import '../lib/dashboard_provider/getAccountBalanceProvider.dart';
 import '../model/user_model.dart';
 import '../screens/creator/profile/setup_screen.dart';
@@ -1516,7 +1517,9 @@ class _PaymentMethodSelectorState
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
             Text(
-              "Cre8Pay - ${ref.formatUserCurrency(widget.user.wallet?.balance)}",
+              _selectedMethod == 'flutterwave'
+                  ? "Pay with Flutterwave"
+                  : "Cre8Pay - ${ref.formatUserCurrency(widget.user.wallet?.balance)}",
               style: TextStyle(
                 color: _selectedMethod == null
                     ? theme.colorScheme.onSurface.withOpacity(0.6)
@@ -1536,7 +1539,7 @@ class _PaymentMethodSelectorState
 
   void _showPaymentOptions(
       BuildContext context, ThemeData theme, bool isDark) {
-    int selectedOption = _selectedMethod == 'Paystack Checkout' ? 1 : 0;
+    int selectedOption = _selectedMethod == 'flutterwave' ? 1 : 0;
 
     showModalBottomSheet(
       context: context,
@@ -1563,7 +1566,7 @@ class _PaymentMethodSelectorState
                   ),
                   const SizedBox(height: 8),
                   Text(
-                    'Don’t worry, the service provider will not be paid until the job has been completed.',
+                    'Don\'t worry, the service provider will not be paid until the job has been completed.',
                     style: TextStyle(
                       fontSize: 14,
                       color: theme.colorScheme.onSurface.withOpacity(0.6),
@@ -1571,21 +1574,77 @@ class _PaymentMethodSelectorState
                   ),
                   const SizedBox(height: 16),
 
+                  // Wallet Option
                   _buildPaymentOption(
                     context,
                     title: 'Cre8Pay - ${ref.formatUserCurrency(widget.user.wallet?.balance)}',
+                    subtitle: 'Pay using your wallet balance',
                     icon: "images/logo1.png",
                     selected: selectedOption == 0,
                     onTap: () => setStateBottomSheet(() => selectedOption = 0),
                     theme: theme,
                     isDark: isDark,
                   ),
+                  const SizedBox(height: 12),
+
+                  // Flutterwave Option
+                  _buildPaymentOption(
+                    context,
+                    title: 'Flutterwave',
+                    subtitle: 'Pay with Card, Bank Transfer, or USSD',
+                    icon: "images/flutterwave.png", // Add your Flutterwave logo
+                    selected: selectedOption == 1,
+                    onTap: () => setStateBottomSheet(() => selectedOption = 1),
+                    theme: theme,
+                    isDark: isDark,
+                  ),
                   const SizedBox(height: 24),
+
+                  // Warning for insufficient wallet balance
+                  if (selectedOption == 0 && (widget.user.wallet?.balance ?? 0) < _getBookingAmount())
+                    Container(
+                      padding: const EdgeInsets.all(12),
+                      margin: const EdgeInsets.only(bottom: 16),
+                      decoration: BoxDecoration(
+                        color: Colors.red.withOpacity(0.1),
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(color: Colors.red.withOpacity(0.3)),
+                      ),
+                      child: Row(
+                        children: [
+                          Icon(Icons.warning_amber_rounded, color: Colors.red, size: 20),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: Text(
+                              'Insufficient wallet balance. Please choose Flutterwave or add funds to your wallet.',
+                              style: TextStyle(
+                                color: Colors.red,
+                                fontSize: 12,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
 
                   RoundedButton(
                     title: 'Proceed',
                     onPressed: () {
-                      String method = "wallet";
+                      String method = selectedOption == 0 ? "wallet" : "flutterwave";
+
+                      // Check if wallet has sufficient balance
+                      if (method == "wallet") {
+                        final bookingAmount = _getBookingAmount();
+                        if ((widget.user.wallet?.balance ?? 0) < bookingAmount) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                              content: Text('Insufficient wallet balance. Please choose Flutterwave or add funds.'),
+                              backgroundColor: Colors.red,
+                            ),
+                          );
+                          return;
+                        }
+                      }
 
                       setState(() => _selectedMethod = method);
                       widget.onSelected(method);
@@ -1604,9 +1663,21 @@ class _PaymentMethodSelectorState
     );
   }
 
+  double _getBookingAmount() {
+    final offerState = ref.read(checkOfferProvider);
+    final hasAcceptedOffer = offerState.value?.offer?.status == 'ACCEPTED';
+    final offerAmount = offerState.value?.offer?.amount;
+
+    if (hasAcceptedOffer && offerAmount != null) {
+      return double.parse(offerAmount);
+    }
+    return 0; // This will be set from the service rate
+  }
+
   Widget _buildPaymentOption(
       BuildContext context, {
         required String title,
+        required String subtitle,
         required String icon,
         required bool selected,
         required VoidCallback onTap,
@@ -1624,9 +1695,9 @@ class _PaymentMethodSelectorState
                 ? AppColors.BUTTONCOLOR
                 : theme.dividerColor,
           ),
-          color: isDark
-              ? Colors.transparent
-              : Colors.grey[100]?.withOpacity(0.5),
+          color: selected
+              ? AppColors.BUTTONCOLOR.withOpacity(0.05)
+              : (isDark ? Colors.transparent : Colors.grey[100]?.withOpacity(0.5)),
         ),
         child: Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -1634,24 +1705,52 @@ class _PaymentMethodSelectorState
             Expanded(
               child: Row(
                 children: [
-                  Image.asset(
-                    icon,
-                    color: selected
-                        ? AppColors.BUTTONCOLOR
-                        : theme.colorScheme.onSurface.withOpacity(0.6),
-                    width: 50,
+                  Container(
+                    width: 40,
+                    height: 40,
+                    decoration: BoxDecoration(
+                      color: selected
+                          ? AppColors.BUTTONCOLOR.withOpacity(0.1)
+                          : Colors.transparent,
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Image.asset(
+                      icon,
+                      color: selected
+                          ? AppColors.BUTTONCOLOR
+                          : theme.colorScheme.onSurface.withOpacity(0.6),
+                      width: 30,
+                      errorBuilder: (context, error, stackTrace) =>
+                          Icon(Icons.account_balance_wallet,
+                              color: selected
+                                  ? AppColors.BUTTONCOLOR
+                                  : theme.colorScheme.onSurface.withOpacity(0.6)),
+                    ),
                   ),
-                  const SizedBox(width: 8),
+                  const SizedBox(width: 12),
                   Expanded(
-                    child: Text(
-                      title,
-                      style: TextStyle(
-                        color: selected
-                            ? theme.colorScheme.onSurface
-                            : theme.colorScheme.onSurface.withOpacity(0.8),
-                        fontSize: 14,
-                      ),
-                      overflow: TextOverflow.ellipsis,
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          title,
+                          style: TextStyle(
+                            color: selected
+                                ? theme.colorScheme.onSurface
+                                : theme.colorScheme.onSurface.withOpacity(0.8),
+                            fontSize: 14,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                        const SizedBox(height: 2),
+                        Text(
+                          subtitle,
+                          style: TextStyle(
+                            color: theme.colorScheme.onSurface.withOpacity(0.5),
+                            fontSize: 11,
+                          ),
+                        ),
+                      ],
                     ),
                   ),
                 ],

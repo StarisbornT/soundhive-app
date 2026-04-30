@@ -10,9 +10,9 @@ final audioPlayerProvider = StateNotifierProvider<AudioPlayerNotifier, AudioPlay
 
 class AudioPlayerState {
   final AudioPlayer player;
-  final SongItem? currentSong;
-  final List<SongItem>? playlist;
-  final List<SongItem>? originalPlaylist; // Store original order
+  final SongItemData? currentSong;
+  final List<SongItemData>? playlist;
+  final List<SongItemData>? originalPlaylist; // Store original order
   final bool isPlaying;
   final int currentIndex;
   final Duration position;
@@ -33,9 +33,9 @@ class AudioPlayerState {
 
   AudioPlayerState copyWith({
     AudioPlayer? player,
-    SongItem? currentSong,
-    List<SongItem>? playlist,
-    List<SongItem>? originalPlaylist,
+    SongItemData? currentSong,
+    List<SongItemData>? playlist,
+    List<SongItemData>? originalPlaylist,
     bool? isPlaying,
     int? currentIndex,
     Duration? position,
@@ -91,10 +91,10 @@ class AudioPlayerNotifier extends StateNotifier<AudioPlayerState> {
     });
   }
 
-  Future<void> playSong(SongItem song, {List<SongItem>? playlist}) async {
+  Future<void> playSong(SongItemData song, {List<SongItemData>? playlist}) async {
     try {
       await state.player.stop();
-      await state.player.setUrl(song.songAudio);
+      await state.player.setUrl(song.preview);
       await state.player.play();
 
       final currentPlaylist = playlist ?? [song];
@@ -173,7 +173,7 @@ class AudioPlayerNotifier extends StateNotifier<AudioPlayerState> {
 
       // Completely stop and reset the player
       await state.player.stop();
-      await state.player.setUrl(newSong.songAudio);
+      await state.player.setUrl(newSong.preview);
 
       // Create a new state with isPlaying set to true since we're about to play
       state = AudioPlayerState(
@@ -205,7 +205,7 @@ class AudioPlayerNotifier extends StateNotifier<AudioPlayerState> {
 
     if (!state.isShuffled) {
       final currentSong = state.currentSong;
-      final tempList = List<SongItem>.from(state.playlist!)..removeAt(state.currentIndex);
+      final tempList = List<SongItemData>.from(state.playlist!)..removeAt(state.currentIndex);
       tempList.shuffle();
       tempList.insert(state.currentIndex, currentSong!);
 

@@ -1,5 +1,4 @@
 import 'dart:ui';
-import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
@@ -9,16 +8,12 @@ import 'package:soundhive2/model/investment_model.dart';
 import 'package:soundhive2/screens/creator/profile/setup_screen.dart';
 import 'package:soundhive2/screens/non_creator/vest/vest_details.dart';
 import '../../../components/rounded_button.dart';
-import '../../../components/success.dart';
 import 'package:soundhive2/lib/dashboard_provider/getActiveVestProvider.dart';
-import 'package:soundhive2/lib/dashboard_provider/add_money_provider.dart';
-import 'package:soundhive2/lib/dashboard_provider/user_provider.dart';
-import '../../../model/add_money_model.dart';
 import '../../../model/get_active_vest_model.dart';
 import '../../../model/user_model.dart';
 import '../../../utils/utils.dart';
-import '../../dashboard/verification_webview.dart';
 import '../streaming/streaming.dart';
+import '../wallet/add_money_screen.dart';
 import '../wallet/fund_wallet_provider.dart';
 import '../wallet/wallet_cards.dart';
 import 'active_vest_details.dart';
@@ -37,8 +32,6 @@ class SoundhiveVestScreen extends ConsumerStatefulWidget {
   @override
   ConsumerState<SoundhiveVestScreen> createState() => _SoundhiveVestScreenState();
 }
-
-
 
 class _SoundhiveVestScreenState extends ConsumerState<SoundhiveVestScreen> with TickerProviderStateMixin {
 
@@ -64,7 +57,6 @@ class _SoundhiveVestScreenState extends ConsumerState<SoundhiveVestScreen> with 
   void _handleSearch() {
     final query = _searchController.text.trim();
     if (query.isNotEmpty) {
-      // Add a delay to avoid too many API calls while typing
       Future.delayed(const Duration(milliseconds: 500), () {
         if (_searchController.text.trim() == query) {
           ref.read(getInvestmentProvider.notifier).searchInvestments(query);
@@ -122,73 +114,21 @@ class _SoundhiveVestScreenState extends ConsumerState<SoundhiveVestScreen> with 
     super.dispose();
   }
 
-  TextEditingController amountController = TextEditingController();
   void _showAmountInputModal(String currency) {
     showDialog(
       context: context,
-      builder: (_) => FundWalletModal(
+      builder: (_) => AddMoneyScreen(
+        user: widget.user.user!,
         currency: currency,
       ),
     );
   }
+
   void _navigateToWithdraw() {
     Navigator.push(
       context,
       MaterialPageRoute(builder: (context) => const Streaming()),
     );
-  }
-
-  void fundWallet() async {
-    try {
-      final cleanAmount = amountController.text.replaceAll(',', '');
-      final response = await ref.read(addMoneyProvider.notifier).addMoney(
-        context: context,
-        amount: double.parse(cleanAmount), // safe parse
-        currency: ''
-      );
-      if (response.data != null) {
-        if (!mounted) return;
-        final result = await Navigator.push<String>(
-          context,
-          MaterialPageRoute(
-            builder: (context) => VerificationWebView(url: response.data!.checkoutUrl, title: 'Add Money',),
-          ),
-        );
-        if (result == 'success') {
-          if (mounted) {
-            await ref.read(userProvider.notifier).loadUserProfile();
-            Navigator.push(
-              context,
-              MaterialPageRoute(
-                builder: (context) => Success(
-                  title: 'Money Added Successfully',
-                  subtitle: 'You have funded your wallet',
-                  onButtonPressed: () {
-                    Navigator.pop(context);
-                  },
-                ),
-              ),
-            );
-
-          }
-        }
-      }
-    } catch (error) {
-      String errorMessage = 'An unexpected error occurred';
-      if (error is DioException) {
-        if (error.response?.data != null) {
-          try {
-            final apiResponse = AddMoneyModel.fromJson(error.response?.data);
-            errorMessage = apiResponse.message;
-          } catch (e) {
-            errorMessage = 'Failed to parse error message';
-          }
-        } else {
-          errorMessage = error.message ?? 'Network error occurred';
-        }
-      }
-      print("Error: $errorMessage");
-    }
   }
 
   @override
@@ -271,7 +211,6 @@ class _SoundhiveVestScreenState extends ConsumerState<SoundhiveVestScreen> with 
                               ),
                             ),
                           ),
-
                         ],
                       ),
 
@@ -287,30 +226,30 @@ class _SoundhiveVestScreenState extends ConsumerState<SoundhiveVestScreen> with 
                               child: Column(
                                 mainAxisAlignment: MainAxisAlignment.center,
                                 children: [
-                                   Center(
+                                  Center(
                                     child: Text(
                                       textAlign: TextAlign.center,
-                                      (user?.creator == null) ?  "Complete your KYC so as to activate your Cre8Vest Account Unlock your ability to Invest in verifiable and quality entertainment projects or artists, as well as share in their success.": "Your account is under review",
+                                      (user?.creator == null) ? "Complete your KYC so as to activate your Cre8Vest Account Unlock your ability to Invest in verifiable and quality entertainment projects or artists, as well as share in their success." : "Your account is under review",
                                       style: const TextStyle(
                                           color: Colors.white, fontSize: 18),
                                     ),
                                   ),
                                   const SizedBox(height: 10),
                                   if(user?.creator == null)
-                                  RoundedButton(
-                                    title: 'Verify my identity',
-                                    onPressed: () {
-                                      Navigator.push(
-                                        context,
-                                        MaterialPageRoute(
-                                          builder: (context) => SetupScreen(user: widget.user),
-                                        ),
-                                      );
-                                    },
-                                    color: const Color(0xFF4D3490),
-                                    borderWidth: 0,
-                                    borderRadius: 12.0,
-                                  )
+                                    RoundedButton(
+                                      title: 'Verify my identity',
+                                      onPressed: () {
+                                        Navigator.push(
+                                          context,
+                                          MaterialPageRoute(
+                                            builder: (context) => SetupScreen(user: widget.user),
+                                          ),
+                                        );
+                                      },
+                                      color: const Color(0xFF4D3490),
+                                      borderWidth: 0,
+                                      borderRadius: 12.0,
+                                    )
                                 ],
                               ),
                             ),
@@ -455,18 +394,17 @@ class _SoundhiveVestScreenState extends ConsumerState<SoundhiveVestScreen> with 
         ),
         const SizedBox(height: 15),
         Expanded(
-
           child: serviceState.when(
             data: (serviceResponse) {
               final allServices = serviceResponse.data.data;
               if (allServices.isEmpty) return _buildEmptyState(context);
-          
+
               return ListView.builder(
                 controller: _scrollController,
-                keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag, // 👈 helps UX
+                keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
                 padding: EdgeInsets.fromLTRB(
                   10, 10, 10,
-                  MediaQuery.of(context).viewInsets.bottom + 10, // 👈 add bottom space when keyboard shows
+                  MediaQuery.of(context).viewInsets.bottom + 10,
                 ),
                 itemCount: allServices.length + (_isLoadingMore ? 1 : 0),
                 itemBuilder: (context, index) {
@@ -494,13 +432,12 @@ class _SoundhiveVestScreenState extends ConsumerState<SoundhiveVestScreen> with 
               );
             },
             loading: () => _buildShimmerInvestmentList(),
-            error: (error, _) => Center(child: Text('Error: $error')), // 👈 don’t return Expanded here
+            error: (error, _) => Center(child: Text('Error: $error')),
           ),
         ),
       ],
     );
   }
-
 
   Widget _buildLoadingIndicator() {
     return Padding(
@@ -536,11 +473,11 @@ class _SoundhiveVestScreenState extends ConsumerState<SoundhiveVestScreen> with 
               padding: const EdgeInsets.symmetric(vertical: 5),
               child: GestureDetector(
                   onTap: () {
-                    Navigator.push(context,  MaterialPageRoute(
+                    Navigator.push(context, MaterialPageRoute(
                       builder: (context) => ActiveVestDetailsScreen(
                         investment: allServices[index],
                       ),
-                    ),);
+                    ));
                   },
                   child: _activeinvestmentCard(allServices[index])
               ),
@@ -767,7 +704,7 @@ class _SoundhiveVestScreenState extends ConsumerState<SoundhiveVestScreen> with 
     return Container(
       height: 150,
       color: Colors.grey[800],
-      child: Icon(Icons.broken_image, color: Colors.white54),
+      child: const Icon(Icons.broken_image, color: Colors.white54),
     );
   }
 }
