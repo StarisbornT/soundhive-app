@@ -312,14 +312,8 @@ class _AiChatScreenState extends ConsumerState<AiChatScreen> {
           });
         }
 
-        // Check if this is a greeting response (has ai_response in data)
-        if (apiData['ai_response'] != null) {
-          // This is likely a greeting or conversational response
-          _handleGreetingResponse(apiData);
-        }
-        // Check if we have the expected workflow data structure
-        else if (apiData['workflow_plan'] != null) {
-          // ✅ Strip fences if workflow_plan is a raw string
+        // ✅ FIX: Check workflow_plan FIRST — it takes priority over ai_response
+        if (apiData['workflow_plan'] != null) {
           final rawPlan = apiData['workflow_plan'];
           Map<String, dynamic> workflowPlan;
 
@@ -338,8 +332,10 @@ class _AiChatScreenState extends ConsumerState<AiChatScreen> {
             workflowPlan: workflowPlan,
             suggestedCreators: suggestedCreators,
           );
+        } else if (apiData['ai_response'] != null) {
+          // Only fall back to ai_response if there's no workflow_plan
+          _handleGreetingResponse(apiData);
         } else {
-          // Try to handle as simple text response
           _handleSimpleTextResponse(apiData);
         }
 
