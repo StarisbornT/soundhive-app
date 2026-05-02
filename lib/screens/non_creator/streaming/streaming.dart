@@ -60,6 +60,7 @@ class _StreamingState extends ConsumerState<Streaming> {
       await ref.read(getPlaylistProvider.notifier).getPlaylists();
     });
   }
+  String? _selectedGenre;
 
   List<String> types = [
     "Gospel", "Metal", "Rock", "Hip-Pop", "Reggae",
@@ -71,6 +72,75 @@ class _StreamingState extends ConsumerState<Streaming> {
     _debounce = Timer(const Duration(milliseconds: 500), () {
       ref.read(getAllSongsProvider.notifier).searchSongs(value);
     });
+  }
+
+  final List<Map<String, dynamic>> _genres = [
+    {'label': 'Afrobeats', 'emoji': '🥁'},
+    {'label': 'Gospel',    'emoji': '🙏'},
+    {'label': 'Hip-Hop',   'emoji': '🎤'},
+    {'label': 'Reggae',    'emoji': '🌿'},
+    {'label': 'Jazz',      'emoji': '🎷'},
+  ];
+
+  Widget _buildGenreChips(ThemeData theme, bool isDark) {
+    return SizedBox(
+      height: 40,
+      child: ListView.separated(
+        scrollDirection: Axis.horizontal,
+        itemCount: _genres.length,
+        separatorBuilder: (_, __) => const SizedBox(width: 8),
+        itemBuilder: (context, index) {
+          final genre = _genres[index];
+          final isSelected = _selectedGenre == genre['label'];
+
+          return GestureDetector(
+            onTap: () {
+              final tapped = genre['label'] as String;
+              final next = isSelected ? null : tapped;
+              setState(() => _selectedGenre = next);
+              ref.read(getAllSongsProvider.notifier).searchSongs(next ?? '');
+            },
+            child: AnimatedContainer(
+              duration: const Duration(milliseconds: 200),
+              curve: Curves.easeOut,
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+              decoration: BoxDecoration(
+                color: isSelected
+                    ? AppColors.BUTTONCOLOR
+                    : (isDark ? const Color(0xFF2A2A2A) : Colors.grey[200]),
+                borderRadius: BorderRadius.circular(20),
+                border: Border.all(
+                  color: isSelected
+                      ? AppColors.BUTTONCOLOR
+                      : (isDark ? Colors.white12 : Colors.grey.shade300),
+                  width: 1,
+                ),
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    genre['emoji'] as String,
+                    style: const TextStyle(fontSize: 14),
+                  ),
+                  const SizedBox(width: 6),
+                  Text(
+                    genre['label'] as String,
+                    style: TextStyle(
+                      fontSize: 13,
+                      fontWeight: isSelected ? FontWeight.w600 : FontWeight.w400,
+                      color: isSelected
+                          ? Colors.white
+                          : theme.colorScheme.onSurface.withOpacity(0.75),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          );
+        },
+      ),
+    );
   }
 
   Widget _buildSearchAndFilter(ThemeData theme, bool isDark) {
@@ -639,6 +709,10 @@ class _StreamingState extends ConsumerState<Streaming> {
           const SizedBox(height: 10),
 
           _buildSearchAndFilter(theme, isDark),
+
+          const SizedBox(height: 12),
+
+          _buildGenreChips(theme, isDark),
 
           const SizedBox(height: 10),
 

@@ -312,32 +312,17 @@ class _AiChatScreenState extends ConsumerState<AiChatScreen> {
           });
         }
 
-        // ✅ FIX: Check workflow_plan FIRST — it takes priority over ai_response
-        if (apiData['workflow_plan'] != null) {
-          final rawPlan = apiData['workflow_plan'];
-          Map<String, dynamic> workflowPlan;
+        final workflowPlan = apiData['workflow_plan'] ?? {};
+        final suggestedCreators = apiData['suggested_creators'] ?? [];
 
-          if (rawPlan is String) {
-            final cleaned = _stripJsonFences(rawPlan);
-            workflowPlan = Map<String, dynamic>.from(json.decode(cleaned));
-          } else {
-            workflowPlan = rawPlan as Map<String, dynamic>;
-          }
+        final aiResponseText = apiData['ai_response'] ??
+            _formatAiResponse(workflowPlan, suggestedCreators);
 
-          final suggestedCreators = apiData['suggested_creators'] ?? [];
-          final aiResponseText = _formatAiResponse(workflowPlan, suggestedCreators);
-
-          _updateAiMessageWithResponse(
-            aiResponseText: aiResponseText,
-            workflowPlan: workflowPlan,
-            suggestedCreators: suggestedCreators,
-          );
-        } else if (apiData['ai_response'] != null) {
-          // Only fall back to ai_response if there's no workflow_plan
-          _handleGreetingResponse(apiData);
-        } else {
-          _handleSimpleTextResponse(apiData);
-        }
+        _updateAiMessageWithResponse(
+          aiResponseText: aiResponseText,
+          workflowPlan: Map<String, dynamic>.from(workflowPlan),
+          suggestedCreators: suggestedCreators,
+        );
 
         await ref.read(getConversationProvider.notifier).getConversations();
       } else {
@@ -1204,14 +1189,16 @@ class _TypingAnimatedTextState extends State<TypingAnimatedText> {
   }
 
   void _startAnimation() {
+    final characters = widget.fullText.characters.toList();
+
     _timer = Timer.periodic(const Duration(milliseconds: 30), (timer) {
-      if (_currentIndex >= widget.fullText.length) {
+      if (_currentIndex >= characters.length) {
         timer.cancel();
         return;
       }
 
       _currentIndex++;
-      _displayText.value = widget.fullText.substring(0, _currentIndex);
+      _displayText.value = characters.take(_currentIndex).join();
     });
   }
 

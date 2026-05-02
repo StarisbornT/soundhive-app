@@ -21,7 +21,7 @@ import '../../../model/user_model.dart';
 import '../../../utils/alert_helper.dart';
 import 'add_money_screen.dart';
 import 'bills/airtime_screen.dart';
-import 'fund_wallet_provider.dart';
+
 
 class WalletScreen extends ConsumerStatefulWidget {
   final User user;
