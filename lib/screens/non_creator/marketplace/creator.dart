@@ -25,7 +25,7 @@ class _CreatorProfileState extends ConsumerState<CreatorProfile> {
     WidgetsBinding.instance.addPostFrameCallback((_) async {
       if (mounted) {
         await ref.read(getCreatorServiceProvider.notifier)
-            .getCreatorService(perPage: 10, memberId: widget.creator.userId);
+            .getCreatorService(perPage: 10, memberId: widget.creator.userId.toString());
       }
     });
   }
@@ -83,8 +83,8 @@ class _CreatorProfileState extends ConsumerState<CreatorProfile> {
               _buildAboutSection(theme),
               const SizedBox(height: 10),
               _buildReviewSection(),
-              const SizedBox(height: 30),
-              _buildSocialIcons(theme, isDark),
+              // const SizedBox(height: 30),
+              // _buildSocialIcons(theme, isDark),
               const SizedBox(height: 20),
               _buildLocation(theme),
               const SizedBox(height: 30),

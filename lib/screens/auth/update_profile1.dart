@@ -7,6 +7,7 @@ import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:soundhive2/components/success.dart';
 import 'package:soundhive2/utils/app_colors.dart';
+import '../../components/label_text.dart';
 import '../../services/loader_service.dart';
 import '../../utils/alert_helper.dart';
 import '../creator/creator_dashboard.dart';
@@ -31,6 +32,7 @@ class _UpdateProfileState extends State<UpdateProfile1> {
   final TextEditingController dobController = TextEditingController(); // Date of Birth Controller
   final TextEditingController phoneController = TextEditingController();
   final TextEditingController addressController = TextEditingController();
+  final TextEditingController countryController = TextEditingController();
   List<String> selectedInterests = []; // Added to track interests
   String pin = '';
   String? identity;
@@ -267,6 +269,7 @@ class _UpdateProfileState extends State<UpdateProfile1> {
     dobController.dispose();
     phoneController.dispose();
     addressController.dispose();
+    countryController.dispose();
     _pageController.dispose();
     super.dispose();
   }
@@ -306,6 +309,7 @@ class _UpdateProfileState extends State<UpdateProfile1> {
                   dobController: dobController,
                   phoneController: phoneController,
                   addressController: addressController,
+                  countryController: countryController,
                   countries: countries,
                   selectedCountry: selectedCountry,
                   onCountryChanged: (value) {
@@ -342,6 +346,7 @@ class UserDetailsStep extends StatelessWidget {
   final TextEditingController addressController;
   final TextEditingController dobController;
   final TextEditingController phoneController;
+  final TextEditingController countryController;
   final List<Map<String, String>> countries;
   final String? selectedCountry;
   final ValueChanged<String?> onCountryChanged;
@@ -354,6 +359,7 @@ class UserDetailsStep extends StatelessWidget {
     required this.dobController,
     required this.phoneController,
     required this.addressController,
+    required this.countryController,
     required this.countries,
     required this.selectedCountry,
     required this.onCountryChanged,
@@ -384,39 +390,49 @@ class UserDetailsStep extends StatelessWidget {
             const SizedBox(height: 10),
 
             // ✅ Dropdown for Countries
-            const Text('Country', style: TextStyle(color: Colors.white)),
-            const SizedBox(height: 8),
-            Container(
-              decoration: BoxDecoration(
-                color: Colors.white10,
-                borderRadius: BorderRadius.circular(8),
-                border: Border.all(color: Colors.white24),
-              ),
-              child: DropdownButtonFormField<String>(
-                isExpanded: true,
-                initialValue: selectedCountry,
-                dropdownColor: const Color(0xFF1C1C1C),
-                iconEnabledColor: Colors.white70,
-                decoration: const InputDecoration(
-                  border: InputBorder.none,
-                  contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 14),
-                ),
-                hint: const Text(
-                  'Select your country',
-                  style: TextStyle(color: Colors.white54),
-                ),
-                items: countries.map((country) {
-                  return DropdownMenuItem<String>(
-                    value: country["name"],
-                    child: Text(
-                      country["name"]!,
-                      style: const TextStyle(color: Colors.white),
-                    ),
-                  );
-                }).toList(),
-                onChanged: onCountryChanged,
-              ),
+            LabeledSelectField(
+              label: "Country",
+              controller: countryController,
+              items: countries.map((c) => {
+                'label': c['name']!,
+                'value': c['code']!,
+              }).toList(),
+              hintText: 'Select Country',
+              onChanged: (selectedValue) {
+                onCountryChanged(selectedValue);
+              },
             ),
+            // Container(
+            //   decoration: BoxDecoration(
+            //     color: Colors.white10,
+            //     borderRadius: BorderRadius.circular(8),
+            //     border: Border.all(color: Colors.white24),
+            //   ),
+            //   child: DropdownButtonFormField<String>(
+            //     isExpanded: true,
+            //     initialValue: selectedCountry,
+            //     dropdownColor: const Color(0xFF1C1C1C),
+            //     iconEnabledColor: Colors.white70,
+            //     decoration: const InputDecoration(
+            //       border: InputBorder.none,
+            //       contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 14),
+            //     ),
+            //     hint: const Text(
+            //       'Select your country',
+            //       style: TextStyle(color: Colors.white54),
+            //     ),
+            //     items: countries.map((country) {
+            //       return DropdownMenuItem<String>(
+            //         value: country["name"],
+            //         child: Text(
+            //           country["name"]!,
+            //           style: const TextStyle(color: Colors.white),
+            //         ),
+            //       );
+            //     }).toList(),
+            //     onChanged: onCountryChanged,
+            //   ),
+            // ),
 
             const SizedBox(height: 20),
             Center(

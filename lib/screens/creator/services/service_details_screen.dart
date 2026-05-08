@@ -467,7 +467,7 @@ class _ServiceScreenState extends ConsumerState<ServiceDetailsScreen>
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Utils.confirmRow('Status', widget.services.status),
-            Utils.confirmRow('Price', Utils.formatCurrency(widget.services.rate)),
+            Utils.confirmRow('Price', ref.formatCreatorCurrency(widget.services.rate)),
             Utils.confirmRow('Date Submitted',
                 DateFormat('dd/MM/yyyy').format(DateTime.parse(widget.services.createdAt))),
           ],

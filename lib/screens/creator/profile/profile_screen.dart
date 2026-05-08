@@ -9,6 +9,7 @@ import 'package:soundhive2/utils/app_colors.dart';
 import '../../../components/label_text.dart';
 import 'package:soundhive2/lib/dashboard_provider/apiresponseprovider.dart';
 import 'package:soundhive2/lib/dashboard_provider/user_provider.dart';
+import '../../../components/widgets.dart';
 import '../../../model/apiresponse_model.dart';
 import '../../../model/user_model.dart';
 import '../../../utils/alert_helper.dart';
@@ -429,20 +430,9 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
             ),
             const SizedBox(height: 10),
             // Profile Picture Section
-            CircleAvatar(
-              radius: 50,
-              backgroundColor: AppColors.BUTTONCOLOR.withOpacity(0.8),
-              backgroundImage: (user.value?.user?.image != null)
-                  ? NetworkImage(user.value!.user!.image!)
-                  : null,
-              child: (user.value?.user?.image == null)
-                  ? Text(
-                widget.user.user!.firstName.isNotEmpty
-                    ? widget.user.user!.firstName[0].toUpperCase()
-                    : '',
-                style: TextStyle(fontSize: 24, color: Colors.white),
-              )
-                  : null,
+            UserAvatarWidget(
+              imageUrl: user.value?.user?.image,
+              firstName: widget.user.user!.firstName,
             ),
             const SizedBox(height: 12),
             Text(
@@ -654,7 +644,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                   Expanded(
                     flex: 2,
                     child: Text(
-                      entry.key.capitalize(),
+                      StringExtension(entry.key).capitalize(),
                       style: TextStyle(
                         color: theme.colorScheme.onSurface.withOpacity(0.7),
                         fontSize: 14,
@@ -793,7 +783,7 @@ class _EditSocialsBottomSheetState extends State<EditSocialsBottomSheet> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    platform.capitalize(),
+                    StringExtension(platform).capitalize(),
                     style: TextStyle(
                       color: theme.colorScheme.onSurface,
                       fontSize: 16,

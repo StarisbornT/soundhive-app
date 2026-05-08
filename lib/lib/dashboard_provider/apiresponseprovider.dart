@@ -3,6 +3,7 @@ import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import 'package:soundhive2/lib/dashboard_provider/user_provider.dart';
 import '../../model/apiresponse_model.dart';
 import '../../model/bvn_response_model.dart';
 import '../../services/loader_service.dart';
@@ -11,14 +12,15 @@ import '../provider.dart';
 final apiresponseProvider = StateNotifierProvider<ApiResponseProvider, AsyncValue<void>>((ref) {
   final dio = ref.watch(dioProvider);
   final storage = ref.watch(storageProvider);
-  return ApiResponseProvider(dio, storage);
+  return ApiResponseProvider(dio, storage, ref);
 });
 
 class ApiResponseProvider extends StateNotifier<AsyncValue<void>> {
   final Dio _dio;
   final FlutterSecureStorage _storage;
+  final Ref ref;
 
-  ApiResponseProvider(this._dio, this._storage) : super(const AsyncValue.loading());
+  ApiResponseProvider(this._dio, this._storage, this.ref) : super(const AsyncValue.loading());
 
   Future<ApiResponseModel> joinInvestment({
     required BuildContext context,
@@ -1464,6 +1466,7 @@ class ApiResponseProvider extends StateNotifier<AsyncValue<void>> {
     state = const AsyncValue.loading();
     try {
       LoaderService.showLoader(context);
+      ref.invalidate(userProvider);
       await _storage.deleteAll();
       await Future.delayed(const Duration(milliseconds: 500));
       Map<String, String> allData = await _storage.readAll();

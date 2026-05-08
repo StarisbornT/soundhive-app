@@ -1913,4 +1913,99 @@ class CreatorBanner extends StatelessWidget {
   }
 }
 
+class UserAvatarWidget extends StatelessWidget {
+  final String? imageUrl;
+  final String firstName;
+  final double radius;
+
+  const UserAvatarWidget({
+    super.key,
+    required this.firstName,
+    this.imageUrl,
+    this.radius = 50,
+  });
+
+  void _openFullScreen(BuildContext context) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => _FullScreenAvatar(
+          imageUrl: imageUrl,
+          firstName: firstName,
+        ),
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: () => _openFullScreen(context),
+      child: CircleAvatar(
+        radius: radius,
+        backgroundColor: AppColors.BUTTONCOLOR.withOpacity(0.8),
+        backgroundImage: imageUrl != null ? NetworkImage(imageUrl!) : null,
+        child: imageUrl == null
+            ? Text(
+          firstName.isNotEmpty ? firstName[0].toUpperCase() : '',
+          style: const TextStyle(fontSize: 24, color: Colors.white),
+        )
+            : null,
+      ),
+    );
+  }
+}
+
+
+class _FullScreenAvatar extends StatelessWidget {
+  final String? imageUrl;
+  final String firstName;
+
+  const _FullScreenAvatar({
+    required this.firstName,
+    this.imageUrl,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: Colors.black,
+      appBar: AppBar(
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        leading: IconButton(
+          icon: const Icon(Icons.close, color: Colors.white),
+          onPressed: () => Navigator.pop(context),
+        ),
+      ),
+      body: Center(
+        child: imageUrl != null
+            ? InteractiveViewer(  // allows pinch-to-zoom
+          child: Image.network(
+            imageUrl!,
+            fit: BoxFit.contain,
+            loadingBuilder: (context, child, loadingProgress) {
+              if (loadingProgress == null) return child;
+              return const CircularProgressIndicator(color: Colors.white);
+            },
+            errorBuilder: (_, __, ___) => _fallbackAvatar(),
+          ),
+        )
+            : _fallbackAvatar(),
+      ),
+    );
+  }
+
+  Widget _fallbackAvatar() {
+    return CircleAvatar(
+      radius: 100,
+      backgroundColor: AppColors.BUTTONCOLOR.withOpacity(0.8),
+      child: Text(
+        firstName.isNotEmpty ? firstName[0].toUpperCase() : '',
+        style: const TextStyle(fontSize: 64, color: Colors.white),
+      ),
+    );
+  }
+}
+
 

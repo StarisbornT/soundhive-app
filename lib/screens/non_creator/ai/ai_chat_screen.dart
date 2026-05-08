@@ -1096,6 +1096,7 @@ class ChatMessage {
   final Map<String, dynamic>? metadata;
   final dynamic suggestedCreators;
   final bool shouldAnimate; // Add this flag
+  bool animationComplete;
 
   ChatMessage({
     required this.fromUser,
@@ -1104,6 +1105,7 @@ class ChatMessage {
     this.userImage,
     required this.timestamp,
     this.isThinking,
+    this.animationComplete = false,
     this.userName,
     this.options,
     this.metadata,
@@ -1123,6 +1125,7 @@ class ChatMessage {
     Map<String, dynamic>? metadata,
     dynamic suggestedCreators,
     bool? shouldAnimate,
+    bool? animationComplete,
   }) {
     return ChatMessage(
       fromUser: fromUser ?? this.fromUser,
@@ -1136,6 +1139,7 @@ class ChatMessage {
       metadata: metadata ?? this.metadata,
       suggestedCreators: suggestedCreators ?? this.suggestedCreators,
       shouldAnimate: shouldAnimate ?? this.shouldAnimate,
+      animationComplete: animationComplete ?? this.animationComplete,
     );
   }
 }
@@ -1159,13 +1163,15 @@ class TypingAnimationState {
 class TypingAnimatedText extends StatefulWidget {
   final String fullText;
   final TextStyle? style;
-  final bool shouldAnimate; // Add this parameter
+  final bool shouldAnimate;
+  final VoidCallback? onComplete; // ✅ Add completion callback
 
   const TypingAnimatedText({
     super.key,
     required this.fullText,
     this.style,
-    this.shouldAnimate = true, // Default to true
+    this.shouldAnimate = true,
+    this.onComplete,
   });
 
   @override
@@ -1174,6 +1180,7 @@ class TypingAnimatedText extends StatefulWidget {
 
 class _TypingAnimatedTextState extends State<TypingAnimatedText> {
   final ValueNotifier<String> _displayText = ValueNotifier<String>('');
+  final ValueNotifier<bool> _isComplete = ValueNotifier<bool>(false); // ✅
   Timer? _timer;
   int _currentIndex = 0;
 
@@ -1183,8 +1190,8 @@ class _TypingAnimatedTextState extends State<TypingAnimatedText> {
     if (widget.shouldAnimate && widget.fullText.isNotEmpty) {
       _startAnimation();
     } else {
-      // If shouldn't animate, show full text immediately
       _displayText.value = widget.fullText;
+      _isComplete.value = true;
     }
   }
 
@@ -1192,11 +1199,16 @@ class _TypingAnimatedTextState extends State<TypingAnimatedText> {
     final characters = widget.fullText.characters.toList();
 
     _timer = Timer.periodic(const Duration(milliseconds: 30), (timer) {
-      if (_currentIndex >= characters.length) {
+      if (!mounted) {
         timer.cancel();
         return;
       }
-
+      if (_currentIndex >= characters.length) {
+        timer.cancel();
+        _isComplete.value = true; // ✅ Mark complete
+        widget.onComplete?.call();
+        return;
+      }
       _currentIndex++;
       _displayText.value = characters.take(_currentIndex).join();
     });
@@ -1206,6 +1218,7 @@ class _TypingAnimatedTextState extends State<TypingAnimatedText> {
   void dispose() {
     _timer?.cancel();
     _displayText.dispose();
+    _isComplete.dispose();
     super.dispose();
   }
 
@@ -1214,9 +1227,26 @@ class _TypingAnimatedTextState extends State<TypingAnimatedText> {
     return ValueListenableBuilder<String>(
       valueListenable: _displayText,
       builder: (context, text, child) {
-        return Text(
-          text,
-          style: widget.style,
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(text, style: widget.style),
+            // ✅ Only show cursor while animating
+            ValueListenableBuilder<bool>(
+              valueListenable: _isComplete,
+              builder: (context, isComplete, _) {
+                if (isComplete) return const SizedBox.shrink();
+                return const Text(
+                  "▋",
+                  style: TextStyle(
+                    color: Color(0xFFA26BFA),
+                    fontSize: 14,
+                    fontWeight: FontWeight.bold,
+                  ),
+                );
+              },
+            ),
+          ],
         );
       },
     );
@@ -1278,11 +1308,15 @@ class _OptimizedMessageBubble extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               // Show animated text only if shouldAnimate is true
-              if (message.fullText != null && !isThinking && shouldAnimate)
+              if (message.fullText != null && !isThinking && shouldAnimate && !message.animationComplete)
                 TypingAnimatedText(
                   fullText: message.fullText!,
                   style: const TextStyle(color: Colors.white, fontSize: 14),
-                  shouldAnimate: shouldAnimate,
+                  shouldAnimate: true,
+                  onComplete: () {
+                    // ✅ Mark this specific message as done so it stops re-animating
+                    message.animationComplete = true;
+                  },
                 )
               else if (message.fullText != null && !isThinking)
               // Show complete text immediately for loaded messages
@@ -1297,21 +1331,21 @@ class _OptimizedMessageBubble extends StatelessWidget {
                 ),
 
               // Show typing cursor only for messages that should animate
-              if (!isUser &&
-                  message.fullText != null &&
-                  shouldAnimate &&
-                  !isThinking)
-                const SizedBox(
-                  height: 16,
-                  child: Text(
-                    "▋",
-                    style: TextStyle(
-                      color: Color(0xFFA26BFA),
-                      fontSize: 14,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                ),
+              // if (!isUser &&
+              //     message.fullText != null &&
+              //     shouldAnimate &&
+              //     !isThinking)
+              //   const SizedBox(
+              //     height: 16,
+              //     child: Text(
+              //       "▋",
+              //       style: TextStyle(
+              //         color: Color(0xFFA26BFA),
+              //         fontSize: 14,
+              //         fontWeight: FontWeight.bold,
+              //       ),
+              //     ),
+              //   ),
 
               if (message.options != null && !isThinking)
                 const SizedBox(height: 12),
