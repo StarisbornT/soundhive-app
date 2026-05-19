@@ -6,6 +6,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:google_sign_in/google_sign_in.dart';
+import 'package:sign_in_with_apple/sign_in_with_apple.dart';
 import 'package:soundhive2/screens/auth/terms_and_condition.dart';
 import 'package:soundhive2/screens/auth/update_profile1.dart';
 import 'package:soundhive2/utils/utils.dart';
@@ -21,7 +22,6 @@ class Login extends StatefulWidget {
   final FlutterSecureStorage storage;
   final Dio dio;
   const Login({super.key, required this.dio, required this.storage});
-
 
   @override
   State<Login> createState() => _LoginScreenState();
@@ -39,23 +39,26 @@ class _LoginScreenState extends State<Login> {
     _googleSignIn = GoogleSignIn.instance;
 
     // Initialize with serverClientId
-    _googleSignIn.initialize(
+    _googleSignIn
+        .initialize(
       serverClientId: dotenv.env["CLIENT_SERVER_ID"],
-    ).then((_) {
+    )
+        .then((_) {
       // Listen to auth events
       _googleSignIn.authenticationEvents.listen(
         _handleGoogleAuthEvent,
         onError: _handleGoogleAuthError,
       );
-
     });
   }
+
   @override
   void dispose() {
     passwordController.dispose();
     emailController.dispose();
     super.dispose();
   }
+
   late final GoogleSignIn _googleSignIn;
   Future<void> _saveFormData() async {
     try {
@@ -65,30 +68,24 @@ class _LoginScreenState extends State<Login> {
         "password": passwordController.text,
       };
       final options = Options(headers: {'Accept': 'application/json'});
-      final response = await widget.dio.post(
-          '/auth/login',
-          data: jsonEncode(payload),
-          options: options
-      );
+      final response = await widget.dio
+          .post('/auth/login', data: jsonEncode(payload), options: options);
 
       if (response.statusCode == 200) {
         LoaderService.hideLoader(context);
         final responseData = response.data;
 
-        await widget.storage.write(key: 'auth_token', value: responseData['token']);
+        await widget.storage
+            .write(key: 'auth_token', value: responseData['token']);
 
         print("FULL RESPONSE: ${response.data}");
-
 
         if (responseData['user']['first_name'] != null) {
           Navigator.pushNamed(context, DashboardScreen.id);
         } else {
           Navigator.pushNamed(context, UpdateProfile1.id);
         }
-      }
-
-      else {
-
+      } else {
         showCustomAlert(
           context: context,
           isSuccess: false,
@@ -96,12 +93,10 @@ class _LoginScreenState extends State<Login> {
           message: 'Email OTP not verified',
         );
       }
-    }
-    catch(error) {
+    } catch (error) {
       LoaderService.hideLoader(context);
       if (error is DioException) {
         if (error.response?.statusCode == 400) {
-
           await widget.storage.write(key: 'email', value: emailController.text);
           Navigator.pushNamed(context, OtpScreen.id);
           return;
@@ -109,7 +104,8 @@ class _LoginScreenState extends State<Login> {
         if (error.response?.statusCode == 403) {
           final responseData = error.response?.data;
 
-          await widget.storage.write(key: 'auth_token', value: responseData['token']);
+          await widget.storage
+              .write(key: 'auth_token', value: responseData['token']);
           Navigator.pushNamed(context, TermsAndCondition.id);
           return;
         }
@@ -140,12 +136,12 @@ class _LoginScreenState extends State<Login> {
       }
     }
   }
+
   Future<void> _signUpWithGoogle() async {
     try {
       LoaderService.showLoader(context);
 
       await _googleSignIn.authenticate(); // 👈 THIS starts the flow
-
     } catch (e) {
       LoaderService.hideLoader(context);
       showCustomAlert(
@@ -156,6 +152,35 @@ class _LoginScreenState extends State<Login> {
       );
     }
   }
+
+  Future<void> _signUpWithApple() async {
+    try {
+      LoaderService.showLoader(context);
+      final firebaseAuth = FirebaseAuth.instance;
+
+    final credential = await SignInWithApple.getAppleIDCredential(scopes: [
+        AppleIDAuthorizationScopes.email,
+        AppleIDAuthorizationScopes.fullName,
+      ]);
+      final oauthCredential = OAuthProvider('apple.com').credential(
+        idToken: credential.identityToken,
+        accessToken: credential.authorizationCode,
+      );
+      final userCredential = await firebaseAuth.signInWithCredential(oauthCredential);
+      final user = userCredential.user;
+      if (user == null) throw Exception('Firebase auth failed');
+      await _sendGoogleUserToBackend(user);
+    } catch (e) {
+      LoaderService.hideLoader(context);
+      showCustomAlert(
+        context: context,
+        isSuccess: false,
+        title: 'Error',
+        message: 'Google sign in cancelled',
+      );
+    }
+  }
+
   Future<void> _handleGoogleAuthEvent(event) async {
     if (event is GoogleSignInAuthenticationEventSignIn) {
       final googleAuth = event.user;
@@ -173,7 +198,7 @@ class _LoginScreenState extends State<Login> {
       );
 
       final userCredential =
-      await FirebaseAuth.instance.signInWithCredential(credential);
+          await FirebaseAuth.instance.signInWithCredential(credential);
 
       final user = userCredential.user;
       if (user == null) throw Exception('Firebase auth failed');
@@ -183,6 +208,7 @@ class _LoginScreenState extends State<Login> {
 
     LoaderService.hideLoader(context);
   }
+
   void _handleGoogleAuthError(Object error) {
     LoaderService.hideLoader(context);
     print("Google Error $error");
@@ -193,8 +219,6 @@ class _LoginScreenState extends State<Login> {
       message: 'Google authentication failed',
     );
   }
-
-
 
   Future<void> _sendGoogleUserToBackend(User user) async {
     final payload = {
@@ -207,15 +231,15 @@ class _LoginScreenState extends State<Login> {
       options: Options(headers: {'Accept': 'application/json'}),
     );
 
-   LoaderService.hideLoader(context);
+    LoaderService.hideLoader(context);
 
     if (response.statusCode == 200) {
       final responseData = response.data;
 
-      await widget.storage.write(key: 'auth_token', value: responseData['token']);
+      await widget.storage
+          .write(key: 'auth_token', value: responseData['token']);
 
       print("FULL RESPONSE: ${response.data}");
-
 
       if (responseData['user']['first_name'] != null) {
         Navigator.pushNamed(context, DashboardScreen.id);
@@ -226,6 +250,7 @@ class _LoginScreenState extends State<Login> {
       throw Exception("Backend auth failed");
     }
   }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -238,7 +263,7 @@ class _LoginScreenState extends State<Login> {
             children: [
               const SizedBox(height: 80),
               // Logo
-             Utils.logo(),
+              Utils.logo(),
               const SizedBox(height: 24),
               // Title
               const Text(
@@ -252,10 +277,12 @@ class _LoginScreenState extends State<Login> {
               ),
               const SizedBox(height: 32),
               // Email Field
-              _buildTextField('Email address', 'Enter your email address', false, emailController),
+              _buildTextField('Email address', 'Enter your email address',
+                  false, emailController),
               const SizedBox(height: 16),
               // Password Field
-              _buildTextField('Password', 'Enter your password', true, passwordController),
+              _buildTextField(
+                  'Password', 'Enter your password', true, passwordController),
               const SizedBox(height: 10),
               Container(
                 alignment: Alignment.topLeft,
@@ -265,10 +292,7 @@ class _LoginScreenState extends State<Login> {
                   },
                   child: const Text(
                     'Forgot Password',
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 13
-                    ),
+                    style: TextStyle(color: Colors.white, fontSize: 13),
                   ),
                 ),
               ),
@@ -294,7 +318,14 @@ class _LoginScreenState extends State<Login> {
                 'images/google.png',
                 onTap: _signUpWithGoogle,
               ),
+              // Social Login Buttons
+              const SizedBox(height: 10),
 
+              _buildSocialButton(
+                'Sign in with Apple',
+                'images/apple.png',
+                onTap: _signUpWithApple,
+              ),
             ],
           ),
         ),
@@ -302,7 +333,8 @@ class _LoginScreenState extends State<Login> {
     );
   }
 
-  Widget _buildTextField(String label, String hint, bool isPassword, TextEditingController controller) {
+  Widget _buildTextField(String label, String hint, bool isPassword,
+      TextEditingController controller) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -319,16 +351,16 @@ class _LoginScreenState extends State<Login> {
             border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
             suffixIcon: isPassword
                 ? IconButton(
-              icon: Icon(
-                _isObscured ? Icons.visibility_off : Icons.visibility,
-                color: Colors.white54,
-              ),
-              onPressed: () {
-                setState(() {
-                  _isObscured = !_isObscured; // Toggle state
-                });
-              },
-            )
+                    icon: Icon(
+                      _isObscured ? Icons.visibility_off : Icons.visibility,
+                      color: Colors.white54,
+                    ),
+                    onPressed: () {
+                      setState(() {
+                        _isObscured = !_isObscured; // Toggle state
+                      });
+                    },
+                  )
                 : null,
           ),
           style: const TextStyle(color: Colors.white),
@@ -361,10 +393,10 @@ class _LoginScreenState extends State<Login> {
   }
 
   Widget _buildSocialButton(
-      String text,
-      String asset, {
-        required VoidCallback onTap,
-      }) {
+    String text,
+    String asset, {
+    required VoidCallback onTap,
+  }) {
     return GestureDetector(
       onTap: onTap,
       child: Container(
@@ -392,5 +424,4 @@ class _LoginScreenState extends State<Login> {
       ),
     );
   }
-
 }
