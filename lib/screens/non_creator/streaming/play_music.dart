@@ -18,7 +18,6 @@ import '../../../model/apiresponse_model.dart';
 import '../../../model/artist_song_model.dart';
 import '../../../model/playlist_model.dart';
 import '../../../utils/alert_helper.dart';
-import 'artist_profile.dart';
 
 class PlayMusic extends ConsumerStatefulWidget {
   final SongItemData song;
@@ -310,6 +309,7 @@ class _PlayMusicState extends ConsumerState<PlayMusic> {
   int? _currentSongId;
   final TextEditingController titleController = TextEditingController();
   final TextEditingController renameController = TextEditingController();
+  final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
 
   late final PlaylistService _playlistService;
 
@@ -397,6 +397,42 @@ class _PlayMusicState extends ConsumerState<PlayMusic> {
 
   void _toggleShuffle() {
     ref.read(audioPlayerProvider.notifier).toggleShuffle();
+
+    final isNowShuffled = ref.read(audioPlayerProvider).isShuffled;
+
+    if (!mounted) return;
+
+    final scaffoldContext = _scaffoldKey.currentContext;
+    if (scaffoldContext == null) return;
+
+    ScaffoldMessenger.of(scaffoldContext).clearSnackBars();
+    ScaffoldMessenger.of(scaffoldContext).showSnackBar(
+      SnackBar(
+        content: Row(
+          children: [
+            Icon(
+              isNowShuffled ? Icons.shuffle : Icons.shuffle_outlined,
+              color: Colors.white,
+              size: 18,
+            ),
+            const SizedBox(width: 10),
+            Text(
+              isNowShuffled ? 'Shuffle on' : 'Shuffle off',
+              style: const TextStyle(color: Colors.white),
+            ),
+          ],
+        ),
+        backgroundColor: isNowShuffled
+            ? const Color(0xFF6D81F1)
+            : Colors.grey[800],
+        duration: const Duration(seconds: 2),
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(10),
+        ),
+        margin: const EdgeInsets.only(bottom: 100, left: 40, right: 40),
+      ),
+    );
   }
 
   void _togglePlayPause() {
@@ -716,13 +752,14 @@ class _PlayMusicState extends ConsumerState<PlayMusic> {
   }
 
   List<Widget> _buildSongOptions() {
+    final currentSong = ref.read(audioPlayerProvider).currentSong ?? widget.song;
     return [
       _BottomOption(
         icon: Icons.playlist_add,
         label: "Add to playlist",
         onTap: () {
           Navigator.pop(context);
-          showAddToPlaylistBottomSheet(context, widget.song);
+          showAddToPlaylistBottomSheet(context, currentSong);
         },
       ),
       _BottomOption(
@@ -780,6 +817,7 @@ class _PlayMusicState extends ConsumerState<PlayMusic> {
     }
 
     return Scaffold(
+      key: _scaffoldKey,
       body: Container(
         width: double.infinity,
         height: double.infinity,
@@ -934,31 +972,45 @@ class _PlayMusicState extends ConsumerState<PlayMusic> {
 
   Widget _buildPlayerControls(AudioPlayerState audioState) {
     return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
+        // 1. Shuffle Button
         IconButton(
           icon: Icon(
-            Icons.shuffle,
-            color: audioState.isShuffled ? Colors.white : Colors.white70,
-            size: 28,
+            Icons.shuffle_rounded,
+            color: audioState.isShuffled ? Colors.white : Colors.white60,
+            size: 26,
           ),
           onPressed: _toggleShuffle,
         ),
+
+        // 2. Skip Previous
         IconButton(
-          icon: const Icon(Icons.skip_previous_rounded, color: Colors.white, size: 36),
+          icon: const Icon(Icons.skip_previous_rounded, color: Colors.white, size: 38),
           onPressed: audioState.playlist != null && audioState.playlist!.length > 1
-              ? _playPrevious : null,
+              ? _playPrevious
+              : null,
         ),
+
+        // 3. Play / Pause Circle (Dead Center)
         _buildPlayPauseButton(audioState),
+
+        // 4. Skip Next
         IconButton(
-          icon: const Icon(Icons.skip_next_rounded, color: Colors.white, size: 36),
+          icon: const Icon(Icons.skip_next_rounded, color: Colors.white, size: 38),
           onPressed: audioState.playlist != null && audioState.playlist!.length > 1
-              ? _playNext : null,
+              ? _playNext
+              : null,
         ),
-        // IconButton(
-        //   onPressed: () => showSongOptionsBottomSheet(context),
-        //   icon: const Icon(Icons.more_vert, color: Colors.white70, size: 28),
-        // ),
+
+        // 5. Invisible Layout Anchor (Keeps everything perfectly centered without showing an icon)
+        const Opacity(
+          opacity: 0.0,
+          child: IconButton(
+            onPressed: null,
+            icon: Icon(Icons.shuffle_rounded, size: 26),
+          ),
+        ),
       ],
     );
   }
@@ -967,15 +1019,18 @@ class _PlayMusicState extends ConsumerState<PlayMusic> {
     return GestureDetector(
       onTap: _togglePlayPause,
       child: Container(
+        height: 75,
+        width: 75,
         decoration: const BoxDecoration(
           shape: BoxShape.circle,
           color: Colors.white,
         ),
-        padding: const EdgeInsets.all(18),
-        child: Icon(
-          audioState.isPlaying ? Icons.pause_rounded : Icons.play_arrow_rounded,
-          size: 36,
-          color: const Color(0xFF6D81F1),
+        child: Center(
+          child: Icon(
+            audioState.isPlaying ? Icons.pause_rounded : Icons.play_arrow_rounded,
+            size: 40,
+            color: const Color(0xFF6D81F1),
+          ),
         ),
       ),
     );

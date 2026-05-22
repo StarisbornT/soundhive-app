@@ -153,7 +153,7 @@ class _MarketplaceState extends ConsumerState<Marketplace>
 
       await ref
           .read(getMarketplaceServiceProvider.notifier)
-          .getMarketPlaceService();
+          .resetMarketplaceState();
 
       if (!mounted) return;
       await Future.delayed(const Duration(milliseconds: 300));
@@ -1285,199 +1285,204 @@ class _MarketplaceState extends ConsumerState<Marketplace>
     final marketplaceState = ref.watch(getMarketplaceServiceProvider);
     final creatorState = ref.watch(creatorProvider);
 
-    return marketplaceState.when(
-      loading: () => _buildShimmerServicesGrid(isDark),
-      error: (e, _) => Center(
-        child:
-            Text("Error: $e", style: TextStyle(color: theme.colorScheme.error)),
-      ),
-      data: (_) {
-        return ListView(
-          children: [
-            // Search Bar
-            Padding(
-              padding:
-                  const EdgeInsets.symmetric(horizontal: 10.0, vertical: 8.0),
-              child: Row(
-                children: [
-                  Expanded(
-                    child: Container(
-                      decoration: BoxDecoration(
-                        color: theme.cardColor,
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: _selectedFilters.isEmpty
-                          ? TextFormField(
-                              controller: _searchController,
-                              style:
-                                  TextStyle(color: theme.colorScheme.onSurface),
-                              onChanged: _onSearchChanged,
-                              decoration: InputDecoration(
-                                border: OutlineInputBorder(
-                                  borderRadius: BorderRadius.circular(8),
-                                  borderSide: BorderSide(
-                                      color:
-                                          theme.dividerColor.withOpacity(0.5)),
-                                ),
-                                hintText: 'Search',
-                                hintStyle: TextStyle(
-                                    color: theme.colorScheme.onSurface
-                                        .withOpacity(0.5)),
-                                prefixIcon: Icon(Icons.search,
-                                    color: theme.colorScheme.onSurface
-                                        .withOpacity(0.5)),
-                                contentPadding:
-                                    const EdgeInsets.symmetric(vertical: 14.0),
-                                suffixIcon: _searchController.text.isNotEmpty
-                                    ? IconButton(
-                                        icon: Icon(Icons.clear,
-                                            color: theme.colorScheme.onSurface
-                                                .withOpacity(0.5)),
-                                        onPressed: () {
-                                          _searchController.clear();
-                                          ref
-                                              .read(
-                                                  getMarketplaceServiceProvider
-                                                      .notifier)
-                                              .resetMarketplaceState();
-                                        },
-                                      )
-                                    : null,
-                              ),
-                            )
-                          : _buildFilterChips(theme),
-                    ),
+    return Column(
+      children: [
+        // ─── Search Bar (fixed height, never scrolls) ──────────────────────────
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 10.0, vertical: 8.0),
+          child: Row(
+            children: [
+              Expanded(
+                child: Container(
+                  decoration: BoxDecoration(
+                    color: theme.cardColor,
+                    borderRadius: BorderRadius.circular(12),
                   ),
-                  if (_showFilters) _buildFilterButton(theme, isDark),
-                ],
-              ),
-            ),
-
-            // Services Around You Section
-            Padding(
-              padding: const EdgeInsets.all(16.0),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Text(
-                    'Services around you',
-                    style: TextStyle(
-                      color: theme.colorScheme.onSurface,
-                      fontSize: 16,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                  OutlinedButton(
-                    onPressed: () => Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) => const Categories(),
+                  child: _selectedFilters.isEmpty
+                      ? TextFormField(
+                    controller: _searchController,
+                    style: TextStyle(color: theme.colorScheme.onSurface),
+                    onChanged: _onSearchChanged,
+                    decoration: InputDecoration(
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(8),
+                        borderSide: BorderSide(
+                            color: theme.dividerColor.withOpacity(0.5)),
                       ),
+                      hintText: 'Search services...',
+                      hintStyle: TextStyle(
+                          color:
+                          theme.colorScheme.onSurface.withOpacity(0.5)),
+                      prefixIcon: Icon(Icons.search,
+                          color:
+                          theme.colorScheme.onSurface.withOpacity(0.5)),
+                      contentPadding:
+                      const EdgeInsets.symmetric(vertical: 14.0),
+                      suffixIcon: _searchController.text.isNotEmpty
+                          ? IconButton(
+                        icon: Icon(Icons.clear,
+                            color: theme.colorScheme.onSurface
+                                .withOpacity(0.5)),
+                        onPressed: () {
+                          _searchController.clear();
+                          ref
+                              .read(getMarketplaceServiceProvider
+                              .notifier)
+                              .resetMarketplaceState();
+                        },
+                      )
+                          : null,
                     ),
-                    style: OutlinedButton.styleFrom(
-                      side: BorderSide(color: theme.dividerColor),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(100),
-                      ),
-                    ),
-                    child: Text(
-                      'Explore Hives',
-                      style: TextStyle(
-                          color: theme.colorScheme.onSurface.withOpacity(0.6),
-                          fontSize: 12),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-
-            // Services Grid with PageView
-            _buildServicesGrid(
-                ref.read(getMarketplaceServiceProvider.notifier).allServices,
-                theme,
-                isDark,
-                ref),
-
-            // Banner
-            Padding(
-              padding: const EdgeInsets.all(8.0),
-              child: GestureDetector(
-                onTap: () => Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (context) => const Streaming()),
+                  )
+                      : _buildFilterChips(theme),
                 ),
-                child: Image.asset('images/discover.png'),
               ),
+              if (_showFilters) _buildFilterButton(theme, isDark),
+            ],
+          ),
+        ),
+
+        // ─── Scrollable content (takes remaining space) ────────────────────────
+        Expanded(
+          child: marketplaceState.when(
+            loading: () => _buildShimmerServicesGrid(isDark),
+            error: (e, _) => Center(
+              child: Text("Error: $e",
+                  style: TextStyle(color: theme.colorScheme.error)),
             ),
+            data: (_) {
+              final services =
+                  ref.read(getMarketplaceServiceProvider.notifier).allServices;
 
-            // Creatives Section
-            creatorState.when(
-              loading: () => _buildShimmerCreativesSection(theme, isDark),
-              error: (e, _) => Center(
-                  child: Text("Error loading creators: $e",
-                      style: TextStyle(color: theme.colorScheme.error))),
-              data: (creatorListResponse) {
-                final creators = (creatorListResponse.user?.data ?? [])
-                    .where((c) => c.user != null)
-                    .toList();
-
-                final notifier = ref.read(creatorProvider.notifier);
-
-                return CreativesSection(
-                  creators: creators,
-                  notifier: notifier,
+              if (services.isEmpty) {
+                return Center(
+                  child: Text(
+                    'No services found',
+                    style: TextStyle(color: theme.colorScheme.onSurface),
+                  ),
                 );
-              },
-            ),
+              }
 
-            // More Services Section
-            Padding(
-              padding: const EdgeInsets.all(16.0),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              return ListView(
+                // ↓ ListView now has a bounded height from Expanded above
                 children: [
-                  Text(
-                    'More services for you',
-                    style: TextStyle(
-                      color: theme.colorScheme.onSurface,
-                      fontSize: 16,
-                      fontWeight: FontWeight.w400,
+                  // Services Around You Section
+                  Padding(
+                    padding: const EdgeInsets.all(16.0),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text(
+                          'Services around you',
+                          style: TextStyle(
+                            color: theme.colorScheme.onSurface,
+                            fontSize: 16,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                        OutlinedButton(
+                          onPressed: () => Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                                builder: (context) => const Categories()),
+                          ),
+                          style: OutlinedButton.styleFrom(
+                            side: BorderSide(color: theme.dividerColor),
+                            shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(100)),
+                          ),
+                          child: Text(
+                            'Explore Hives',
+                            style: TextStyle(
+                                color:
+                                theme.colorScheme.onSurface.withOpacity(0.6),
+                                fontSize: 12),
+                          ),
+                        ),
+                      ],
                     ),
                   ),
-                  OutlinedButton(
-                    onPressed: () => Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) => const Categories(),
+
+                  // Services Grid
+                  _buildServicesGrid(services, theme, isDark, ref),
+
+                  // Banner
+                  Padding(
+                    padding: const EdgeInsets.all(8.0),
+                    child: GestureDetector(
+                      onTap: () => Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                            builder: (context) => const Streaming()),
                       ),
-                    ),
-                    style: OutlinedButton.styleFrom(
-                      side: BorderSide(color: theme.dividerColor),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(100),
-                      ),
-                    ),
-                    child: Text(
-                      'Explore Hives',
-                      style: TextStyle(
-                          color: theme.colorScheme.onSurface.withOpacity(0.6),
-                          fontSize: 12),
+                      child: Image.asset('images/discover.png'),
                     ),
                   ),
+
+                  // Creatives Section
+                  creatorState.when(
+                    loading: () => _buildShimmerCreativesSection(theme, isDark),
+                    error: (e, _) => Center(
+                        child: Text("Error loading creators: $e",
+                            style: TextStyle(color: theme.colorScheme.error))),
+                    data: (creatorListResponse) {
+                      final creators = (creatorListResponse.user?.data ?? [])
+                          .where((c) => c.user != null)
+                          .toList();
+                      return CreativesSection(
+                        creators: creators,
+                        notifier: ref.read(creatorProvider.notifier),
+                      );
+                    },
+                  ),
+
+                  // More Services Section
+                  Padding(
+                    padding: const EdgeInsets.all(16.0),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text(
+                          'More services for you',
+                          style: TextStyle(
+                            color: theme.colorScheme.onSurface,
+                            fontSize: 16,
+                            fontWeight: FontWeight.w400,
+                          ),
+                        ),
+                        OutlinedButton(
+                          onPressed: () => Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                                builder: (context) => const Categories()),
+                          ),
+                          style: OutlinedButton.styleFrom(
+                            side: BorderSide(color: theme.dividerColor),
+                            shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(100)),
+                          ),
+                          child: Text(
+                            'Explore Hives',
+                            style: TextStyle(
+                                color:
+                                theme.colorScheme.onSurface.withOpacity(0.6),
+                                fontSize: 12),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+
+                  // More Services List
+                  _buildMoreServicesList(services, theme, isDark),
+
+                  const SizedBox(height: 20),
                 ],
-              ),
-            ),
-
-            // More Services List
-            _buildMoreServicesList(
-                ref.read(getMarketplaceServiceProvider.notifier).allServices,
-                theme,
-                isDark),
-
-            const SizedBox(height: 20),
-          ],
-        );
-      },
+              );
+            },
+          ),
+        ),
+      ],
     );
   }
 

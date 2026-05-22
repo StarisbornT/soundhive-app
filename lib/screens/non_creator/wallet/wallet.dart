@@ -24,6 +24,7 @@ import 'bills/airtime_screen.dart';
 
 
 class WalletScreen extends ConsumerStatefulWidget {
+  static const String id = '/wallet_screen';
   final User user;
   const WalletScreen({super.key, required this.user});
 
@@ -129,7 +130,7 @@ class _WalletScreenState extends ConsumerState<WalletScreen> {
                   color: AppColors.BUTTONCOLOR.withOpacity(0.2),
                   shape: BoxShape.circle,
                 ),
-                child: Icon(
+                child: const Icon(
                   Icons.account_balance_wallet,
                   size: 40,
                   color: AppColors.BUTTONCOLOR,
@@ -377,7 +378,7 @@ class _WalletScreenState extends ConsumerState<WalletScreen> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                'Wallet',
+                'Cre8Pay',
                 style: TextStyle(
                   fontSize: 24,
                   fontWeight: FontWeight.w400,
@@ -385,7 +386,19 @@ class _WalletScreenState extends ConsumerState<WalletScreen> {
                 ),
               ),
               const SizedBox(height: 20),
+              _buildHeader("Wallet", theme),
               _buildWalletBalanceCards(user, theme, isDark),
+              Center(
+                child: Text(
+                  'Powered by Bank78',
+                  style: TextStyle(
+                    fontSize: 10,
+                    fontWeight: FontWeight.w400,
+                    color: theme.colorScheme.onSurface,
+                    fontStyle: FontStyle.italic
+                  ),
+                ),
+              ),
               const SizedBox(height: 16),
               _buildHeader("Quick Actions", theme),
               const SizedBox(height: 12),
@@ -534,7 +547,7 @@ class _WalletScreenState extends ConsumerState<WalletScreen> {
                     color: AppColors.BUTTONCOLOR.withOpacity(0.15),
                     borderRadius: BorderRadius.circular(8),
                   ),
-                  child: Icon(
+                  child: const Icon(
                     Icons.account_balance,
                     color: AppColors.BUTTONCOLOR,
                     size: 20,
@@ -667,7 +680,7 @@ class _WalletScreenState extends ConsumerState<WalletScreen> {
           ),
           const SizedBox(height: 4),
           Text(
-            '${user.firstName} ${user.lastName}',
+            wallet.accountName ?? '',
             style: const TextStyle(fontSize: 13, color: Colors.white70),
           ),
         ],

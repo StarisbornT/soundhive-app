@@ -21,6 +21,7 @@ import '../../../utils/app_colors.dart';
 import '../../creator/profile/profile_screen.dart';
 import '../../dashboard/marketplace/markplace_recept.dart';
 import '../../dashboard/verification_webview.dart';
+import 'creator.dart';
 
 final withdrawStateProvider = StateProvider<bool>((ref) => false);
 
@@ -404,37 +405,53 @@ class _MarketplaceDetailsScreenState extends ConsumerState<MarketplaceDetails> {
         _buildPriceDisplay(theme),
 
         const SizedBox(height: 8),
-        Row(
-          children: [
-            CircleAvatar(
-              radius: 15,
-              backgroundColor: AppColors.BUTTONCOLOR,
-              backgroundImage: (widget.service.user?.image != null &&
-                  widget.service.user!.image!.isNotEmpty)
-                  ? NetworkImage(widget.service.user!.image!)
-                  : null,
-              child: (widget.service.user?.image == null ||
-                  widget.service.user!.image!.isEmpty)
-                  ? Text(
-                (
-                    widget.service.user?.creator?.businessName?.isNotEmpty == true
-                        ? widget.service.user!.creator!.businessName!
-                        : widget.service.user?.firstName
-                )!
-                    .trim()
-                    .characters
-                    .first
-                    .toUpperCase(),
-                style: const TextStyle(fontSize: 14, color: Colors.white),
-              )
-                  : null,
-            ),
-            const SizedBox(width: 8),
-            Text(
-              widget.service.user?.creator?.businessName ??  "${widget.service.user?.firstName} ${widget.service.user?.lastName}",
-              style: TextStyle(color: theme.colorScheme.onSurface, fontSize: 14),
-            ),
-          ],
+        GestureDetector(
+          onTap: () {
+            final creator = widget.service.user?.creator;
+
+            if (creator != null) {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => CreatorProfile(
+                    creator: creator,
+                  ),
+                ),
+              );
+            }
+          },
+          child: Row(
+            children: [
+              CircleAvatar(
+                radius: 15,
+                backgroundColor: AppColors.BUTTONCOLOR,
+                backgroundImage: (widget.service.user?.image != null &&
+                    widget.service.user!.image!.isNotEmpty)
+                    ? NetworkImage(widget.service.user!.image!)
+                    : null,
+                child: (widget.service.user?.image == null ||
+                    widget.service.user!.image!.isEmpty)
+                    ? Text(
+                  (
+                      widget.service.user?.creator?.businessName?.isNotEmpty == true
+                          ? widget.service.user!.creator!.businessName!
+                          : widget.service.user?.firstName
+                  )!
+                      .trim()
+                      .characters
+                      .first
+                      .toUpperCase(),
+                  style: const TextStyle(fontSize: 14, color: Colors.white),
+                )
+                    : null,
+              ),
+              const SizedBox(width: 8),
+              Text(
+                widget.service.user?.creator?.businessName ??  "${widget.service.user?.firstName} ${widget.service.user?.lastName}",
+                style: TextStyle(color: theme.colorScheme.onSurface, fontSize: 14),
+              ),
+            ],
+          ),
         ),
         const SizedBox(height: 10),
         Row(
@@ -445,17 +462,6 @@ class _MarketplaceDetailsScreenState extends ConsumerState<MarketplaceDetails> {
                   ? Utils.getOverallRating(widget.service.user!.creator!).toString()
                   : "0.0",
 
-              style: TextStyle(
-                color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
-                fontSize: 12,
-              ),
-            ),
-            const SizedBox(width: 10),
-            Icon(Icons.download,
-                color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
-                size: 18),
-            Text(
-              '20k downloads',
               style: TextStyle(
                 color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
                 fontSize: 12,

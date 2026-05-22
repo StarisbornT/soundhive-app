@@ -12,6 +12,7 @@ import 'package:soundhive2/lib/dashboard_provider/getActiveVestProvider.dart';
 import '../../../model/get_active_vest_model.dart';
 import '../../../model/user_model.dart';
 import '../../../utils/utils.dart';
+import '../../dashboard/withdraw.dart';
 import '../streaming/streaming.dart';
 import '../wallet/add_money_screen.dart';
 import '../wallet/fund_wallet_provider.dart';
@@ -24,16 +25,16 @@ final authTokenProvider = FutureProvider<String?>((ref) async {
   return await storage.read(key: 'auth_token');
 });
 
-class SoundhiveVestScreen extends ConsumerStatefulWidget {
+class SoundHiveVestScreen extends ConsumerStatefulWidget {
   static const String id = '/soundhivevest';
   final MemberCreatorResponse user;
-  const SoundhiveVestScreen({super.key, required this.user});
+  const SoundHiveVestScreen({super.key, required this.user});
 
   @override
-  ConsumerState<SoundhiveVestScreen> createState() => _SoundhiveVestScreenState();
+  ConsumerState<SoundHiveVestScreen> createState() => _SoundHiveVestScreenState();
 }
 
-class _SoundhiveVestScreenState extends ConsumerState<SoundhiveVestScreen> with TickerProviderStateMixin {
+class _SoundHiveVestScreenState extends ConsumerState<SoundHiveVestScreen> with TickerProviderStateMixin {
 
   final TextEditingController _searchController = TextEditingController();
   late TabController _tabController;
@@ -127,7 +128,7 @@ class _SoundhiveVestScreenState extends ConsumerState<SoundhiveVestScreen> with 
   void _navigateToWithdraw() {
     Navigator.push(
       context,
-      MaterialPageRoute(builder: (context) => const Streaming()),
+      MaterialPageRoute(builder: (context) => const WithdrawScreen()),
     );
   }
 
@@ -141,124 +142,69 @@ class _SoundhiveVestScreenState extends ConsumerState<SoundhiveVestScreen> with 
         final serviceState = ref.watch(getInvestmentProvider);
         final activeState = ref.watch(getActiveVestProvider);
         final user = widget.user.user;
+
         return Scaffold(
           backgroundColor: const Color(0xFF0C051F),
-          body: Padding(
-            padding: const EdgeInsets.all(16.0),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const SizedBox(height: 10),
-                const Text(
-                  'Cre8Vest',
-                  style: TextStyle(color: Colors.white, fontSize: 24),
-                ),
-                const SizedBox(height: 10),
-                // Wallet Section
-                if(user?.wallet != null)
-                  WalletBalanceCard(
-                    title: 'Base balance',
-                    balance: user?.wallet?.balance != null
-                        ? ref.formatUserCurrency(user?.wallet?.balance)
-                        : '',
-                    currencySymbol: user?.wallet!.currency ?? '',
-                    onAddFunds: () => _showAmountInputModal(user?.wallet!.currency ?? ''),
-                    onWithdraw: _navigateToWithdraw,
-                  ),
-                const SizedBox(height: 20),
-                // Tabs
-                Expanded(
-                  child: Stack(
-                    children: [
-                      Column(
+          body: SafeArea(
+            child: NestedScrollView(
+              controller: _scrollController,
+              headerSliverBuilder: (BuildContext context, bool innerBoxIsScrolled) {
+                return [
+                  SliverToBoxAdapter(
+                    child: Padding(
+                      padding: const EdgeInsets.fromLTRB(16.0, 16.0, 16.0, 0),
+                      child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          DefaultTabController(
-                            length: 3,
-                            child: Column(
-                              children: [
-                                TabBar(
-                                  controller: _tabController,
-                                  labelColor: Colors.white,
-                                  unselectedLabelColor: Colors.white54,
-                                  indicatorColor: Colors.purple,
-                                  tabs: const [
-                                    Tab(text: "Vest options"),
-                                    Tab(text: "Active vests"),
-                                    Tab(text: "Matured vests"),
-                                  ],
-                                ),
-                              ],
-                            ),
+                          const Text(
+                            'Cre8Vest',
+                            style: TextStyle(color: Colors.white, fontSize: 24, fontWeight: FontWeight.bold),
                           ),
-                          const SizedBox(height: 15),
-
-                          // Investment Cards List
-                          Expanded(
-                            child: AnimatedPadding(
-                              duration: const Duration(milliseconds: 200),
-                              curve: Curves.easeOut,
-                              padding: EdgeInsets.only(
-                                bottom: MediaQuery.of(context).viewInsets.bottom,
-                              ),
-                              child: TabBarView(
-                                controller: _tabController,
-                                children: [
-                                  _buildVestOptions(serviceState),
-                                  _buildActiveInvestments(activeState),
-                                  _buildMaturedInvestments(activeState),
-                                ],
-                              ),
+                          const SizedBox(height: 10),
+                          if (user?.wallet != null)
+                            WalletBalanceCard(
+                              title: 'Base balance',
+                              balance: user?.wallet?.balance != null
+                                  ? ref.formatUserCurrency(user?.wallet?.balance)
+                                  : '',
+                              currencySymbol: user?.wallet!.currency ?? '',
+                              onAddFunds: () => _showAmountInputModal(user?.wallet!.currency ?? ''),
+                              onWithdraw: _navigateToWithdraw,
                             ),
-                          ),
+                          const SizedBox(height: 10),
                         ],
                       ),
-
-                      // Blur Overlay (Conditional)
-                      if (user?.creator == null || user!.creator!.active == false)
-                        Positioned.fill(
-                          top: 50,
-                          child: BackdropFilter(
-                            filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
-                            child: Container(
-                              color: Colors.black.withOpacity(0.3),
-                              alignment: Alignment.center,
-                              child: Column(
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                children: [
-                                  Center(
-                                    child: Text(
-                                      textAlign: TextAlign.center,
-                                      (user?.creator == null) ? "Complete your KYC so as to activate your Cre8Vest Account Unlock your ability to Invest in verifiable and quality entertainment projects or artists, as well as share in their success." : "Your account is under review",
-                                      style: const TextStyle(
-                                          color: Colors.white, fontSize: 18),
-                                    ),
-                                  ),
-                                  const SizedBox(height: 10),
-                                  if(user?.creator == null)
-                                    RoundedButton(
-                                      title: 'Verify my identity',
-                                      onPressed: () {
-                                        Navigator.push(
-                                          context,
-                                          MaterialPageRoute(
-                                            builder: (context) => SetupScreen(user: widget.user),
-                                          ),
-                                        );
-                                      },
-                                      color: const Color(0xFF4D3490),
-                                      borderWidth: 0,
-                                      borderRadius: 12.0,
-                                    )
-                                ],
-                              ),
-                            ),
-                          ),
-                        ),
-                    ],
+                    ),
                   ),
+                  SliverPersistentHeader(
+                    pinned: true,
+                    delegate: _SliverTabBarDelegate(
+                      TabBar(
+                        controller: _tabController,
+                        labelColor: Colors.white,
+                        unselectedLabelColor: Colors.white54,
+                        indicatorColor: Colors.purple,
+                        tabs: const [
+                          Tab(text: "Vest options"),
+                          Tab(text: "Active vests"),
+                          Tab(text: "Matured vests"),
+                        ],
+                      ),
+                    ),
+                  ),
+                ];
+              },
+              body: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                child: TabBarView(
+                  controller: _tabController,
+                  children: [
+                    _buildVestOptions(serviceState),
+                    _buildActiveInvestments(activeState),
+                    _buildMaturedInvestments(activeState),
+                  ],
                 ),
-              ],
+              ),
             ),
           ),
         );
@@ -372,6 +318,7 @@ class _SoundhiveVestScreenState extends ConsumerState<SoundhiveVestScreen> with 
   Widget _buildVestOptions(AsyncValue<InvestmentResponse> serviceState) {
     return Column(
       children: [
+        const SizedBox(height: 10),
         const Text(
           'Invest in artists, invest in events, share in catalogues and revenue',
           style: TextStyle(color: Colors.white54, fontSize: 14),
@@ -400,11 +347,12 @@ class _SoundhiveVestScreenState extends ConsumerState<SoundhiveVestScreen> with 
               if (allServices.isEmpty) return _buildEmptyState(context);
 
               return ListView.builder(
-                controller: _scrollController,
+                // Crucial: lets NestedScrollView handle outer viewport physics synchronization
+                physics: const ClampingScrollPhysics(),
                 keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
-                padding: EdgeInsets.fromLTRB(
-                  10, 10, 10,
-                  MediaQuery.of(context).viewInsets.bottom + 10,
+                padding: EdgeInsets.only(
+                  top: 10,
+                  bottom: MediaQuery.of(context).viewInsets.bottom + 10,
                 ),
                 itemCount: allServices.length + (_isLoadingMore ? 1 : 0),
                 itemBuilder: (context, index) {
@@ -467,6 +415,7 @@ class _SoundhiveVestScreenState extends ConsumerState<SoundhiveVestScreen> with 
           return _buildEmptyState(context);
         }
         return ListView.builder(
+          physics: const ClampingScrollPhysics(),
           itemCount: allServices.length,
           itemBuilder: (context, index) {
             return Padding(
@@ -497,6 +446,7 @@ class _SoundhiveVestScreenState extends ConsumerState<SoundhiveVestScreen> with 
         if (maturedInvestments.isEmpty) return _buildEmptyState(context);
 
         return ListView.builder(
+          physics: const ClampingScrollPhysics(),
           itemCount: maturedInvestments.length,
           itemBuilder: (context, index) => Padding(
             padding: const EdgeInsets.symmetric(vertical: 5),
@@ -706,5 +656,30 @@ class _SoundhiveVestScreenState extends ConsumerState<SoundhiveVestScreen> with 
       color: Colors.grey[800],
       child: const Icon(Icons.broken_image, color: Colors.white54),
     );
+  }
+}
+
+// ========== ADD THIS PERSISTENT DELEGATE TO YOUR FILE ==========
+class _SliverTabBarDelegate extends SliverPersistentHeaderDelegate {
+  final TabBar tabBar;
+
+  _SliverTabBarDelegate(this.tabBar);
+
+  @override
+  double get minExtent => tabBar.preferredSize.height;
+  @override
+  double get maxExtent => tabBar.preferredSize.height;
+
+  @override
+  Widget build(BuildContext context, double shrinkOffset, bool overlapsContent) {
+    return Container(
+      color: const Color(0xFF0C051F), // Matches screen's background color perfectly
+      child: tabBar,
+    );
+  }
+
+  @override
+  bool shouldRebuild(_SliverTabBarDelegate oldDelegate) {
+    return false;
   }
 }

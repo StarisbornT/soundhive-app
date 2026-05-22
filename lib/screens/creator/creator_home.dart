@@ -3,11 +3,13 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:shimmer/shimmer.dart';
 import 'package:soundhive2/screens/creator/profile/setup_screen.dart';
+import 'package:soundhive2/screens/creator/services/offer_details.dart';
 import 'package:soundhive2/screens/dashboard/withdraw.dart';
 import 'package:soundhive2/utils/app_colors.dart';
 import 'package:soundhive2/utils/utils.dart';
 import 'package:soundhive2/lib/dashboard_provider/user_provider.dart';
 import 'package:soundhive2/lib/dashboard_provider/getCreatorBookings.dart';
+import '../../lib/dashboard_provider/getUserOfferProvider.dart';
 import '../../model/user_model.dart';
 import '../non_creator/wallet/add_money_screen.dart';
 import '../non_creator/wallet/fund_wallet_provider.dart';
@@ -25,6 +27,7 @@ class CreatorHome extends ConsumerStatefulWidget {
 class _CreatorHomeState extends ConsumerState<CreatorHome> with SingleTickerProviderStateMixin  {
   int selectedTabIndex = 0;
   final ScrollController _bookingsScrollController = ScrollController();
+  final ScrollController _myOfferScrollController = ScrollController();
   late TabController _tabController;
 
   @override
@@ -47,6 +50,11 @@ class _CreatorHomeState extends ConsumerState<CreatorHome> with SingleTickerProv
   void _handleTabChange() {
     if (_tabController.index == 1 ) {
       ref.read(getCreatorBookingProvider.notifier).getActiveInvestments(
+        pageSize: 10,
+      );
+    }
+    if (_tabController.index == 2 ) {
+      ref.read(getUserOfferProvider.notifier).getReceivedOffers(
         pageSize: 10,
       );
     }
@@ -78,6 +86,12 @@ class _CreatorHomeState extends ConsumerState<CreatorHome> with SingleTickerProv
       ),
     );
   }
+  Future<void> _loadMoreMyOffers() async {
+    final notifier = ref.read(getUserOfferProvider.notifier);
+    if (!notifier.isLastPage && mounted) {
+      await notifier.getReceivedOffers(loadMore: true);
+    }
+  }
 
   void _navigateToWithdraw() {
     Navigator.push(
@@ -89,6 +103,8 @@ class _CreatorHomeState extends ConsumerState<CreatorHome> with SingleTickerProv
   @override
   Widget build(BuildContext context) {
     final user = ref.watch(userProvider);
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
 
     return PopScope(
       canPop: false,
@@ -138,7 +154,8 @@ class _CreatorHomeState extends ConsumerState<CreatorHome> with SingleTickerProv
                       Utils.menuButton("Bookings", selectedTabIndex == 1,
                         onTap: () => _tabController.animateTo(1),),
                       const SizedBox(width: 10),
-                      Utils.menuButton("Community (100)", false),
+                      Utils.menuButton("Offers",  selectedTabIndex == 2,
+                        onTap: () => _tabController.animateTo(2),),
                     ],
                   ),
                 ),
@@ -148,7 +165,7 @@ class _CreatorHomeState extends ConsumerState<CreatorHome> with SingleTickerProv
                 else if (selectedTabIndex == 1)
                   buildMyBookingsUI()
                 else
-                  const SizedBox(),
+                  buildMyOffersUI(theme, isDark),
               ],
             ),
           ),
@@ -293,6 +310,152 @@ class _CreatorHomeState extends ConsumerState<CreatorHome> with SingleTickerProv
                 child: Center(child: _buildLoadingIndicator()),
               ),
           ],
+        );
+      },
+    );
+  }
+
+  Widget buildMyOffersUI(ThemeData theme, bool isDark) {
+    final investmentsState = ref.watch(getUserOfferProvider);
+    final investments = ref.read(getUserOfferProvider.notifier).allServices;
+    final isLastPage = ref.read(getUserOfferProvider.notifier).isLastPage;
+    final isLoadingMore = ref.read(getUserOfferProvider.notifier).isLoadingMore;
+
+    return investmentsState.when(
+      loading: () => _buildShimmerBookingsList(),
+      error: (e, _) => Center(
+        child: Text(
+          "Error: $e",
+          style: TextStyle(color: theme.colorScheme.error),
+        ),
+      ),
+      data: (_) {
+        if (investments.isEmpty) {
+          return Center(
+            child: Text(
+              "No Offers found",
+              style: TextStyle(color: theme.colorScheme.onSurface),
+            ),
+          );
+        }
+
+        // REMOVED: The outer Expanded widget
+        return NotificationListener<ScrollNotification>(
+          onNotification: (scrollNotification) {
+            if (scrollNotification is ScrollEndNotification) {
+              final metrics = scrollNotification.metrics;
+              if (metrics.pixels >= metrics.maxScrollExtent * 0.8 &&
+                  !isLastPage &&
+                  !isLoadingMore) {
+                _loadMoreMyOffers();
+              }
+            }
+            return false;
+          },
+          child: ListView.builder(
+            controller: _myOfferScrollController,
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+
+            // ADDED THESE TWO LINES:
+            shrinkWrap: true,
+            physics: const NeverScrollableScrollPhysics(), // Let the main outer container handle scrolling
+
+            itemCount: investments.length + (isLoadingMore ? 1 : 0),
+            itemBuilder: (context, index) {
+              if (index >= investments.length) {
+                return Center(
+                  child: Padding(
+                    padding: const EdgeInsets.all(16.0),
+                    child: CircularProgressIndicator(
+                      color: theme.colorScheme.primary,
+                    ),
+                  ),
+                );
+              }
+
+              final investment = investments[index];
+              final service = investment.service;
+
+              return GestureDetector(
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => OfferDetailScreen(
+                        offer: investment,
+                      ),
+                    ),
+                  );
+                },
+                child: Card(
+                  color: theme.cardColor,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  margin: const EdgeInsets.symmetric(vertical: 8),
+                  child: ListTile(
+                    leading: service?.coverImage != null
+                        ? ClipRRect(
+                      borderRadius: BorderRadius.circular(8),
+                      child: Image.network(
+                        service!.coverImage,
+                        width: 100,
+                        height: 78,
+                        fit: BoxFit.cover,
+                        errorBuilder: (_, __, ___) => Icon(
+                          Icons.image,
+                          color: theme.colorScheme.onSurface,
+                        ),
+                      ),
+                    )
+                        : CircleAvatar(
+                      backgroundColor: AppColors.BUTTONCOLOR,
+                      child: Icon(Icons.work,
+                          color: theme.colorScheme.onPrimary),
+                    ),
+                    title: Text(
+                      service?.serviceName ?? "Booking #${investment.id}",
+                      style: TextStyle(
+                          color: theme.colorScheme.onSurface,
+                          fontSize: 14),
+                    ),
+                    subtitle: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          "Made on ${DateFormat('dd/MM/yyyy').format(DateTime.parse(investment.createdAt))}",
+                          style: TextStyle(
+                              color: theme.colorScheme.onSurface
+                                  .withOpacity(0.7),
+                              fontSize: 12),
+                        ),
+                        const SizedBox(height: 10),
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 8, vertical: 4),
+                          decoration: BoxDecoration(
+                            color: investment.status == "PENDING"
+                                ? const Color.fromRGBO(255, 193, 7, 0.1)
+                                : const Color.fromRGBO(76, 175, 80, 0.1),
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: Text(
+                            investment.status,
+                            style: TextStyle(
+                              color: investment.status == "PENDING"
+                                  ? const Color(0xFFFFC107)
+                                  : const Color(0xFF4CAF50),
+                              fontSize: 10,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              );
+            },
+          ),
         );
       },
     );

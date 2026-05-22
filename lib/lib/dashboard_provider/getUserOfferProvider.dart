@@ -73,4 +73,55 @@ class GetUserOfferNotifier extends StateNotifier<AsyncValue<OfferFromUserModel>>
       _isLoadingMore = false;
     }
   }
+  Future<void> getReceivedOffers({
+    bool loadMore = false,
+    int? pageSize,
+  }) async {
+    if (_isLastPage && loadMore) return;
+
+    if (loadMore) {
+      _isLoadingMore = true;
+      state = state; // keep old data
+    } else {
+      state = const AsyncValue.loading();
+      _currentPage = 1;
+      _allServices = [];
+      _isLastPage = false;
+    }
+
+    try {
+      final response = await _dio.get(
+        '/offers/recieved-offers',
+        queryParameters: {
+          'page': _currentPage,
+          'per_page': pageSize,
+        },
+        options: Options(headers: {
+          'Accept': 'application/json',
+          'Content-Type': 'application/json',
+        }),
+      );
+
+      final result = OfferFromUserModel.fromMap(response.data);
+      final newServices = result.data.data;
+
+      if (loadMore) {
+        _allServices.addAll(newServices);
+      } else {
+        _allServices = newServices;
+      }
+
+      state = AsyncValue.data(result);
+
+      if (newServices.isEmpty) {
+        _isLastPage = true;
+      } else {
+        _currentPage += 1;
+      }
+    } catch (error, stackTrace) {
+      state = AsyncValue.error(error, stackTrace);
+    } finally {
+      _isLoadingMore = false;
+    }
+  }
 }

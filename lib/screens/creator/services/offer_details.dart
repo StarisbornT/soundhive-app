@@ -6,6 +6,7 @@ import 'package:soundhive2/model/offerFromUserModel.dart';
 import '../../../components/rounded_button.dart';
 import '../../../components/success.dart';
 import 'package:soundhive2/lib/dashboard_provider/apiresponseprovider.dart';
+import '../../../lib/dashboard_provider/getUserOfferProvider.dart';
 import '../../../model/apiresponse_model.dart';
 import '../../../model/getOfferFromUserProvider.dart';
 import '../../../utils/alert_helper.dart';
@@ -34,6 +35,7 @@ class _OfferDetailScreenState extends ConsumerState<OfferDetailScreen> {
 
       if(response.status) {
         await ref.read(getOfferFromUserProvider.notifier).getOffers(id: int.parse(widget.offer.serviceId));
+        await ref.read(getUserOfferProvider.notifier).getReceivedOffers();
         Navigator.pushReplacement(
           context,
           MaterialPageRoute(
@@ -312,7 +314,7 @@ class _OfferDetailScreenState extends ConsumerState<OfferDetailScreen> {
               children: [
                 Expanded(
                   child: Text(
-                    widget.offer.service!.serviceName,
+                    widget.offer.service?.serviceName ?? '',
                     style: const TextStyle(
                       color: Colors.white,
                       fontSize: 24,

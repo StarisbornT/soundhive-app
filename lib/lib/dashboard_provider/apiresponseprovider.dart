@@ -463,7 +463,7 @@ class ApiResponseProvider extends StateNotifier<AsyncValue<void>> {
     try {
       LoaderService.showLoader(context);
       final response = await _dio.post(
-        '/fincra/payouts/create',
+        '/wallet/payout',
         data: jsonEncode(payload),
       );
 
@@ -870,6 +870,31 @@ class ApiResponseProvider extends StateNotifier<AsyncValue<void>> {
           'project_description': description,
           'parent_conversation_id': parentConversationId ?? ""
         })
+      );
+
+      if (response.statusCode == 200) {
+        state = const AsyncValue.data(null);
+        return ApiResponseModel.fromJson(response.data);
+      } else {
+        throw Exception(response.data['message'] ?? 'Something went wrong');
+      }
+    } catch (error, stackTrace) {
+      state = AsyncValue.error(error, stackTrace);
+      rethrow; // Let the caller handle the error
+    } finally {
+      // LoaderService.hideLoader(context);
+    }
+  }
+  Future<ApiResponseModel> deleteConversation({
+    required BuildContext context,
+    int? id,
+
+  }) async {
+    state = const AsyncValue.loading();
+    try {
+      // LoaderService.showLoader(context);
+      final response = await _dio.delete(
+          '/ai-workflow/conversations/$id'
       );
 
       if (response.statusCode == 200) {

@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import 'package:just_audio_background/just_audio_background.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:soundhive2/screens/auth/create_account.dart';
 import 'package:soundhive2/screens/auth/creator_identity.dart';
@@ -35,6 +36,14 @@ import 'package:firebase_core/firebase_core.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+
+  await JustAudioBackground.init(
+    androidNotificationChannelId: 'com.example.soundhive2',
+    androidNotificationChannelName: 'SoundHive Audio',
+    androidNotificationOngoing: true,
+    // androidStopForegroundOnPause: true, // notification clears when paused
+    notificationColor: const Color(0xFF6D81F1),
+  );
 
   await dotenv.load(fileName: '.env.production');
   await Firebase.initializeApp();

@@ -320,13 +320,11 @@ class ConfirmWithdrawal extends ConsumerWidget {
 
     try {
       final payload = {
-        "paymentDestination": "bank_account",
+        "bankName": withdrawalData['bankName'],
         "amount": int.parse(withdrawalData['amount'].replaceAll(",", "")),
-        "beneficiary": {
-          "accountHolderName": withdrawalData['accountName'],
-          "accountNumber": withdrawalData['accountNumber'],
-          "bankCode": withdrawalData['bankCode'],
-        },
+        "accountNumber": withdrawalData['accountNumber'],
+        "bankCode": withdrawalData['bankCode'],
+        "narration": withdrawalData['narration'],
         "pin": pin
       };
 
@@ -335,35 +333,26 @@ class ConfirmWithdrawal extends ConsumerWidget {
           .createPayout(context: context, payload: payload);
 
       if (response.status) {
-        final customerResponse = await ref
-            .read(apiresponseProvider.notifier)
-            .getCustomerReference(
-          context: context,
-          reference: response.data['customerReference'],
-        );
+        await ref.read(userProvider.notifier).loadUserProfile();
 
-        if (customerResponse.status) {
-          await ref.read(userProvider.notifier).loadUserProfile();
+        // Clear withdrawal data
+        ref.read(withdrawalDataProvider.notifier).state = {};
+        ref.read(withdrawStateProvider.notifier).state = false;
 
-          // Clear withdrawal data
-          ref.read(withdrawalDataProvider.notifier).state = {};
-          ref.read(withdrawStateProvider.notifier).state = false;
-
-          Navigator.pushReplacement(
-            context,
-            MaterialPageRoute(
-              builder: (context) => Success(
-                title: 'Withdrawal Successful',
-                subtitle: 'Your withdrawal has been processed successfully',
-                onButtonPressed: () {
-                  Navigator.pop(context);
-                  Navigator.pop(context);
-                  Navigator.pop(context);
-                },
-              ),
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(
+            builder: (context) => Success(
+              title: 'Withdrawal Successful',
+              subtitle: 'Your withdrawal has been processed successfully',
+              onButtonPressed: () {
+                Navigator.pop(context);
+                Navigator.pop(context);
+                Navigator.pop(context);
+              },
             ),
-          );
-        }
+          ),
+        );
       }
     } catch (error) {
       _handleWithdrawalError(context, error);
@@ -469,6 +458,7 @@ class ConfirmWithdrawal extends ConsumerWidget {
                 style: TextStyle(color: Colors.white, fontSize: 16)),
           ),
         ),
+        const SizedBox(height: 20,)
       ],
     );
   }

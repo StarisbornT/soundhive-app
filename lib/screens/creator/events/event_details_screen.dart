@@ -12,6 +12,7 @@ import 'package:soundhive2/lib/dashboard_provider/apiresponseprovider.dart';
 import 'package:soundhive2/lib/dashboard_provider/event_stats_provider.dart';
 import '../../../model/apiresponse_model.dart';
 import '../../../utils/alert_helper.dart';
+import '../services/service_details_screen.dart';
 import 'event_registration_screen.dart';
 class EventDetailsScreen extends ConsumerStatefulWidget {
   final EventItem event;
@@ -185,41 +186,19 @@ class _EventDetailsScreenState extends ConsumerState<EventDetailsScreen> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Center(
-              child: ClipRRect(
-                borderRadius: BorderRadius.circular(10),
-                child: event.image.isNotEmpty
-                    ? Image.network(
-                  event.image,
-                  height: 200,
+              child:  GestureDetector(
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => FullScreenImage(imageUrl: event.image),
+                    ),
+                  );
+                },
+                child: NetworkImageWithLoader(
+                  imageUrl: event.image,
                   width: double.infinity,
-                  fit: BoxFit.cover,
-                  errorBuilder: (context, error, stackTrace) =>
-                      Container(
-                        height: 200,
-                        width: double.infinity,
-                        decoration: BoxDecoration(
-                          color: isDark ? Colors.grey[800] : Colors.grey[200],
-                          borderRadius: BorderRadius.circular(10),
-                        ),
-                        child: Icon(
-                          Icons.event,
-                          size: 60,
-                          color: theme.colorScheme.onSurface.withOpacity(0.3),
-                        ),
-                      ),
-                )
-                    : Container(
                   height: 200,
-                  width: double.infinity,
-                  decoration: BoxDecoration(
-                    color: isDark ? Colors.grey[800] : Colors.grey[200],
-                    borderRadius: BorderRadius.circular(10),
-                  ),
-                  child: Icon(
-                    Icons.event,
-                    size: 60,
-                    color: theme.colorScheme.onSurface.withOpacity(0.3),
-                  ),
                 ),
               ),
             ),

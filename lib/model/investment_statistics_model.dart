@@ -1,5 +1,7 @@
 import 'dart:convert';
 
+import 'user_model.dart';
+
 class InvestmentStatisticsModel {
   final bool status;
   final InvestmentData data;
@@ -40,7 +42,7 @@ class InvestmentData {
   factory InvestmentData.fromMap(Map<String, dynamic> map) {
     return InvestmentData(
       investmentId: map['investment_id'] ?? 0,
-      user: User.fromMap(map['user'] ?? {}),
+      user: User.fromJson(map['user'] ?? {}),
       vest: Vest.fromMap(map['vest'] ?? {}),
       investmentDetails: InvestmentDetails.fromMap(map['investment_details'] ?? {}),
       performanceMetrics: PerformanceMetrics.fromMap(map['performance_metrics'] ?? {}),
@@ -49,19 +51,6 @@ class InvestmentData {
   }
 }
 
-class User {
-  final int id;
-  final String? name;
-
-  User({required this.id, this.name});
-
-  factory User.fromMap(Map<String, dynamic> map) {
-    return User(
-      id: map['id'] ?? 0,
-      name: map['name'],
-    );
-  }
-}
 
 class Vest {
   final int id;

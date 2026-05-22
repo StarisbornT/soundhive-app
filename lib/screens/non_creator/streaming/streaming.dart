@@ -9,12 +9,10 @@ import 'package:soundhive2/screens/non_creator/streaming/song_helper.dart';
 import '../../../components/label_text.dart';
 import '../../../components/rounded_button.dart';
 import 'package:soundhive2/lib/dashboard_provider/getAllSongsProvider.dart';
-import 'package:soundhive2/lib/dashboard_provider/user_provider.dart';
 import 'package:soundhive2/lib/audio_player_provider.dart';
 import 'package:soundhive2/lib/dashboard_provider/getPlayListProvider.dart';
 import '../../../model/playlist_model.dart';
 import '../../../utils/app_colors.dart';
-import 'artist_profile.dart';
 
 class Track {
   final String title;
@@ -328,13 +326,13 @@ class _StreamingState extends ConsumerState<Streaming> {
               ),
             ],
           ),
-          trailing: IconButton(
-            icon: Icon(
-              Icons.more_vert,
-              color: theme.colorScheme.onSurface.withOpacity(0.6),
-            ),
-            onPressed: () => _showSongOptions(song, theme, isDark),
-          ),
+          // trailing: IconButton(
+          //   icon: Icon(
+          //     Icons.more_vert,
+          //     color: theme.colorScheme.onSurface.withOpacity(0.6),
+          //   ),
+          //   onPressed: () => _showSongOptions(song, theme, isDark),
+          // ),
           onTap: () {
             final songsState = ref.read(getAllSongsProvider);
             List<SongItemData>? playlist;
@@ -552,85 +550,88 @@ class _StreamingState extends ConsumerState<Streaming> {
         //   ),
         // );
       },
-      child: Container(
-        height: 70.0,
-        color: isDark ? AppColors.MINI_PLAYER_COLOR : Colors.grey[200],
-        padding: const EdgeInsets.symmetric(horizontal: 10.0),
-        child: Row(
-          children: [
-            Container(
-              width: 50,
-              height: 50,
-              margin: const EdgeInsets.only(right: 10.0),
-              child: ClipRRect(
-                borderRadius: BorderRadius.circular(8.0),
-                child: currentSong.cover.isNotEmpty
-                    ? Image.network(
-                  currentSong.cover,
-                  fit: BoxFit.cover,
-                  width: 50,
-                  height: 50,
-                  errorBuilder: (context, error, stackTrace) {
-                    return Container(
-                      width: 50,
-                      height: 50,
-                      color: isDark ? Colors.grey[800] : Colors.grey[300],
-                      child: Icon(
-                        Icons.music_note,
-                        color: theme.colorScheme.onSurface,
-                        size: 24,
-                      ),
-                    );
-                  },
-                )
-                    : Container(
-                  width: 50,
-                  height: 50,
-                  color: isDark ? Colors.grey[800] : Colors.grey[300],
-                  child: Icon(
-                    Icons.music_note,
-                    color: theme.colorScheme.onSurface,
-                    size: 24,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 16.0),
+        child: Container(
+          height: 70.0,
+          color: isDark ? AppColors.MINI_PLAYER_COLOR : Colors.grey[200],
+          padding: const EdgeInsets.symmetric(horizontal: 10.0),
+          child: Row(
+            children: [
+              Container(
+                width: 50,
+                height: 50,
+                margin: const EdgeInsets.only(right: 10.0),
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(8.0),
+                  child: currentSong.cover.isNotEmpty
+                      ? Image.network(
+                    currentSong.cover,
+                    fit: BoxFit.cover,
+                    width: 50,
+                    height: 50,
+                    errorBuilder: (context, error, stackTrace) {
+                      return Container(
+                        width: 50,
+                        height: 50,
+                        color: isDark ? Colors.grey[800] : Colors.grey[300],
+                        child: Icon(
+                          Icons.music_note,
+                          color: theme.colorScheme.onSurface,
+                          size: 24,
+                        ),
+                      );
+                    },
+                  )
+                      : Container(
+                    width: 50,
+                    height: 50,
+                    color: isDark ? Colors.grey[800] : Colors.grey[300],
+                    child: Icon(
+                      Icons.music_note,
+                      color: theme.colorScheme.onSurface,
+                      size: 24,
+                    ),
                   ),
                 ),
               ),
-            ),
-            Expanded(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    currentSong.title,
-                    style: TextStyle(
-                      color: theme.colorScheme.onSurface,
-                      fontWeight: FontWeight.bold,
-                      fontSize: 14,
+              Expanded(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      currentSong.title,
+                      style: TextStyle(
+                        color: theme.colorScheme.onSurface,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 14,
+                      ),
+                      overflow: TextOverflow.ellipsis,
                     ),
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                  Text(
-                    currentSong.artist,
-                    style: TextStyle(
-                      color: theme.colorScheme.onSurface.withOpacity(0.6),
-                      fontSize: 12,
+                    Text(
+                      currentSong.artist,
+                      style: TextStyle(
+                        color: theme.colorScheme.onSurface.withOpacity(0.6),
+                        fontSize: 12,
+                      ),
+                      overflow: TextOverflow.ellipsis,
                     ),
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                ],
+                  ],
+                ),
               ),
-            ),
-            IconButton(
-              icon: Icon(
-                audioState.isPlaying ? Icons.pause : Icons.play_arrow,
-                color: theme.colorScheme.onSurface,
-                size: 30,
+              IconButton(
+                icon: Icon(
+                  audioState.isPlaying ? Icons.pause : Icons.play_arrow,
+                  color: theme.colorScheme.onSurface,
+                  size: 30,
+                ),
+                onPressed: () {
+                  ref.read(audioPlayerProvider.notifier).togglePlayPause();
+                },
               ),
-              onPressed: () {
-                ref.read(audioPlayerProvider.notifier).togglePlayPause();
-              },
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );

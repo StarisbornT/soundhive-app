@@ -102,15 +102,19 @@ class _EventDetailsState extends ConsumerState<EventDetails> {
         const SizedBox(height: 16),
         Row(
           children: [
-            Text(
-              event.title,
-              style: const TextStyle(
-                color: Colors.white,
-                fontSize: 18,
-                fontWeight: FontWeight.w300,
+            Flexible(
+              child: Text(
+                event.title,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 18,
+                  fontWeight: FontWeight.w300,
+                ),
               ),
             ),
-            const SizedBox(width: 10,),
+            const SizedBox(width: 10),
             Flexible(
               child: Container(
                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
@@ -140,13 +144,17 @@ class _EventDetailsState extends ConsumerState<EventDetails> {
                 ),
               ),
             ),
-            const SizedBox(width: 10,),
-            Text(
-              event.type == "PAID" ? ref.formatUserCurrency(event.convertedRate) : event.type,
-              style: const TextStyle(
-                color: Colors.white,
-                fontSize: 14,
-                fontWeight: FontWeight.w500,
+            const SizedBox(width: 10),
+            Flexible(
+              child: Text(
+                event.type == "PAID" ? ref.formatUserCurrency(event.convertedRate) : event.type,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 14,
+                  fontWeight: FontWeight.w500,
+                ),
               ),
             ),
           ],
@@ -154,11 +162,23 @@ class _EventDetailsState extends ConsumerState<EventDetails> {
         const SizedBox(height: 16),
         Row(
           children: [
-            const Icon(Icons.location_on_outlined,
-                color: Color(0xFFB0B0B6), size: 18),
-            Text(
-              event.location,
-              style: const TextStyle(color: Colors.white, fontSize: 14),
+            const Icon(
+              Icons.location_on_outlined,
+              color: Color(0xFFB0B0B6),
+              size: 18,
+            ),
+            const SizedBox(width: 4),
+            Expanded(
+              child: Text(
+                event.location,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                softWrap: false,
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 14,
+                ),
+              ),
             ),
           ],
         ),

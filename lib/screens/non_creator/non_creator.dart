@@ -346,7 +346,7 @@ class NonCreatorDashboard extends ConsumerWidget {
             final pages = [
               Marketplace(user: user),
               WalletScreen(user: user.user!),
-              SoundhiveVestScreen(user: user),
+              SoundHiveVestScreen(user: user),
               const Placeholder(),
             ];
 

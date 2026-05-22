@@ -16,10 +16,16 @@ class GetMyOrdersAssetNotifier extends StateNotifier<AsyncValue<MarketOrdersPagi
   final FlutterSecureStorage _storage;
 
   List<MarketOrder> _allServices = [];
-  bool _isLoadingMore = false;
   int _currentPage = 1;
   bool _isLastPage = false;
-  Map<String, dynamic> _currentFilters = {};
+  bool _isLoadingMore = false;
+  int? _sessionSeed;
+
+  String? _searchTerm;
+  int? _categoryId;
+  int? _subCategoryId;
+  double? _minRate;
+  double? _maxRate;
 
   GetMyOrdersAssetNotifier(this._dio, this._storage) : super(const AsyncValue.loading());
 
@@ -28,19 +34,34 @@ class GetMyOrdersAssetNotifier extends StateNotifier<AsyncValue<MarketOrdersPagi
   bool get isLoadingMore => _isLoadingMore;
 
   Future<void> resetMarketplaceState() async {
-    _currentPage = 1;
-    _allServices = [];
-    _isLastPage = false;
-    _currentFilters = {};
+    _clearPaginationState();
+    _clearFilters();
+    _sessionSeed = null;
     state = const AsyncValue.loading();
-    await getMarketPlaceService();
+    await _fetchServices();
   }
 
-  void resetFilters() {
-    _currentFilters.clear();
-    _currentPage = 1;
-    _allServices = [];
-    _isLastPage = false;
+  Future<void> resetWithCurrentFilters() async {
+    _clearPaginationState();
+    _sessionSeed = null;
+    state = const AsyncValue.loading();
+    await _fetchServices();
+  }
+
+  Future<void> applyFilters({
+    int? categoryId,
+    int? subCategoryId,
+    double? minPrice,
+    double? maxPrice,
+  }) async {
+    _clearPaginationState();
+    _sessionSeed = null;
+    _categoryId = categoryId;
+    _subCategoryId = subCategoryId;
+    _minRate = minPrice;
+    _maxRate = maxPrice;
+    state = const AsyncValue.loading();
+    await _fetchServices();
   }
 
   Future<void> getMarketPlaceService({
@@ -51,45 +72,56 @@ class GetMyOrdersAssetNotifier extends StateNotifier<AsyncValue<MarketOrdersPagi
     double? minRate,
     double? maxRate,
   }) async {
-    try {
-      if (_isLoadingMore) return;
+    if (loadMore) {
+      await _fetchServices(loadMore: true);
+    } else {
+      _clearPaginationState();
+      _sessionSeed = null;
+      _searchTerm = searchTerm;
+      _categoryId = categoryId;
+      _subCategoryId = subCategoryId;
+      _minRate = minRate;
+      _maxRate = maxRate;
+      state = const AsyncValue.loading();
+      await _fetchServices();
+    }
+  }
 
-      // Update loading states
-      if (!loadMore) {
-        state = const AsyncValue.loading();
-        _currentPage = 1;
-        _allServices = [];
-        _isLastPage = false;
-      } else {
+  void resetFilters() {
+    _clearPaginationState();
+    _clearFilters();
+    _sessionSeed = null;
+  }
+
+  Future<void> _fetchServices({bool loadMore = false}) async {
+    if (_isLoadingMore) return;
+
+    try {
+      if (loadMore) {
+        if (_isLastPage) return;
         _isLoadingMore = true;
         _currentPage++;
       }
 
-      // Build query parameters - NO HARDCODED pageSize
-      final Map<String, dynamic> queryParams = {
+      final Map<String, dynamic> params = {
         'page': _currentPage,
       };
 
-      // Add filters
-      if (searchTerm != null && searchTerm.isNotEmpty) {
-        queryParams['search_term'] = searchTerm;
+      if (loadMore && _sessionSeed != null) {
+        params['seed'] = _sessionSeed;
       }
-      if (categoryId != null) {
-        queryParams['category_id'] = categoryId;
+
+      if (_searchTerm != null && _searchTerm!.isNotEmpty) {
+        params['search_term'] = _searchTerm;
       }
-      if (subCategoryId != null) {
-        queryParams['sub_category_id'] = subCategoryId;
-      }
-      if (minRate != null) {
-        queryParams['min_rate'] = minRate;
-      }
-      if (maxRate != null) {
-        queryParams['max_rate'] = maxRate;
-      }
+      if (_categoryId != null) params['category_id'] = _categoryId;
+      if (_subCategoryId != null) params['sub_category_id'] = _subCategoryId;
+      if (_minRate != null) params['min_rate'] = _minRate;
+      if (_maxRate != null) params['max_rate'] = _maxRate;
 
       final response = await _dio.get(
         '/marketplace',
-        queryParameters: queryParams,
+        queryParameters: params,
         options: Options(headers: {
           'Accept': 'application/json',
           'Content-Type': 'application/json',
@@ -99,45 +131,49 @@ class GetMyOrdersAssetNotifier extends StateNotifier<AsyncValue<MarketOrdersPagi
       final result = MarketOrdersPaginatedModel.fromMap(response.data);
       final newServices = result.data.data;
 
-      // Update services list
+      if (!loadMore && result.seed != null) {
+        _sessionSeed = result.seed;
+        debugPrint('🎲 New session seed: $_sessionSeed');
+      }
+
       if (loadMore) {
-        _allServices.addAll(newServices);
+        _allServices = [..._allServices, ...newServices];
       } else {
         _allServices = newServices;
       }
 
-      // Update state
+      _isLastPage = result.data.currentPage >= result.data.lastPage || newServices.isEmpty;
+
       state = AsyncValue.data(result);
 
-      // Check if we've reached the last page using API's pagination info
-      _isLastPage = result.data.currentPage >= result.data.lastPage ||
-          newServices.isEmpty;
-
-      debugPrint('Page ${result.data.currentPage}/${result.data.lastPage}, Items: ${newServices.length}, Total: ${_allServices.length}, Last page: $_isLastPage');
-
+      debugPrint(
+        '📦 Page ${result.data.currentPage}/${result.data.lastPage} | '
+            'Seed: $_sessionSeed | '
+            'New: ${newServices.length} | '
+            'Total: ${_allServices.length} | '
+            'LastPage: $_isLastPage',
+      );
     } catch (error, stackTrace) {
-      state = AsyncValue.error(error, stackTrace);
+      debugPrint('❌ Marketplace fetch error: $error');
       if (loadMore) _currentPage--;
+      state = AsyncValue.error(error, stackTrace);
     } finally {
       _isLoadingMore = false;
     }
   }
 
-  Future<void> applyFilters({
-    int? categoryId,
-    double? minPrice,
-    int? subCategoryId,
-    double? maxPrice,
-  }) async {
+  void _clearPaginationState() {
     _currentPage = 1;
     _allServices = [];
     _isLastPage = false;
-
-    await getMarketPlaceService(
-      categoryId: categoryId,
-      subCategoryId: subCategoryId,
-      minRate: minPrice,
-      maxRate: maxPrice,
-    );
+    _isLoadingMore = false;
   }
-}
+
+  void _clearFilters() {
+    _searchTerm = null;
+    _categoryId = null;
+    _subCategoryId = null;
+    _minRate = null;
+    _maxRate = null;
+  }
+} // Closing brace for the class

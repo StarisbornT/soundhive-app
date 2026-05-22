@@ -7,8 +7,8 @@ import 'package:soundhive2/screens/non_creator/non_creator.dart';
 import 'package:soundhive2/utils/app_colors.dart';
 import 'package:soundhive2/utils/utils.dart';
 
-import '../../lib/dashboard_provider/user_provider.dart';
-import '../../lib/navigator_provider.dart';
+import 'package:soundhive2/lib/dashboard_provider/user_provider.dart';
+import 'package:soundhive2/lib/navigator_provider.dart';
 import '../non_creator/marketplace/categories.dart';
 import '../non_creator/marketplace/creators_list.dart';
 import '../non_creator/streaming/preference.dart';
@@ -156,11 +156,13 @@ class _JustCuriousState extends ConsumerState<JustCurious> {
 
                     _buildOptionCard(
                       icon: FontAwesomeIcons.wallet,
-                      text: "Cre8pay – Coming soon",
+                      text: "Cre8pay",
                       color: const Color.fromRGBO(141, 160, 255, 0.1),
                       backgroundImage: "images/c5.png",
                       onTap: () {
-                        _showCre8paySheet(context);
+                        ref.read(bottomNavigationProvider.notifier).state = 1;
+
+                        Navigator.pushNamed(context, NonCreatorDashboard.id);
                       },
                     ),
                   ],

@@ -1,10 +1,11 @@
-// providers/audio_player_provider.dart
 import 'package:flutter/cupertino.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:just_audio/just_audio.dart';
+import 'package:just_audio_background/just_audio_background.dart';
 import '../model/artist_song_model.dart';
 
-final audioPlayerProvider = StateNotifierProvider<AudioPlayerNotifier, AudioPlayerState>((ref) {
+final audioPlayerProvider =
+StateNotifierProvider<AudioPlayerNotifier, AudioPlayerState>((ref) {
   return AudioPlayerNotifier();
 });
 
@@ -12,7 +13,7 @@ class AudioPlayerState {
   final AudioPlayer player;
   final SongItemData? currentSong;
   final List<SongItemData>? playlist;
-  final List<SongItemData>? originalPlaylist; // Store original order
+  final List<SongItemData>? originalPlaylist;
   final bool isPlaying;
   final int currentIndex;
   final Duration position;
@@ -61,14 +62,25 @@ class AudioPlayerNotifier extends StateNotifier<AudioPlayerState> {
     _setupListeners();
   }
 
+  // ─── Build MediaItem (feeds the notification) ───────────────────────────────
+  AudioSource _buildAudioSource(SongItemData song) {
+    return AudioSource.uri(
+      Uri.parse(song.preview),
+      tag: MediaItem(
+        id: song.id.toString(),
+        title: song.title,
+        artist: song.artist,
+        // Artwork shown in the notification
+        artUri: song.cover.isNotEmpty ? Uri.parse(song.cover) : null,
+      ),
+    );
+  }
+
+  // ─── Listeners ───────────────────────────────────────────────────────────────
   void _setupListeners() {
+    // Always sync — no equality guard
     state.player.playerStateStream.listen((playerState) {
-      // Only update if the state is actually different to avoid unnecessary rebuilds
-      if (state.isPlaying != playerState.playing) {
-        state = state.copyWith(
-          isPlaying: playerState.playing,
-        );
-      }
+      state = state.copyWith(isPlaying: playerState.playing);
     });
 
     state.player.positionStream.listen((position) {
@@ -79,26 +91,27 @@ class AudioPlayerNotifier extends StateNotifier<AudioPlayerState> {
       state = state.copyWith(duration: duration ?? Duration.zero);
     });
 
-    // Listen for song completion
     state.player.processingStateStream.listen((processingState) {
       if (processingState == ProcessingState.completed) {
         Future.delayed(const Duration(milliseconds: 50), () {
-          if (mounted) {
-            _playNext();
-          }
+          if (mounted) _playNext();
         });
       }
     });
   }
 
-  Future<void> playSong(SongItemData song, {List<SongItemData>? playlist}) async {
+  // ─── Public API ──────────────────────────────────────────────────────────────
+  Future<void> playSong(SongItemData song,
+      {List<SongItemData>? playlist}) async {
     try {
       await state.player.stop();
-      await state.player.setUrl(song.preview);
-      await state.player.play();
+
+      // Use AudioSource.uri with MediaItem tag instead of plain setUrl
+      await state.player.setAudioSource(_buildAudioSource(song));
 
       final currentPlaylist = playlist ?? [song];
-      final currentIndex = currentPlaylist.indexWhere((s) => s.id == song.id);
+      final currentIndex =
+      currentPlaylist.indexWhere((s) => s.id == song.id);
 
       state = AudioPlayerState(
         player: state.player,
@@ -106,12 +119,13 @@ class AudioPlayerNotifier extends StateNotifier<AudioPlayerState> {
         playlist: currentPlaylist,
         originalPlaylist: List.from(currentPlaylist),
         currentIndex: currentIndex >= 0 ? currentIndex : 0,
-        isPlaying: true,
+        isPlaying: false, // playerStateStream drives this
         position: Duration.zero,
         duration: Duration.zero,
         isShuffled: false,
       );
 
+      await state.player.play();
       debugPrint("🎵 Started playing: ${song.title}");
     } catch (e) {
       debugPrint("Error playing song: $e");
@@ -122,10 +136,8 @@ class AudioPlayerNotifier extends StateNotifier<AudioPlayerState> {
     try {
       if (state.isPlaying) {
         await state.player.pause();
-        // Don't update state here - let the playerStateStream handle it
       } else {
         await state.player.play();
-        // Don't update state here - let the playerStateStream handle it
       }
     } catch (e) {
       debugPrint("Error in togglePlayPause: $e");
@@ -138,8 +150,10 @@ class AudioPlayerNotifier extends StateNotifier<AudioPlayerState> {
     int nextIndex;
     if (state.isShuffled) {
       do {
-        nextIndex = DateTime.now().microsecondsSinceEpoch % state.playlist!.length;
-      } while (nextIndex == state.currentIndex && state.playlist!.length > 1);
+        nextIndex =
+            DateTime.now().microsecondsSinceEpoch % state.playlist!.length;
+      } while (
+      nextIndex == state.currentIndex && state.playlist!.length > 1);
     } else {
       nextIndex = (state.currentIndex + 1) % state.playlist!.length;
     }
@@ -153,8 +167,10 @@ class AudioPlayerNotifier extends StateNotifier<AudioPlayerState> {
     int previousIndex;
     if (state.isShuffled) {
       do {
-        previousIndex = DateTime.now().microsecondsSinceEpoch % state.playlist!.length;
-      } while (previousIndex == state.currentIndex && state.playlist!.length > 1);
+        previousIndex =
+            DateTime.now().microsecondsSinceEpoch % state.playlist!.length;
+      } while (previousIndex == state.currentIndex &&
+          state.playlist!.length > 1);
     } else {
       previousIndex = (state.currentIndex - 1) % state.playlist!.length;
       if (previousIndex < 0) previousIndex = state.playlist!.length - 1;
@@ -164,38 +180,34 @@ class AudioPlayerNotifier extends StateNotifier<AudioPlayerState> {
   }
 
   Future<void> _loadSongByIndex(int index) async {
-    if (state.playlist == null || index < 0 || index >= state.playlist!.length) return;
+    if (state.playlist == null ||
+        index < 0 ||
+        index >= state.playlist!.length) return;
 
     try {
       final newSong = state.playlist![index];
+      debugPrint("🔄 Loading: ${newSong.title} at index $index");
 
-      debugPrint("🔄 Loading new song: ${newSong.title} at index: $index");
-
-      // Completely stop and reset the player
       await state.player.stop();
-      await state.player.setUrl(newSong.preview);
+      // Use AudioSource with MediaItem so notification updates too
+      await state.player.setAudioSource(_buildAudioSource(newSong));
 
-      // Create a new state with isPlaying set to true since we're about to play
       state = AudioPlayerState(
         player: state.player,
         currentSong: newSong,
         playlist: state.playlist,
         originalPlaylist: state.originalPlaylist,
         currentIndex: index,
-        isPlaying: true, // Set to true since we're about to play
+        isPlaying: false, // playerStateStream drives this
         position: Duration.zero,
         duration: Duration.zero,
         isShuffled: state.isShuffled,
       );
 
-      // Now play the song
       await state.player.play();
-
       debugPrint("✅ Now playing: ${newSong.title}");
-
     } catch (e) {
       debugPrint("❌ Error loading song by index: $e");
-      // If there's an error, set isPlaying to false
       state = state.copyWith(isPlaying: false);
     }
   }
@@ -205,17 +217,14 @@ class AudioPlayerNotifier extends StateNotifier<AudioPlayerState> {
 
     if (!state.isShuffled) {
       final currentSong = state.currentSong;
-      final tempList = List<SongItemData>.from(state.playlist!)..removeAt(state.currentIndex);
+      final tempList = List<SongItemData>.from(state.playlist!)
+        ..removeAt(state.currentIndex);
       tempList.shuffle();
       tempList.insert(state.currentIndex, currentSong!);
-
-      state = state.copyWith(
-        playlist: tempList,
-        isShuffled: true,
-      );
+      state = state.copyWith(playlist: tempList, isShuffled: true);
     } else {
-      final currentIndex = state.originalPlaylist!.indexWhere((song) => song.id == state.currentSong!.id);
-
+      final currentIndex = state.originalPlaylist!
+          .indexWhere((song) => song.id == state.currentSong!.id);
       state = state.copyWith(
         playlist: List.from(state.originalPlaylist!),
         currentIndex: currentIndex,
@@ -232,9 +241,6 @@ class AudioPlayerNotifier extends StateNotifier<AudioPlayerState> {
     await state.player.stop();
     state = AudioPlayerState(
       player: state.player,
-      currentSong: null,
-      playlist: null,
-      originalPlaylist: null,
       isPlaying: false,
       currentIndex: 0,
       position: Duration.zero,
@@ -243,7 +249,6 @@ class AudioPlayerNotifier extends StateNotifier<AudioPlayerState> {
     );
   }
 
-  // Public methods for next/previous
   Future<void> next() async => _playNext();
   Future<void> previous() async => _playPrevious();
 

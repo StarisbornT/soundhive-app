@@ -197,6 +197,7 @@ class Wallet {
   final dynamic userId;
   final String? bankName;
   final String? accountNumber;
+  final String? accountName;
   final dynamic balance;
   final String createdAt;
   final String updatedAt;
@@ -210,6 +211,7 @@ class Wallet {
     required this.userId,
     this.bankName,
     this.accountNumber,
+    this.accountName,
     this.balance,
     required this.createdAt,
     required this.updatedAt,
@@ -226,6 +228,7 @@ class Wallet {
       userId: json['user_id'],
       bankName: json['bank_name'],
       accountNumber: json['account_number'],
+      accountName: json['account_name'],
       balance: json['balance'],
       createdAt: json['created_at'] ?? '',
       updatedAt: json['updated_at'] ?? '',

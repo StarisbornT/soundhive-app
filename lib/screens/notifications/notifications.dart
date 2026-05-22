@@ -5,6 +5,7 @@ import 'package:intl/intl.dart';
 import 'package:soundhive2/lib/dashboard_provider/notification_api_provider.dart';
 import 'package:soundhive2/model/user_model.dart';
 import 'package:soundhive2/screens/creator/creator_dashboard.dart';
+import 'package:soundhive2/screens/creator/services/services.dart';
 import 'package:soundhive2/screens/non_creator/marketplace/marketplace_details.dart';
 import 'package:soundhive2/screens/non_creator/non_creator.dart';
 import '../../lib/dashboard_provider/user_provider.dart';
@@ -336,6 +337,7 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
           print('Offer data not available in notification');
         }
         break;
+
       case 'offer_sent':
         if (notification.data['service'] != null) {
           // Convert Map to OfferFromUser object
@@ -356,7 +358,16 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
           print('Offer data not available in notification');
         }
         break;
-    // Add other cases as needed
+      case 'new_offer':
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => ServiceScreen(
+              user: user,
+            ),
+          ),
+        );
+        break;
     }
   }
 }

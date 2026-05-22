@@ -9,16 +9,16 @@ class PinAuthenticationScreen extends StatefulWidget {
   final Function(String) onPinEntered;
 
   const PinAuthenticationScreen({
-    Key? key,
+    super.key,
     this.title = "Authentication PIN",
     this.subtitle = "Kindly enter your 4-digit authentication PIN",
     this.pinLength = 4,
     required this.onPinEntered,
     required this.buttonName,
-  }) : super(key: key);
+  });
 
   @override
-  _PinAuthenticationScreenState createState() =>
+  State<PinAuthenticationScreen> createState() =>
       _PinAuthenticationScreenState();
 }
 
@@ -78,21 +78,22 @@ class _PinAuthenticationScreenState extends State<PinAuthenticationScreen> {
                 ),
               ),
             ),
-            Spacer(),
+            const Spacer(),
             SizedBox(
               width: double.infinity,
               child: ElevatedButton(
                 style: ElevatedButton.styleFrom(
                   backgroundColor: const Color(0xFF4D3490),
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
-                  padding: EdgeInsets.symmetric(vertical: 14),
+                  padding: const EdgeInsets.symmetric(vertical: 14),
                 ),
                 onPressed: _enteredPin.length == widget.pinLength
                     ? () => widget.onPinEntered(_enteredPin)
                     : null,
-                child: Text(widget.buttonName, style: TextStyle(color: Colors.white, fontSize: 16)),
+                child: Text(widget.buttonName, style: const TextStyle(color: Colors.white, fontSize: 16)),
               ),
             ),
+            const SizedBox(height: 20,)
           ],
         ),
       ),

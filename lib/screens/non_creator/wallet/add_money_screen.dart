@@ -583,7 +583,7 @@ class _BankTransferSheet extends StatelessWidget {
                 const SizedBox(height: 6),
                 Text(
                   '$currency $amount',
-                  style: TextStyle(
+                  style: const TextStyle(
                     fontSize: 28,
                     fontWeight: FontWeight.w800,
                     color: AppColors.BUTTONCOLOR,
@@ -613,6 +613,15 @@ class _BankTransferSheet extends StatelessWidget {
             theme: theme,
             isDark: isDark,
             highlight: true,
+          ),
+          const SizedBox(height: 10),
+          _DetailRow(
+            label: 'Account Name',
+            value: wallet.accountName ?? '',
+            onCopy: () =>
+                _copy(context, wallet.accountName ?? '', ''),
+            theme: theme,
+            isDark: isDark,
           ),
           const SizedBox(height: 24),
 

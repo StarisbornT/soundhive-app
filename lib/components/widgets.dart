@@ -2008,4 +2008,58 @@ class _FullScreenAvatar extends StatelessWidget {
   }
 }
 
+class NetworkImageWithLoader extends StatelessWidget {
+  final String imageUrl;
+  final double? width;
+  final double? height;
+  final BoxFit fit;
+  final double borderRadius;
+
+  const NetworkImageWithLoader({
+    super.key,
+    required this.imageUrl,
+    this.width,
+    this.height,
+    this.fit = BoxFit.cover,
+    this.borderRadius = 8,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(borderRadius),
+      child: SizedBox(
+        width: width,
+        height: height,
+        child: imageUrl.isNotEmpty
+            ? Image.network(
+          imageUrl,
+          fit: fit,
+          width: width,
+          height: height,
+          loadingBuilder: (context, child, loadingProgress) {
+            if (loadingProgress == null) return child;
+            return Container(
+              color: Colors.grey[800],
+              child: Center(
+                child: CircularProgressIndicator(
+                  strokeWidth: 2,
+                  color: const Color(0xFF8C52FF),
+                  value: loadingProgress.expectedTotalBytes != null
+                      ? loadingProgress.cumulativeBytesLoaded /
+                      loadingProgress.expectedTotalBytes!
+                      : null,
+                ),
+              ),
+            );
+          },
+          errorBuilder: (context, error, stackTrace) =>
+              Utils.buildImagePlaceholder(),
+        )
+            : Utils.buildImagePlaceholder(),
+      ),
+    );
+  }
+}
+
 
