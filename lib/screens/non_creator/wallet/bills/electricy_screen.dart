@@ -10,6 +10,7 @@ import '../../../../components/success.dart';
 import 'package:soundhive2/lib/dashboard_provider/apiresponseprovider.dart';
 import 'package:soundhive2/lib/dashboard_provider/user_provider.dart';
 import 'package:soundhive2/lib/dashboard_provider/identifiers.dart';
+import '../../../../lib/dashboard_provider/getTransactionHistory.dart';
 import '../../../../lib/dashboard_provider/verify_merchant_provider.dart';
 import '../../../../model/apiresponse_model.dart';
 import '../../../../model/user_model.dart';
@@ -92,6 +93,7 @@ class _ElectricityScreenState extends ConsumerState<ElectricityScreen> {
 
       if (response.status) {
         await ref.read(userProvider.notifier).loadUserProfile();
+        ref.read(getTransactionHistoryPlaceProvider.notifier).getTransactionHistory();
         Navigator.pushReplacement(
           context,
           MaterialPageRoute(

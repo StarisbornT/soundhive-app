@@ -910,6 +910,33 @@ class ApiResponseProvider extends StateNotifier<AsyncValue<void>> {
       // LoaderService.hideLoader(context);
     }
   }
+  Future<ApiResponseModel> createPin({
+    required BuildContext context,
+    required String pin
+  }) async {
+    state = const AsyncValue.loading();
+    try {
+      // LoaderService.showLoader(context);
+      final response = await _dio.post(
+          '/create/pin',
+          data: jsonEncode({
+            'pin': pin,
+          })
+      );
+
+      if (response.statusCode == 200) {
+        state = const AsyncValue.data(null);
+        return ApiResponseModel.fromJson(response.data);
+      } else {
+        throw Exception(response.data['message'] ?? 'Something went wrong');
+      }
+    } catch (error, stackTrace) {
+      state = AsyncValue.error(error, stackTrace);
+      rethrow; // Let the caller handle the error
+    } finally {
+      // LoaderService.hideLoader(context);
+    }
+  }
   Future<ApiResponseModel> followArtist({
     required BuildContext context,
     required int artistId,

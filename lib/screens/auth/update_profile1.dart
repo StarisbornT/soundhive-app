@@ -619,7 +619,7 @@ class PinSetupStep extends StatefulWidget {
   });
 
   @override
-  _PinSetupStepState createState() => _PinSetupStepState();
+  State<PinSetupStep> createState() => _PinSetupStepState();
 }
 
 class _PinSetupStepState extends State<PinSetupStep> {
@@ -643,55 +643,81 @@ class _PinSetupStepState extends State<PinSetupStep> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: const Color(0xFF0C051F),
-      body: SingleChildScrollView(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            const Icon(Icons.lock, size: 50, color: Colors.white),
-            const SizedBox(height: 20),
-            const Text(
-              "Create Authenticator PIN",
-              style: TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold),
-            ),
-            const SizedBox(height: 10),
-            const Text(
-              "Create a 4-digit PIN to login into the app as well as confirming transactions.",
-              textAlign: TextAlign.center,
-              style: TextStyle(color: Colors.grey),
-            ),
-            const SizedBox(height: 20),
-            Container(
-              width: 155,
-              padding: const EdgeInsets.all(7.0),
-              decoration: BoxDecoration(
-                color: const Color(0xFF1A191E),
-                borderRadius: BorderRadius.circular(10)
-              ),
-              child: Row(
+      body: SafeArea(
+        child: Center(
+          child: SingleChildScrollView(
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 24.0),
+              child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
-                children: List.generate(4, (index) {
-                  return Container(
-                    margin: const EdgeInsets.symmetric(horizontal: 10),
-                    width: 15,
-                    height: 15,
+                crossAxisAlignment: CrossAxisAlignment.center,
+                children: [
+                  Container(
+                    width: 60,
+                    height: 60,
                     decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      color: index < pin.length ? Colors.white : Colors.grey.shade800,
+                      color: const Color(0xFF1A191E),
+                      borderRadius: BorderRadius.circular(14),
                     ),
-                  );
-                }),
+                    child: const Icon(Icons.lock, size: 30, color: Colors.white),
+                  ),
+                  const SizedBox(height: 20),
+                  const Text(
+                    "Create Authenticator PIN",
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 20,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  const SizedBox(height: 10),
+                  const Text(
+                    "Create a 4-digit PIN to login into the app as well as confirming transactions.",
+                    textAlign: TextAlign.center,
+                    style: TextStyle(color: Colors.grey),
+                  ),
+                  const SizedBox(height: 20),
+                  // Replace the fixed-width Container for the PIN dots with this:
+                  Container(
+                    padding: const EdgeInsets.all(7.0),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF1A191E),
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min, // ← shrink-wraps the row
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: List.generate(4, (index) {
+                        return Container(
+                          margin: const EdgeInsets.symmetric(horizontal: 10),
+                          width: 15,
+                          height: 15,
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            color: index < pin.length
+                                ? Colors.white
+                                : Colors.grey.shade800,
+                          ),
+                        );
+                      }),
+                    ),
+                  ),
+                  const SizedBox(height: 40),
+                  NumericKeyboard(onKeyPressed: _onKeyPressed),
+                  const SizedBox(height: 20),
+                  TextButton(
+                    onPressed: widget.onBack,
+                    child: const Text(
+                      "Back",
+                      style: TextStyle(color: Colors.grey),
+                    ),
+                  ),
+                ],
               ),
             ),
-            const SizedBox(height: 40),
-            NumericKeyboard(onKeyPressed: _onKeyPressed),
-            const SizedBox(height: 20),
-            TextButton(
-              onPressed: widget.onBack,
-              child: const Text("Back", style: TextStyle(color: Colors.grey)),
-            ),
-          ],
+          ),
         ),
-      )
+      ),
     );
   }
 }
@@ -704,8 +730,11 @@ class NumericKeyboard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final double buttonSize = (MediaQuery.of(context).size.width - 80) / 3 - 20;
+    final double clampedSize = buttonSize.clamp(50.0, 70.0);
+
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 40),
+      padding: const EdgeInsets.symmetric(horizontal: 20),
       child: Column(
         children: [
           for (var row in [
@@ -720,19 +749,22 @@ class NumericKeyboard extends StatelessWidget {
                 return GestureDetector(
                   onTap: () => onKeyPressed(number),
                   child: Container(
-                    margin: const EdgeInsets.all(10),
-                    width: 60,
-                    height: 60,
+                    margin: const EdgeInsets.all(8),
+                    width: clampedSize,
+                    height: clampedSize,
                     decoration: const BoxDecoration(
                       shape: BoxShape.circle,
                       color: Color(0xFF1A191E),
                     ),
                     alignment: Alignment.center,
                     child: number == "X"
-                        ? const Icon(Icons.backspace, color: Colors.white, size: 24)
+                        ? Icon(Icons.backspace, color: Colors.white, size: clampedSize * 0.38)
                         : Text(
                       number,
-                      style: const TextStyle(color: Colors.white, fontSize: 24),
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: clampedSize * 0.38,
+                      ),
                     ),
                   ),
                 );

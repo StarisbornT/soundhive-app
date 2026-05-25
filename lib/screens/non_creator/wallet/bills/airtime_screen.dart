@@ -8,6 +8,7 @@ import 'package:soundhive2/utils/utils.dart';
 
 import '../../../../components/success.dart';
 import 'package:soundhive2/lib/dashboard_provider/apiresponseprovider.dart';
+import '../../../../lib/dashboard_provider/getTransactionHistory.dart';
 import '../../../../lib/dashboard_provider/user_provider.dart';
 import '../../../../model/apiresponse_model.dart';
 import '../../../../model/user_model.dart';
@@ -50,7 +51,7 @@ class _AirtimeScreenState extends ConsumerState<AirtimeScreen> {
     try {
       final payload = {
         "amount": amountController.text,
-        'serviceID': selectedNetwork?.toLowerCase(),
+        'serviceID': selectedNetwork?.toLowerCase() == '9mobile' ? 'etisalat' : selectedNetwork?.toLowerCase(),
         'phone_number': phoneController.text,
         'pin': pin
       };
@@ -62,6 +63,7 @@ class _AirtimeScreenState extends ConsumerState<AirtimeScreen> {
 
       if (response.status) {
         await ref.read(userProvider.notifier).loadUserProfile();
+        ref.read(getTransactionHistoryPlaceProvider.notifier).getTransactionHistory();
         Navigator.pushReplacement(
           context,
           MaterialPageRoute(

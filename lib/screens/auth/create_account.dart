@@ -82,7 +82,7 @@ class _CreateAccountScreenState extends State<CreateAccount> {
         isLoading = true;
       });
       Map<String, String> payload = {
-        "email": emailController.text,
+        "email": emailController.text.toLowerCase(),
         "password": passwordController.text,
         "role": identity == "creator" ? "CREATOR" : "USER",
         'creator_role': creatorIdentity?.toUpperCase() ?? ""
@@ -205,7 +205,7 @@ class _CreateAccountScreenState extends State<CreateAccount> {
 
   Future<void> _sendGoogleUserToBackend(User user) async {
     final payload = {
-      "email": user.email,
+      "email": user.email?.toLowerCase(),
       "name": user.displayName,
       "google_id": user.uid,
       "role": identity == "creator" ? "CREATOR" : "USER",

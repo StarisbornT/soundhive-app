@@ -301,21 +301,21 @@ class _AddMoneyScreenState extends ConsumerState<AddMoneyScreen>
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       const SizedBox(height: 20),
-                      _SectionLabel(
-                          label: 'Choose Gateway', theme: theme),
-                      const SizedBox(height: 12),
-                      _GatewayCard(
-                        id: 'paystack',
-                        name: 'Paystack',
-                        tagline: 'Card · Bank Transfer · USSD',
-                        accentColor: const Color(0xFF00C3F7),
-                        isSelected: _selectedGateway == 'paystack',
-                        onTap: () => setState(
-                                () => _selectedGateway = 'paystack'),
-                        theme: theme,
-                        isDark: isDark,
-                      ),
-                      const SizedBox(height: 10),
+                      // _SectionLabel(
+                      //     label: 'Choose Gateway', theme: theme),
+                      // const SizedBox(height: 12),
+                      // _GatewayCard(
+                      //   id: 'paystack',
+                      //   name: 'Paystack',
+                      //   tagline: 'Card · Bank Transfer · USSD',
+                      //   accentColor: const Color(0xFF00C3F7),
+                      //   isSelected: _selectedGateway == 'paystack',
+                      //   onTap: () => setState(
+                      //           () => _selectedGateway = 'paystack'),
+                      //   theme: theme,
+                      //   isDark: isDark,
+                      // ),
+                      // const SizedBox(height: 10),
                       _GatewayCard(
                         id: 'flutterwave',
                         name: 'Flutterwave',

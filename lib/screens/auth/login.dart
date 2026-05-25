@@ -61,7 +61,7 @@ class _LoginScreenState extends State<Login> {
     try {
       LoaderService.showLoader(context);
       Map<String, String> payload = {
-        "email": emailController.text,
+        "email": emailController.text.toLowerCase(),
         "password": passwordController.text,
       };
       final options = Options(headers: {'Accept': 'application/json'});
@@ -198,7 +198,7 @@ class _LoginScreenState extends State<Login> {
 
   Future<void> _sendGoogleUserToBackend(User user) async {
     final payload = {
-      "email": user.email,
+      "email": user.email?.toLowerCase(),
     };
 
     final response = await widget.dio.post(
