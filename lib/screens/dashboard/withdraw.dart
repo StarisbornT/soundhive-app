@@ -20,7 +20,9 @@ final withdrawalDataProvider = StateProvider<Map<String, dynamic>>((ref) => {});
 final withdrawStateProvider = StateProvider<bool>((ref) => false);
 
 class WithdrawScreen extends ConsumerStatefulWidget {
-  const WithdrawScreen({super.key});
+  final String walletType; // 'NGN' or 'USD'
+
+  const WithdrawScreen({super.key, this.walletType = 'NGN'});
 
   @override
   ConsumerState<WithdrawScreen> createState() => _WithdrawalScreenState();
@@ -42,6 +44,10 @@ class _WithdrawalScreenState extends ConsumerState<WithdrawScreen> {
     return Scaffold(
       appBar: AppBar(
         elevation: 0,
+        title: Text(
+          widget.walletType == 'USD' ? 'Withdraw Dollar Balance' : 'Withdraw',
+          style: const TextStyle(fontSize: 16),
+        ),
         leading: IconButton(
           icon: const Icon(Icons.arrow_back_ios, color: Colors.grey),
           onPressed: () {
@@ -56,15 +62,17 @@ class _WithdrawalScreenState extends ConsumerState<WithdrawScreen> {
       body: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
         child: showConfirmation
-            ? const ConfirmWithdrawal()
-            : const WithdrawForm(),
+            ? ConfirmWithdrawal(walletType: widget.walletType)
+            : WithdrawForm(walletType: widget.walletType),
       ),
     );
   }
 }
 
 class WithdrawForm extends ConsumerStatefulWidget {
-  const WithdrawForm({super.key});
+  final String walletType;
+
+  const WithdrawForm({super.key, required this.walletType});
 
   @override
   ConsumerState<WithdrawForm> createState() => _WithdrawFormState();
@@ -115,7 +123,6 @@ class _WithdrawFormState extends ConsumerState<WithdrawForm> {
 
     try {
       final payload = {
-        "type": "bank_account",
         "bankCode": selectedBank,
         "accountNumber": accountNumberController.text.trim(),
       };
@@ -179,10 +186,11 @@ class _WithdrawFormState extends ConsumerState<WithdrawForm> {
       return;
     }
 
-    // Store withdrawal data
     ref.read(withdrawalDataProvider.notifier).state = {
       'amount': amountController.text,
-      'amountFormatted': ref.formatUserCurrency(
+      'amountFormatted': widget.walletType == 'USD'
+          ? '\$${amountController.text}'
+          : ref.formatUserCurrency(
           double.tryParse(amountController.text.replaceAll(",", "")) ?? 0),
       'accountNumber': accountNumberController.text.trim(),
       'accountName': _accountDetails!['accountName'] ??
@@ -190,10 +198,10 @@ class _WithdrawFormState extends ConsumerState<WithdrawForm> {
           'N/A',
       'bankCode': selectedBank,
       'bankName': selectedBankName,
-      'from': 'Soundhive Vest', // You can customize this
+      'walletType': widget.walletType,  // ← passed through to ConfirmWithdrawal
+      'from': widget.walletType == 'USD' ? 'Dollar Wallet' : 'Soundhive Vest',
     };
 
-    // Show confirmation screen
     ref.read(withdrawStateProvider.notifier).state = true;
   }
 
@@ -225,21 +233,21 @@ class _WithdrawFormState extends ConsumerState<WithdrawForm> {
             style: TextStyle(fontSize: 24),
           ),
           const SizedBox(height: 24),
+          // Amount field — show correct balance label
           CurrencyInputField(
-            label: "Amount",
+            label: widget.walletType == 'USD' ? 'Amount (USD)' : 'Amount',
             controller: amountController,
-            currencySymbol: ref.userCurrency,
-            onChanged: (value) {
-              print('Input changed to: $value');
-            },
+            currencySymbol: widget.walletType == 'USD' ? 'USD' : ref.userCurrency,
+            onChanged: (value) {},
             validator: (value) {
               if (value == null || value.isEmpty || double.tryParse(value) == null) {
                 return 'Please enter a valid amount';
               }
               return null;
             },
-            secondLabel:
-            'Wallet: ${ref.formatUserCurrency(user?.wallet?.balance)}',
+            secondLabel: widget.walletType == 'USD'
+                ? 'Dollar Balance: ${ref.formatUserDollarCurrency(user?.wallet?.dollarBalance)}'
+                : 'Wallet: ${ref.formatUserCurrency(user?.wallet?.balance)}',
           ),
 
           const SizedBox(height: 8),
@@ -284,7 +292,7 @@ class _WithdrawFormState extends ConsumerState<WithdrawForm> {
                 borderRadius: BorderRadius.circular(8),
               ),
               child: Text(
-                'Account Name: ${_accountDetails!['accountName'] ?? _accountDetails!['data']?['accountName'] ?? 'N/A'}',
+                'Account Name: ${_accountDetails!['accountName'] ?? _accountDetails!['data']?['account_name'] ?? 'N/A'}',
                 style: const TextStyle(color: Colors.black),
               ),
             ),
@@ -302,9 +310,12 @@ class _WithdrawFormState extends ConsumerState<WithdrawForm> {
 }
 
 class ConfirmWithdrawal extends ConsumerWidget {
-  const ConfirmWithdrawal({super.key});
+  final String walletType;
 
-  Future<void> _processWithdrawal(BuildContext context, WidgetRef ref, String pin) async {
+  const ConfirmWithdrawal({super.key, required this.walletType});
+
+  Future<void> _processWithdrawal(
+      BuildContext context, WidgetRef ref, String pin) async {
     final withdrawalData = ref.read(withdrawalDataProvider);
 
     if (withdrawalData.isEmpty) {
@@ -319,23 +330,37 @@ class ConfirmWithdrawal extends ConsumerWidget {
     }
 
     try {
-      final payload = {
-        "bankName": withdrawalData['bankName'],
-        "amount": int.parse(withdrawalData['amount'].replaceAll(",", "")),
+      final isDollar = withdrawalData['walletType'] == 'USD';
+
+      // ── Build payload based on wallet type ──────────────────────────────
+      final payload = isDollar
+          ? {
+        "bankName":      withdrawalData['bankName'],
+        "usd_amount":    double.parse(withdrawalData['amount'].replaceAll(",", "")),
         "accountNumber": withdrawalData['accountNumber'],
-        "bankCode": withdrawalData['bankCode'],
-        "narration": withdrawalData['narration'],
-        "pin": pin
+        "bankCode":      withdrawalData['bankCode'],
+        "narration":     withdrawalData['narration'],
+        "pin":           pin,
+      }
+          : {
+        "bankName":      withdrawalData['bankName'],
+        "amount":        int.parse(withdrawalData['amount'].replaceAll(",", "")),
+        "accountNumber": withdrawalData['accountNumber'],
+        "bankCode":      withdrawalData['bankCode'],
+        "narration":     withdrawalData['narration'],
+        "pin":           pin,
       };
 
-      final response = await ref
-          .read(apiresponseProvider.notifier)
+      // ── Call the correct endpoint ────────────────────────────────────────
+      final response = isDollar
+          ? await ref.read(apiresponseProvider.notifier)
+          .createDollarPayout(context: context, payload: payload)
+          : await ref.read(apiresponseProvider.notifier)
           .createPayout(context: context, payload: payload);
 
       if (response.status) {
         await ref.read(userProvider.notifier).loadUserProfile();
 
-        // Clear withdrawal data
         ref.read(withdrawalDataProvider.notifier).state = {};
         ref.read(withdrawStateProvider.notifier).state = false;
 
@@ -343,8 +368,12 @@ class ConfirmWithdrawal extends ConsumerWidget {
           context,
           MaterialPageRoute(
             builder: (context) => Success(
-              title: 'Withdrawal Successful',
-              subtitle: 'Your withdrawal has been processed successfully',
+              title: isDollar
+                  ? 'Dollar Withdrawal Successful'
+                  : 'Withdrawal Successful',
+              subtitle: isDollar
+                  ? 'Your dollar balance has been converted and sent to your bank'
+                  : 'Your withdrawal has been processed successfully',
               onButtonPressed: () {
                 Navigator.pop(context);
                 Navigator.pop(context);
@@ -358,7 +387,6 @@ class ConfirmWithdrawal extends ConsumerWidget {
       _handleWithdrawalError(context, error);
     }
   }
-
   void _handleWithdrawalError(BuildContext context, dynamic error) {
     String errorMessage = 'An unexpected error occurred';
 
@@ -469,13 +497,24 @@ class ConfirmWithdrawal extends ConsumerWidget {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Text(title,
-              style: const TextStyle(fontSize: 14, color: Colors.white)),
-          Text(value,
+          Text(
+            title,
+            style: const TextStyle(fontSize: 14, color: Colors.white),
+          ),
+          const SizedBox(width: 12),
+          Flexible(
+            child: Text(
+              value,
               style: const TextStyle(
-                  fontSize: 14,
-                  color: Colors.white,
-                  fontWeight: FontWeight.w500)),
+                fontSize: 14,
+                color: Colors.white,
+                fontWeight: FontWeight.w500,
+              ),
+              textAlign: TextAlign.end,
+              overflow: TextOverflow.ellipsis,
+              maxLines: 1,
+            ),
+          ),
         ],
       ),
     );

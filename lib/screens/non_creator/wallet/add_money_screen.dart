@@ -64,6 +64,9 @@ class _AddMoneyScreenState extends ConsumerState<AddMoneyScreen>
 
     _fadeController.forward();
     _slideController.forward();
+    if (widget.currency == 'USD') {
+      _selectedGateway = 'flutterwave';
+    }
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _amountFocus.requestFocus();
@@ -260,6 +263,7 @@ class _AddMoneyScreenState extends ConsumerState<AddMoneyScreen>
 
                 // ── Method 1: Bank Transfer (only if virtual account exists)
                 if (hasVirtualAccount) ...[
+                 if(widget.currency != 'USD')
                   _MethodCard(
                     icon: Icons.account_balance_outlined,
                     title: 'Bank Transfer',
@@ -293,6 +297,7 @@ class _AddMoneyScreenState extends ConsumerState<AddMoneyScreen>
                 ),
 
                 // ── Gateway picker (animates in when Pay Online is selected)
+                // ── Gateway picker (animates in when Pay Online is selected)
                 AnimatedSize(
                   duration: const Duration(milliseconds: 300),
                   curve: Curves.easeInOut,
@@ -301,32 +306,68 @@ class _AddMoneyScreenState extends ConsumerState<AddMoneyScreen>
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       const SizedBox(height: 20),
-                      // _SectionLabel(
-                      //     label: 'Choose Gateway', theme: theme),
-                      // const SizedBox(height: 12),
-                      // _GatewayCard(
-                      //   id: 'paystack',
-                      //   name: 'Paystack',
-                      //   tagline: 'Card · Bank Transfer · USSD',
-                      //   accentColor: const Color(0xFF00C3F7),
-                      //   isSelected: _selectedGateway == 'paystack',
-                      //   onTap: () => setState(
-                      //           () => _selectedGateway = 'paystack'),
-                      //   theme: theme,
-                      //   isDark: isDark,
-                      // ),
-                      // const SizedBox(height: 10),
+
+                      // Paystack — hidden for USD wallets
+                      if (widget.currency != 'USD') ...[
+                        // _GatewayCard(
+                        //   id: 'paystack',
+                        //   name: 'Paystack',
+                        //   tagline: 'Card · Bank Transfer · USSD',
+                        //   accentColor: const Color(0xFF00C3F7),
+                        //   isSelected: _selectedGateway == 'paystack',
+                        //   onTap: () => setState(() => _selectedGateway = 'paystack'),
+                        //   theme: theme,
+                        //   isDark: isDark,
+                        // ),
+                        const SizedBox(height: 10),
+                      ],
+
+                      // Flutterwave — always shown, tagline adapts to currency
                       _GatewayCard(
                         id: 'flutterwave',
                         name: 'Flutterwave',
-                        tagline: 'Card · Mobile Money · Bank',
+                        tagline: widget.currency == 'USD'
+                            ? 'Card · Wire Transfer · USD Payments'
+                            : 'Card · Mobile Money · Bank',
                         accentColor: const Color(0xFFF5A623),
                         isSelected: _selectedGateway == 'flutterwave',
-                        onTap: () => setState(
-                                () => _selectedGateway = 'flutterwave'),
+                        onTap: () => setState(() => _selectedGateway = 'flutterwave'),
                         theme: theme,
                         isDark: isDark,
                       ),
+
+                      // USD-only hint
+                      if (widget.currency == 'USD') ...[
+                        const SizedBox(height: 12),
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 14, vertical: 10),
+                          decoration: BoxDecoration(
+                            color: Colors.orange.withOpacity(0.07),
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(
+                                color: Colors.orange.withOpacity(0.25)),
+                          ),
+                          child: Row(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              const Icon(Icons.info_outline,
+                                  color: Colors.orange, size: 15),
+                              const SizedBox(width: 8),
+                              Expanded(
+                                child: Text(
+                                  'Dollar wallet funding is processed exclusively via Flutterwave for secure USD transactions.',
+                                  style: TextStyle(
+                                    fontSize: 11,
+                                    color: Colors.orange.shade800,
+                                    height: 1.5,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
                     ],
                   )
                       : const SizedBox.shrink(),

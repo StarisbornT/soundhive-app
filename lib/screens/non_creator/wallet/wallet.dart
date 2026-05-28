@@ -87,10 +87,12 @@ class _WalletScreenState extends ConsumerState<WalletScreen> {
     );
   }
 
-  void _navigateToWithdraw() {
+  void _navigateToWithdraw({String walletType = 'NGN'}) {
     Navigator.push(
       context,
-      MaterialPageRoute(builder: (context) => const WithdrawScreen()),
+      MaterialPageRoute(
+        builder: (context) => WithdrawScreen(walletType: walletType),
+      ),
     );
   }
 
@@ -370,67 +372,73 @@ class _WalletScreenState extends ConsumerState<WalletScreen> {
     final serviceState = ref.watch(getTransactionHistoryPlaceProvider);
     final user = widget.user;
 
-    return Scaffold(
-      body: SafeArea(  // ← ADD SafeArea to avoid status bar overflow
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16),
-          child: Column(           // ← This Column must be the direct flex parent
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                'Cre8Pay',
-                style: TextStyle(
-                  fontSize: 24,
-                  fontWeight: FontWeight.w400,
-                  color: theme.colorScheme.onSurface,
-                ),
-              ),
-              const SizedBox(height: 20),
-              _buildHeader("Wallet", theme),
-              _buildWalletBalanceCards(user, theme, isDark),
-              Center(
-                child: Text(
-                  'Powered by Bank78',
+    return RefreshIndicator(
+      onRefresh: () async {
+        await ref.read(userProvider.notifier).loadUserProfile();
+        await ref.read(getTransactionHistoryPlaceProvider.notifier).getTransactionHistory();
+      },
+      child: Scaffold(
+        body: SafeArea(  // ← ADD SafeArea to avoid status bar overflow
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            child: Column(           // ← This Column must be the direct flex parent
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Cre8Pay',
                   style: TextStyle(
-                    fontSize: 10,
+                    fontSize: 24,
                     fontWeight: FontWeight.w400,
                     color: theme.colorScheme.onSurface,
-                    fontStyle: FontStyle.italic
                   ),
                 ),
-              ),
-              const SizedBox(height: 16),
-              _buildHeader("Quick Actions", theme),
-              const SizedBox(height: 12),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  _quickActionItem(icon: Icons.call, label: "Airtime",
-                      onTap: () => Navigator.push(context, MaterialPageRoute(
-                          builder: (context) => AirtimeScreen(user: widget.user))),
-                      theme: theme, isDark: isDark),
-                  _quickActionItem(icon: Icons.swap_vert, label: "Data",
-                      onTap: () => Navigator.push(context, MaterialPageRoute(
-                          builder: (context) => DataScreen(user: widget.user))),
-                      theme: theme, isDark: isDark),
-                  _quickActionItem(icon: Icons.lightbulb_outline, label: "Electricity",
-                      onTap: () => Navigator.push(context, MaterialPageRoute(
-                          builder: (context) => ElectricityScreen(user: widget.user))),
-                      theme: theme, isDark: isDark),
-                  _quickActionItem(icon: Icons.tv, label: "Cable TV",
-                      onTap: () => Navigator.push(context, MaterialPageRoute(
-                          builder: (context) => CableTvScreen(user: widget.user))),
-                      theme: theme, isDark: isDark),
-                ],
-              ),
-              const SizedBox(height: 16),
-              _buildHeader("Recent Transactions", theme),
-              const SizedBox(height: 10),
-              // ↓ This Expanded must be a direct child of the Column above
-              Expanded(
-                child: _buildTransactionsList(serviceState, theme, isDark),
-              ),
-            ],
+                const SizedBox(height: 20),
+                _buildHeader("Wallet", theme),
+                _buildWalletBalanceCards(user, theme, isDark),
+                Center(
+                  child: Text(
+                    'Powered by Bank78',
+                    style: TextStyle(
+                      fontSize: 10,
+                      fontWeight: FontWeight.w400,
+                      color: theme.colorScheme.onSurface,
+                      fontStyle: FontStyle.italic
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 16),
+                _buildHeader("Quick Actions", theme),
+                const SizedBox(height: 12),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    _quickActionItem(icon: Icons.call, label: "Airtime",
+                        onTap: () => Navigator.push(context, MaterialPageRoute(
+                            builder: (context) => AirtimeScreen(user: widget.user))),
+                        theme: theme, isDark: isDark),
+                    _quickActionItem(icon: Icons.swap_vert, label: "Data",
+                        onTap: () => Navigator.push(context, MaterialPageRoute(
+                            builder: (context) => DataScreen(user: widget.user))),
+                        theme: theme, isDark: isDark),
+                    _quickActionItem(icon: Icons.lightbulb_outline, label: "Electricity",
+                        onTap: () => Navigator.push(context, MaterialPageRoute(
+                            builder: (context) => ElectricityScreen(user: widget.user))),
+                        theme: theme, isDark: isDark),
+                    _quickActionItem(icon: Icons.tv, label: "Cable TV",
+                        onTap: () => Navigator.push(context, MaterialPageRoute(
+                            builder: (context) => CableTvScreen(user: widget.user))),
+                        theme: theme, isDark: isDark),
+                  ],
+                ),
+                const SizedBox(height: 16),
+                _buildHeader("Recent Transactions", theme),
+                const SizedBox(height: 10),
+                // ↓ This Expanded must be a direct child of the Column above
+                Expanded(
+                  child: _buildTransactionsList(serviceState, theme, isDark),
+                ),
+              ],
+            ),
           ),
         ),
       ),
@@ -495,7 +503,7 @@ class _WalletScreenState extends ConsumerState<WalletScreen> {
                 : '',
             currencySymbol: user.wallet!.currency,
             onAddFunds: () => _showAmountInputModal(user.wallet!.currency),
-            onWithdraw: _navigateToWithdraw,
+            onWithdraw: () => _navigateToWithdraw(walletType: 'NGN'),
           ),
           const SizedBox(width: 10),
 
@@ -518,7 +526,7 @@ class _WalletScreenState extends ConsumerState<WalletScreen> {
                   : '',
               currencySymbol: 'USD',
               onAddFunds: () => _showAmountInputModal('USD'),
-              onWithdraw: _navigateToWithdraw,
+              onWithdraw: () => _navigateToWithdraw(walletType: 'USD'),
             ),
         ],
       ),

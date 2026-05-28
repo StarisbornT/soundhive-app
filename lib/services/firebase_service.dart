@@ -106,10 +106,14 @@ class FirebaseService {
   }
 
   void _setupForegroundHandler() {
-    FirebaseMessaging.onMessage.listen((RemoteMessage message) {
+    FirebaseMessaging.onMessage.listen((RemoteMessage message) async {
       _showNotification(message);
       container.read(notificationProvider.notifier).addNotification();
       container.read(notificationProvider.notifier).fetchUnreadCount();
+      final type = message.data['type'] ?? '';
+      if(type == 'wallet') {
+        await container.read(userProvider.notifier).loadUserProfile();
+      }
 
     });
   }

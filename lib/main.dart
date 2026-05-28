@@ -31,6 +31,7 @@ import 'package:webview_flutter_wkwebview/webview_flutter_wkwebview.dart';
 import 'lib/app_life_cycle.dart';
 import 'lib/auth_state_provider.dart';
 import 'lib/interceptor.dart';
+import 'lib/no_network_overlay.dart';
 import 'lib/provider.dart';
 import 'package:firebase_core/firebase_core.dart';
 
@@ -38,7 +39,7 @@ void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
   await JustAudioBackground.init(
-    androidNotificationChannelId: 'com.example.soundhive2',
+    androidNotificationChannelId: 'com.webedge.cre8hive',
     androidNotificationChannelName: 'SoundHive Audio',
     androidNotificationOngoing: true,
     // androidStopForegroundOnPause: true, // notification clears when paused
@@ -106,11 +107,15 @@ class SoundHive extends ConsumerWidget {
     final authState = ref.watch(authStateProvider);
     final themeState = ref.watch(themeModeProvider);
 
-
     if (authState.isLoading || themeState.isLoading) {
-      return const MaterialApp(home: Scaffold(body: Center(child: CircularProgressIndicator())));
+      return const MaterialApp(
+        home: Scaffold(body: Center(child: CircularProgressIndicator())),
+      );
     }
+
     final routeObserver = ref.read(routeObserverProvider);
+
+    // REMOVED NoNetworkOverlay from here
     return MaterialApp(
       debugShowCheckedModeBanner: false,
       navigatorObservers: [routeObserver],
@@ -126,24 +131,26 @@ class SoundHive extends ConsumerWidget {
         fontFamily: 'Nohemi',
         scaffoldBackgroundColor: Colors.white,
       ),
-
-
+      // ADDED THIS: This injects your overlay cleanly over all routes
+      builder: (context, child) {
+        return NoNetworkOverlay(child: child!);
+      },
       initialRoute: authState.token != null ? DashboardScreen.id : SplashScreen.id,
       routes: {
         SplashScreen.id: (context) => const SplashScreen(),
         Onboard.id: (context) => const Onboard(),
-        IdentityScreen.id: (context) =>  IdentityScreen(storage: storage),
-        CreatorIdentityScreen.id: (context) =>  CreatorIdentityScreen(storage: storage),
-        CreateAccount.id: (context) => CreateAccount(storage: storage, dio: dio,),
-        Login.id: (context) =>  Login(storage: storage, dio: dio,),
-        ForgotPassword.id: (context) =>  ForgotPassword(storage: storage, dio: dio,),
-        OtpScreen.id: (context) => OtpScreen(storage: storage, dio: dio,),
-        ForgotOtpScreen.id: (context) => ForgotOtpScreen(storage: storage, dio: dio,),
-        ResetPassword.id: (context) => ResetPassword(storage: storage, dio: dio,),
-        UpdateProfile1.id: (context) => UpdateProfile1(storage: storage, dio: dio,),
-        JustCurious.id: (context) => JustCurious(storage: storage, dio: dio,),
+        IdentityScreen.id: (context) => IdentityScreen(storage: storage),
+        CreatorIdentityScreen.id: (context) => CreatorIdentityScreen(storage: storage),
+        CreateAccount.id: (context) => CreateAccount(storage: storage, dio: dio),
+        Login.id: (context) => Login(storage: storage, dio: dio),
+        ForgotPassword.id: (context) => ForgotPassword(storage: storage, dio: dio),
+        OtpScreen.id: (context) => OtpScreen(storage: storage, dio: dio),
+        ForgotOtpScreen.id: (context) => ForgotOtpScreen(storage: storage, dio: dio),
+        ResetPassword.id: (context) => ResetPassword(storage: storage, dio: dio),
+        UpdateProfile1.id: (context) => UpdateProfile1(storage: storage, dio: dio),
+        JustCurious.id: (context) => JustCurious(storage: storage, dio: dio),
         DashboardScreen.id: (context) => const DashboardScreen(),
-        TermsAndCondition.id: (context) =>  TermsAndCondition(storage: storage, dio: dio,),
+        TermsAndCondition.id: (context) => TermsAndCondition(storage: storage, dio: dio),
         CreatorDashboard.id: (context) => CreatorDashboard(),
         NonCreatorDashboard.id: (context) => NonCreatorDashboard(),
       },

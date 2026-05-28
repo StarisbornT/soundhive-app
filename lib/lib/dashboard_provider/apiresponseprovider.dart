@@ -413,7 +413,7 @@ class ApiResponseProvider extends StateNotifier<AsyncValue<void>> {
     try {
       // LoaderService.showLoader(context);
       final response = await _dio.post(
-        '/fincra/validate-account',
+        '/validate/bank78',
         data: jsonEncode(payload),
       );
 
@@ -464,6 +464,31 @@ class ApiResponseProvider extends StateNotifier<AsyncValue<void>> {
       LoaderService.showLoader(context);
       final response = await _dio.post(
         '/wallet/payout',
+        data: jsonEncode(payload),
+      );
+
+      if (response.statusCode == 200) {
+        state = const AsyncValue.data(null);
+        return ApiResponseModel.fromJson(response.data);
+      } else {
+        throw Exception(response.data['message'] ?? 'Something went wrong');
+      }
+    } catch (error, stackTrace) {
+      state = AsyncValue.error(error, stackTrace);
+      rethrow; // Let the caller handle the error
+    } finally {
+      LoaderService.hideLoader(context);
+    }
+  }
+  Future<ApiResponseModel> createDollarPayout({
+    required BuildContext context,
+    required Map<dynamic, dynamic> payload
+  }) async {
+    state = const AsyncValue.loading();
+    try {
+      LoaderService.showLoader(context);
+      final response = await _dio.post(
+        '/wallet/dollar/withdraw',
         data: jsonEncode(payload),
       );
 

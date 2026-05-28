@@ -128,7 +128,7 @@ class _SoundHiveVestScreenState extends ConsumerState<SoundHiveVestScreen> with 
   void _navigateToWithdraw() {
     Navigator.push(
       context,
-      MaterialPageRoute(builder: (context) => const WithdrawScreen()),
+      MaterialPageRoute(builder: (context) => const WithdrawScreen(walletType: 'NGN',)),
     );
   }
 

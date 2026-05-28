@@ -1,4 +1,4 @@
-package com.example.soundhive2
+package com.webedge.cre8hive
 
 import io.flutter.embedding.android.FlutterFragmentActivity
 

@@ -96,7 +96,7 @@ class _CreatorHomeState extends ConsumerState<CreatorHome> with SingleTickerProv
   void _navigateToWithdraw() {
     Navigator.push(
       context,
-      MaterialPageRoute(builder: (context) => const WithdrawScreen()),
+      MaterialPageRoute(builder: (context) => const WithdrawScreen(walletType: 'NGN',)),
     );
   }
 
