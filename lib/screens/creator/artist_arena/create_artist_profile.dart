@@ -146,17 +146,6 @@ class _CreateArtistProfileScreenState extends ConsumerState<CreateArtistProfile>
       final profileFile = _profilePhotoNotifier.value!;
       final coverFile = _coverPhotoNotifier.value!;
 
-      bool isProfileValid = await _isValidLocalPath(profileFile.path);
-      bool isCoverValid = await _isValidLocalPath(coverFile.path);
-
-      if (!await profileFile.exists() || !isProfileValid) {
-        throw Exception('Invalid or missing profile photo');
-      }
-
-      if (!await coverFile.exists() || !isCoverValid) {
-        throw Exception('Invalid or missing cover photo');
-      }
-
       await _uploadMediaToCloudinary();
 
       await _submitToBackend();

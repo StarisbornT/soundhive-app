@@ -815,11 +815,7 @@ class _ReviewBottomSheetContentState extends ConsumerState<_ReviewBottomSheetCon
     try {
       if (_imageNotifier.value != null) {
         final imageFile = _imageNotifier.value!;
-        bool isImageValid = await _isValidLocalPath(imageFile.path);
-
-        if (!await imageFile.exists() || !isImageValid) {
-          throw Exception('Invalid or missing image file');
-        }
+       
 
         // Upload both files
         await _uploadMediaToCloudinary();

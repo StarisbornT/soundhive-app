@@ -152,12 +152,14 @@ class SoundHive extends ConsumerWidget {
         fontFamily: 'Nohemi',
         scaffoldBackgroundColor: AppColors.BACKGROUNDCOLOR,
       ),
-      initialRoute: authState.token != null ? DashboardScreen.id : SplashScreen.id,
+      initialRoute:
+          authState.token != null ? DashboardScreen.id : SplashScreen.id,
       routes: {
         SplashScreen.id: (_) => const SplashScreen(),
         Onboard.id: (_) => const Onboard(),
         IdentityScreen.id: (_) => IdentityScreen(storage: storage),
-        CreatorIdentityScreen.id: (_) => CreatorIdentityScreen(storage: storage),
+        CreatorIdentityScreen.id: (_) =>
+            CreatorIdentityScreen(storage: storage),
         CreateAccount.id: (_) => CreateAccount(storage: storage, dio: dio),
         Login.id: (_) => Login(storage: storage, dio: dio),
         ForgotPassword.id: (_) => ForgotPassword(storage: storage, dio: dio),
@@ -167,7 +169,8 @@ class SoundHive extends ConsumerWidget {
         UpdateProfile1.id: (_) => UpdateProfile1(storage: storage, dio: dio),
         JustCurious.id: (_) => JustCurious(storage: storage, dio: dio),
         DashboardScreen.id: (_) => const DashboardScreen(),
-        TermsAndCondition.id: (_) => TermsAndCondition(storage: storage, dio: dio),
+        TermsAndCondition.id: (_) =>
+            TermsAndCondition(storage: storage, dio: dio),
         CreatorDashboard.id: (_) => CreatorDashboard(),
         NonCreatorDashboard.id: (_) => NonCreatorDashboard(),
       },
