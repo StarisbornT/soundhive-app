@@ -83,20 +83,8 @@ class _EventDetailsState extends ConsumerState<EventDetails> {
     return  Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Center(
-          child: ClipRRect(
-            borderRadius: BorderRadius.circular(10),
-            child: event.image.isNotEmpty
-                ? Image.network(
-              event.image,
-              height: 200,
-              width: double.infinity,
-              fit: BoxFit.cover,
-              errorBuilder: (context, error, stackTrace) =>
-                  Utils.buildImagePlaceholder(),
-            )
-                : Utils.buildImagePlaceholder(),
-          ),
+        NetworkImageWithLoader(
+          imageUrl: event.image,
         ),
 
         const SizedBox(height: 16),

@@ -2014,6 +2014,7 @@ class NetworkImageWithLoader extends StatelessWidget {
   final double? height;
   final BoxFit fit;
   final double borderRadius;
+  final bool enableFullScreen;
 
   const NetworkImageWithLoader({
     super.key,
@@ -2022,11 +2023,12 @@ class NetworkImageWithLoader extends StatelessWidget {
     this.height,
     this.fit = BoxFit.cover,
     this.borderRadius = 8,
+    this.enableFullScreen = true,
   });
 
   @override
   Widget build(BuildContext context) {
-    return ClipRRect(
+    Widget imageWidget = ClipRRect(
       borderRadius: BorderRadius.circular(borderRadius),
       child: SizedBox(
         width: width,
@@ -2039,6 +2041,7 @@ class NetworkImageWithLoader extends StatelessWidget {
           height: height,
           loadingBuilder: (context, child, loadingProgress) {
             if (loadingProgress == null) return child;
+
             return Container(
               color: Colors.grey[800],
               child: Center(
@@ -2057,6 +2060,56 @@ class NetworkImageWithLoader extends StatelessWidget {
               Utils.buildImagePlaceholder(),
         )
             : Utils.buildImagePlaceholder(),
+      ),
+    );
+
+    if (!enableFullScreen || imageUrl.isEmpty) {
+      return imageWidget;
+    }
+
+    return GestureDetector(
+      onTap: () {
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (_) => FullScreenImage(imageUrl: imageUrl),
+          ),
+        );
+      },
+      child: imageWidget,
+    );
+  }
+
+
+}
+
+class FullScreenImage extends StatelessWidget {
+  final String imageUrl;
+
+  const FullScreenImage({super.key, required this.imageUrl});
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: Colors.black,
+      appBar: AppBar(
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        leading: IconButton(
+          icon: const Icon(Icons.close, color: Colors.white),
+          onPressed: () => Navigator.pop(context),
+        ),
+      ),
+      body: Center(
+        child: InteractiveViewer(
+          minScale: 0.5,
+          maxScale: 4.0,
+          child: Image.network(
+            imageUrl,
+            fit: BoxFit.contain,
+            width: double.infinity,
+          ),
+        ),
       ),
     );
   }

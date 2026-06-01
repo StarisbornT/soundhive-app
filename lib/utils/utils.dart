@@ -596,7 +596,7 @@ class Utils {
           const SizedBox(height: 12),
           _buildInfoRow(
             'Gender',
-            user.user?.gender?.capitalize() ?? 'Not specified',
+            user.user?.creator?.gender?.capitalize() ?? 'Not specified',
             currentTheme,
             textColor,
             hintTextColor,

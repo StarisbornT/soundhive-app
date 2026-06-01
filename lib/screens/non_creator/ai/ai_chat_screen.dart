@@ -653,17 +653,46 @@ class _AiChatScreenState extends ConsumerState<AiChatScreen> {
               controller: _controller,
               enabled: !_isGeneratingResponse,
               style: const TextStyle(color: Colors.white),
+              onChanged: (value) {
+                if (value.isNotEmpty) {
+                  final updatedText =
+                      value[0].toUpperCase() + value.substring(1);
+
+                  if (updatedText != value) {
+                    _controller.value = TextEditingValue(
+                      text: updatedText,
+                      selection: TextSelection.collapsed(
+                        offset: updatedText.length,
+                      ),
+                    );
+                  }
+                }
+              },
               decoration: InputDecoration(
                 hintText: 'Ask something e.g I want to launch...',
                 hintStyle: TextStyle(color: Colors.white.withOpacity(0.4)),
                 filled: true,
                 fillColor: _kSurface,
-                contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                border:        OutlineInputBorder(borderRadius: BorderRadius.circular(25), borderSide: const BorderSide(color: _kBorder)),
-                enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(25), borderSide: const BorderSide(color: _kBorder)),
-                focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(25), borderSide: const BorderSide(color: _kPurple)),
+                contentPadding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 12,
+                ),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(25),
+                  borderSide: const BorderSide(color: _kBorder),
+                ),
+                enabledBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(25),
+                  borderSide: const BorderSide(color: _kBorder),
+                ),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(25),
+                  borderSide: const BorderSide(color: _kPurple),
+                ),
               ),
-              onSubmitted: (_) { if (!_isGeneratingResponse) generateChat(); },
+              onSubmitted: (_) {
+                if (!_isGeneratingResponse) generateChat();
+              },
             ),
           ),
           const SizedBox(width: 10),

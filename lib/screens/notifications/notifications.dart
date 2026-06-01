@@ -299,10 +299,9 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
     // Handle navigation based on notification type
     switch (notification.type) {
       case 'fund_wallet':
+      case 'wallet':
         Navigator.pushNamed(context, NonCreatorDashboard.id);
-        ref
-            .read(bottomNavigationProvider.notifier)
-            .state = 1;
+        ref.read(bottomNavigationProvider.notifier).state = 1;
         break;
       case 'book':
         final data = ActiveInvestment.fromMap(notification.data['booking']);

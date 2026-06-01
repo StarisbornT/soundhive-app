@@ -375,20 +375,8 @@ class _MarketplaceDetailsScreenState extends ConsumerState<MarketplaceDetails> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Center(
-          child: ClipRRect(
-            borderRadius: BorderRadius.circular(10),
-            child: widget.service.coverImage.isNotEmpty
-                ? Image.network(
-              widget.service.coverImage,
-              height: 200,
-              width: double.infinity,
-              fit: BoxFit.cover,
-              errorBuilder: (context, error, stackTrace) =>
-                  Utils.buildImagePlaceholder(),
-            )
-                : Utils.buildImagePlaceholder(),
-          ),
+        NetworkImageWithLoader(
+          imageUrl: widget.service.coverImage,
         ),
 
         const SizedBox(height: 16),

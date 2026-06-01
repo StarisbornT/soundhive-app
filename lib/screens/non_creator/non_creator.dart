@@ -260,7 +260,7 @@ class NonCreatorDashboard extends ConsumerWidget {
                       _drawerItem(
                         context,
                         icon: 'images/wallet.png',
-                        text: 'Cre8pay - Wallet',
+                        text: 'Cre8Pay - Wallet',
                         onTap: () {
                           Navigator.pop(context);
                           ref
