@@ -19,7 +19,7 @@ class GetBanksNotifier extends StateNotifier<AsyncValue<GetBanksResponseModel>> 
     state = const AsyncValue.loading();
     try {
       final response = await _dio.get(
-          '/fincra/get-banks',
+          '/bank78/banks',
           options: Options(
               headers: {
                 'Accept': 'application/json',

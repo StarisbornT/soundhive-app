@@ -1,5 +1,6 @@
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:soundhive2/screens/dashboard/withdraw.dart';
 import 'package:soundhive2/screens/non_creator/wallet/bills/cable_tv_screen.dart';
@@ -18,10 +19,12 @@ import '../../../model/apiresponse_model.dart';
 import '../../../model/transaction_history_model.dart';
 import '../../../model/user_model.dart';
 import '../../../utils/alert_helper.dart';
+import 'add_money_screen.dart';
 import 'bills/airtime_screen.dart';
-import 'fund_wallet_provider.dart';
+
 
 class WalletScreen extends ConsumerStatefulWidget {
+  static const String id = '/wallet_screen';
   final User user;
   const WalletScreen({super.key, required this.user});
 
@@ -71,19 +74,25 @@ class _WalletScreenState extends ConsumerState<WalletScreen> {
     }
   }
 
+  // Replace this method
   void _showAmountInputModal(String currency) {
-    showDialog(
-      context: context,
-      builder: (_) => FundWalletModal(
-        currency: currency,
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => AddMoneyScreen(
+          user: widget.user,
+          currency: currency,
+        ),
       ),
     );
   }
 
-  void _navigateToWithdraw() {
+  void _navigateToWithdraw({String walletType = 'NGN'}) {
     Navigator.push(
       context,
-      MaterialPageRoute(builder: (context) => const WithdrawScreen()),
+      MaterialPageRoute(
+        builder: (context) => WithdrawScreen(walletType: walletType),
+      ),
     );
   }
 
@@ -305,6 +314,57 @@ class _WalletScreenState extends ConsumerState<WalletScreen> {
     }
   }
 
+  void generateAccount() async {
+    try {
+      final response =
+      await ref.read(apiresponseProvider.notifier).generateAccount(
+        context: context,
+      );
+
+      if (response.status) {
+        await ref.read(userProvider.notifier).loadUserProfile();
+
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => const Success(
+              title: 'Account Generated Successfully',
+              subtitle: 'Your Virtual has been successfully generated',
+            ),
+          ),
+        );
+      }
+    } catch (error) {
+      String errorMessage = 'An unexpected error occurred';
+
+      debugPrint("Raw error: $error");
+
+      if (error is DioException) {
+        debugPrint("Dio error: ${error.response?.data}");
+        debugPrint("Status code: ${error.response?.statusCode}");
+
+        if (error.response?.data != null) {
+          try {
+            final apiResponse =
+            ApiResponseModel.fromJson(error.response?.data);
+            errorMessage = apiResponse.message;
+          } catch (e) {
+            errorMessage = 'Failed to parse error message';
+          }
+        } else {
+          errorMessage = error.message ?? 'Network error occurred';
+        }
+      }
+
+      showCustomAlert(
+        context: context,
+        isSuccess: false,
+        title: 'Error',
+        message: errorMessage,
+      );
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -313,107 +373,183 @@ class _WalletScreenState extends ConsumerState<WalletScreen> {
     final user = widget.user;
 
     return Scaffold(
-      body: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // Title
-            Text(
-              'Wallet',
-              style: TextStyle(
-                fontSize: 24,
-                fontWeight: FontWeight.w400,
-                color: theme.colorScheme.onSurface,
-              ),
-            ),
-            const SizedBox(height: 20),
+      body: SafeArea(
+        child: RefreshIndicator(
+          onRefresh: _onRefresh,
+          color: AppColors.BUTTONCOLOR,
+          child: _buildScrollableBody(user, serviceState, theme, isDark),
+        ),
+      ),
+    );
+  }
 
-            // Wallet Balance Cards
-            _buildWalletBalanceCards(user, theme, isDark),
-            const SizedBox(height: 16),
-            _buildHeader("Quick Actions", theme),
-            const SizedBox(height: 12),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+  Future<void> _onRefresh() async {
+    await ref.read(userProvider.notifier).loadUserProfile();
+    await ref
+        .read(getTransactionHistoryPlaceProvider.notifier)
+        .getTransactionHistory();
+  }
+
+  Widget _buildScrollableBody(
+      User user,
+      AsyncValue<TransactionHistoryResponse> serviceState,
+      ThemeData theme,
+      bool isDark) {
+
+    // Build the transaction items list first
+    final List<Widget> transactionItems = serviceState.when(
+      data: (serviceResponse) {
+        final allServices = serviceResponse.data.data;
+        if (allServices.isEmpty) {
+          return [
+            const SizedBox(
+              height: 150,
+              child: Center(child: Text('No Transaction History')),
+            )
+          ];
+        }
+        return [
+          Container(
+            margin: const EdgeInsets.symmetric(horizontal: 16),
+            decoration: BoxDecoration(
+              color: isDark ? const Color(0xFF1A191E) : Colors.grey[100],
+              borderRadius: BorderRadius.circular(20),
+            ),
+            child: Column(
               children: [
-                _quickActionItem(
-                  icon: Icons.call,
-                  label: "Airtime",
-                  onTap: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) => AirtimeScreen(
-                          user: widget.user,
-                        ),
-                      ),
-                    );
-                  },
+                ...allServices.map((tx) => TransactionCard(
+                  transaction: tx,
                   theme: theme,
                   isDark: isDark,
-                ),
-                _quickActionItem(
-                  icon: Icons.swap_vert,
-                  label: "Data",
-                  onTap: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) => DataScreen(
-                          user: widget.user,
-                        ),
-                      ),
-                    );
-                  },
-                  theme: theme,
-                  isDark: isDark,
-                ),
-                _quickActionItem(
-                  icon: Icons.lightbulb_outline,
-                  label: "Electricity",
-                  onTap: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) => ElectricityScreen(
-                          user: widget.user,
-                        ),
-                      ),
-                    );
-                  },
-                  theme: theme,
-                  isDark: isDark,
-                ),
-                _quickActionItem(
-                  icon: Icons.tv,
-                  label: "Cable TV",
-                  onTap: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) => CableTvScreen(
-                          user: widget.user,
-                        ),
-                      ),
-                    );
-                  },
-                  theme: theme,
-                  isDark: isDark,
+                )),
+                if (_isLoadingMore)
+                  Padding(
+                    padding: const EdgeInsets.all(16.0),
+                    child: Center(
+                      child: CircularProgressIndicator(
+                          color: theme.colorScheme.primary),
+                    ),
+                  ),
+              ],
+            ),
+          ),
+        ];
+      },
+      loading: () => [
+        SizedBox(
+          height: 150,
+          child: Center(
+              child:
+              CircularProgressIndicator(color: theme.colorScheme.primary)),
+        )
+      ],
+      error: (error, _) => [
+        SizedBox(
+          height: 150,
+          child: Center(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Text('Error loading transactions',
+                    style: TextStyle(color: theme.colorScheme.error)),
+                const SizedBox(height: 10),
+                ElevatedButton(
+                  onPressed: () => ref
+                      .read(getTransactionHistoryPlaceProvider.notifier)
+                      .refresh(),
+                  child: const Text('Retry'),
                 ),
               ],
             ),
-            const SizedBox(height: 16),
-            // Recent Transactions Header
-            _buildHeader("Recent Transactions", theme),
-            const SizedBox(height: 10),
+          ),
+        )
+      ],
+    );
 
-            // Transactions List
-            _buildTransactionsList(serviceState, theme, isDark),
-            const SizedBox(height: 40),
+    return ListView(
+      controller: _scrollController,
+      physics: const AlwaysScrollableScrollPhysics(),
+      padding: const EdgeInsets.symmetric(horizontal: 16),
+      children: [
+        // ── Header ──
+        Text(
+          'Cre8Pay',
+          style: TextStyle(
+            fontSize: 24,
+            fontWeight: FontWeight.w400,
+            color: theme.colorScheme.onSurface,
+          ),
+        ),
+        const SizedBox(height: 20),
+        _buildHeader("Wallet", theme),
+        _buildWalletBalanceCards(user, theme, isDark),
+        Center(
+          child: Text(
+            'Powered by Bank78',
+            style: TextStyle(
+              fontSize: 10,
+              fontWeight: FontWeight.w400,
+              color: theme.colorScheme.onSurface,
+              fontStyle: FontStyle.italic,
+            ),
+          ),
+        ),
+        const SizedBox(height: 16),
+        _buildHeader("Quick Actions", theme),
+        const SizedBox(height: 12),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            _quickActionItem(
+                icon: Icons.call,
+                label: "Airtime",
+                onTap: () => Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                        builder: (context) =>
+                            AirtimeScreen(user: widget.user))),
+                theme: theme,
+                isDark: isDark),
+            _quickActionItem(
+                icon: Icons.swap_vert,
+                label: "Data",
+                onTap: () => Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                        builder: (context) => DataScreen(user: widget.user))),
+                theme: theme,
+                isDark: isDark),
+            _quickActionItem(
+                icon: Icons.lightbulb_outline,
+                label: "Electricity",
+                onTap: () => Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                        builder: (context) =>
+                            ElectricityScreen(user: widget.user))),
+                theme: theme,
+                isDark: isDark),
+            _quickActionItem(
+                icon: Icons.tv,
+                label: "Cable TV",
+                onTap: () => Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                        builder: (context) =>
+                            CableTvScreen(user: widget.user))),
+                theme: theme,
+                isDark: isDark),
           ],
         ),
-      ),
+        const SizedBox(height: 16),
+        _buildHeader("Recent Transactions", theme),
+        const SizedBox(height: 10),
+
+        // ── Transactions ──
+        ...transactionItems,
+
+        const SizedBox(height: 20),
+      ],
     );
   }
 
@@ -457,11 +593,17 @@ class _WalletScreenState extends ConsumerState<WalletScreen> {
     );
   }
 
+  // Replace only the _buildWalletBalanceCards method and add _buildGenerateAccountCard
+
   Widget _buildWalletBalanceCards(User user, ThemeData theme, bool isDark) {
+    final hasAccount = user.wallet?.accountNumber != null &&
+        user.wallet!.accountNumber!.isNotEmpty;
+
     return SingleChildScrollView(
       scrollDirection: Axis.horizontal,
       child: Row(
         children: [
+          // ── NGN Wallet card ──
           WalletBalanceCard(
             title: 'Base balance',
             balance: user.wallet?.balance != null
@@ -469,9 +611,19 @@ class _WalletScreenState extends ConsumerState<WalletScreen> {
                 : '',
             currencySymbol: user.wallet!.currency,
             onAddFunds: () => _showAmountInputModal(user.wallet!.currency),
-            onWithdraw: _navigateToWithdraw,
+            onWithdraw: () => _navigateToWithdraw(walletType: 'NGN'),
           ),
           const SizedBox(width: 10),
+
+          // ── Generate Account card (if no virtual account yet) ──
+          if (!hasAccount) _buildGenerateAccountCard(theme, isDark),
+
+          // ── Virtual account info card (once generated) ──
+          if (hasAccount) _buildVirtualAccountCard(user, theme, isDark),
+
+          const SizedBox(width: 10),
+
+          // ── Dollar Wallet ──
           if (!user.wallet!.hasActivatedDollarWallet)
             _buildDollarWalletActivationCard(theme, isDark),
           if (user.wallet!.hasActivatedDollarWallet)
@@ -482,8 +634,171 @@ class _WalletScreenState extends ConsumerState<WalletScreen> {
                   : '',
               currencySymbol: 'USD',
               onAddFunds: () => _showAmountInputModal('USD'),
-              onWithdraw: _navigateToWithdraw,
+              onWithdraw: () => _navigateToWithdraw(walletType: 'USD'),
             ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildGenerateAccountCard(ThemeData theme, bool isDark) {
+    return GestureDetector(
+      onTap: generateAccount,
+      child: Container(
+        width: 280,
+        padding: const EdgeInsets.all(20),
+        decoration: BoxDecoration(
+          color: isDark ? const Color(0xFF1A191E) : Colors.grey[100],
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: AppColors.BUTTONCOLOR.withOpacity(0.3)),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: AppColors.BUTTONCOLOR.withOpacity(0.15),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: const Icon(
+                    Icons.account_balance,
+                    color: AppColors.BUTTONCOLOR,
+                    size: 20,
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Text(
+                  'Virtual Account',
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w600,
+                    color: theme.colorScheme.onSurface,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 16),
+            Text(
+              'Generate a dedicated bank account to receive transfers directly into your wallet.',
+              style: TextStyle(
+                fontSize: 13,
+                color: theme.colorScheme.onSurface.withOpacity(0.7),
+                height: 1.4,
+              ),
+            ),
+            const SizedBox(height: 16),
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.symmetric(vertical: 12),
+              decoration: BoxDecoration(
+                color: AppColors.BUTTONCOLOR,
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: const Center(
+                child: Text(
+                  'Generate Account',
+                  style: TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w600,
+                    color: Colors.white,
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildVirtualAccountCard(User user, ThemeData theme, bool isDark) {
+    final wallet = user.wallet!;
+
+    return Container(
+      width: 280,
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          colors: [
+            AppColors.BUTTONCOLOR.withOpacity(0.85),
+            AppColors.BUTTONCOLOR,
+          ],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+        borderRadius: BorderRadius.circular(16),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              const Text(
+                'Virtual Account',
+                style: TextStyle(
+                  fontSize: 13,
+                  color: Colors.white70,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                decoration: BoxDecoration(
+                  color: Colors.white.withOpacity(0.2),
+                  borderRadius: BorderRadius.circular(20),
+                ),
+                child: const Text(
+                  'Active',
+                  style: TextStyle(fontSize: 11, color: Colors.white, fontWeight: FontWeight.w600),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+          Text(
+            wallet.bankName ?? 'Bank78',
+            style: const TextStyle(
+              fontSize: 14,
+              color: Colors.white70,
+            ),
+          ),
+          const SizedBox(height: 6),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                wallet.accountNumber ?? '',
+                style: const TextStyle(
+                  fontSize: 22,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.white,
+                  letterSpacing: 2,
+                ),
+              ),
+              GestureDetector(
+                onTap: () {
+                  Clipboard.setData(ClipboardData(text: wallet.accountNumber ?? ''));
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text('Account number copied'),
+                      duration: Duration(seconds: 2),
+                      backgroundColor: Colors.green,
+                    ),
+                  );
+                },
+                child: const Icon(Icons.copy, color: Colors.white70, size: 18),
+              ),
+            ],
+          ),
+          const SizedBox(height: 4),
+          Text(
+            wallet.accountName ?? '',
+            style: const TextStyle(fontSize: 13, color: Colors.white70),
+          ),
         ],
       ),
     );
@@ -573,90 +888,4 @@ class _WalletScreenState extends ConsumerState<WalletScreen> {
     );
   }
 
-  Widget _buildTransactionsList(
-      AsyncValue<TransactionHistoryResponse> serviceState,
-      ThemeData theme,
-      bool isDark) {
-    return serviceState.when(
-      data: (serviceResponse) {
-        final allServices = serviceResponse.data.data;
-
-        if (allServices.isEmpty) {
-          return Expanded(
-            child: Center(
-              child: Text(
-                'No Transaction History',
-                style: TextStyle(color: theme.colorScheme.onSurface),
-              ),
-            ),
-          );
-        }
-
-        return Expanded(
-          child: Column(
-            children: [
-              Expanded(
-                child: Container(
-                  decoration: BoxDecoration(
-                    color: isDark ? const Color(0xFF1A191E) : Colors.grey[100],
-                    borderRadius: BorderRadius.circular(20),
-                  ),
-                  child: ListView.builder(
-                    controller: _scrollController,
-                    padding: const EdgeInsets.all(8),
-                    itemCount: allServices.length + (_isLoadingMore ? 1 : 0),
-                    itemBuilder: (context, index) {
-                      if (index >= allServices.length) {
-                        // Loading indicator at the bottom
-                        return Padding(
-                          padding: const EdgeInsets.all(16.0),
-                          child: Center(
-                            child: CircularProgressIndicator(
-                              color: theme.colorScheme.primary,
-                            ),
-                          ),
-                        );
-                      }
-
-                      return TransactionCard(
-                        transaction: allServices[index],
-                        theme: theme,
-                        isDark: isDark,
-                      );
-                    },
-                  ),
-                ),
-              ),
-
-            ],
-          ),
-        );
-      },
-      loading: () => Expanded(
-        child: Center(
-          child: CircularProgressIndicator(color: theme.colorScheme.primary),
-        ),
-      ),
-      error: (error, _) => Expanded(
-        child: Center(
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Text(
-                'Error loading transactions',
-                style: TextStyle(color: theme.colorScheme.error),
-              ),
-              const SizedBox(height: 10),
-              ElevatedButton(
-                onPressed: () => ref
-                    .read(getTransactionHistoryPlaceProvider.notifier)
-                    .refresh(),
-                child: const Text('Retry'),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
 }

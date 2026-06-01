@@ -155,14 +155,8 @@ class _ServiceScreenState extends ConsumerState<ServiceDetailsScreen>
         body: Column(
           children: [
             // Top Image
-            ClipRRect(
-              borderRadius: BorderRadius.circular(12),
-              child: Image.network(
-                widget.services.coverImage,
-                height: 200,
-                width: double.infinity,
-                fit: BoxFit.cover,
-              ),
+            NetworkImageWithLoader(
+              imageUrl: widget.services.coverImage,
             ),
             const SizedBox(height: 16),
 
@@ -467,7 +461,7 @@ class _ServiceScreenState extends ConsumerState<ServiceDetailsScreen>
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Utils.confirmRow('Status', widget.services.status),
-            Utils.confirmRow('Price', Utils.formatCurrency(widget.services.rate)),
+            Utils.confirmRow('Price', ref.formatCreatorCurrency(widget.services.rate)),
             Utils.confirmRow('Date Submitted',
                 DateFormat('dd/MM/yyyy').format(DateTime.parse(widget.services.createdAt))),
           ],
@@ -524,3 +518,5 @@ class _ServiceScreenState extends ConsumerState<ServiceDetailsScreen>
     );
   }
 }
+
+

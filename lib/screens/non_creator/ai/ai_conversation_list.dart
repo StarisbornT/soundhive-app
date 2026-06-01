@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:soundhive2/screens/non_creator/ai/ai_chat_screen.dart';
 import 'package:soundhive2/lib/dashboard_provider/get_conversations_provider.dart';
+import '../../../lib/dashboard_provider/apiresponseprovider.dart';
 import '../../../model/ai_conversation_thread_model.dart';
 
 class AiChatConversationScreen extends ConsumerStatefulWidget {
@@ -52,6 +53,69 @@ class _AiChatConversationScreenState extends ConsumerState<AiChatConversationScr
         ref.read(getConversationProvider.notifier).searchConversations(searchQuery);
       }
     });
+  }
+  void deleteConversation(int id) async {
+    try {
+      final response = await ref.read(apiresponseProvider.notifier).deleteConversation(
+        context: context,
+        id: id,
+      );
+      if (response.status) {
+        // Refresh the list after successful deletion
+        ref.read(getConversationProvider.notifier).getConversations(page: 1);
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Conversation deleted'),
+            backgroundColor: Color(0xFF2C2C2C),
+            duration: Duration(seconds: 2),
+          ),
+        );
+      }
+    } catch (error) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Failed to delete: $error'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
+  }
+
+  void _confirmDelete(AiChatConversation conversation) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: const Color(0xFF1A191E),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: const Text(
+          'Delete Conversation',
+          style: TextStyle(color: Colors.white),
+        ),
+        content: Text(
+          'Are you sure you want to delete "${conversation.title ?? 'this conversation'}"? This cannot be undone.',
+          style: const TextStyle(color: Color(0xFFB0B0B6)),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text(
+              'Cancel',
+              style: TextStyle(color: Color(0xFFB0B0B6)),
+            ),
+          ),
+          TextButton(
+            onPressed: () {
+              Navigator.pop(context);
+              deleteConversation(conversation.id);
+            },
+            child: const Text(
+              'Delete',
+              style: TextStyle(color: Colors.red),
+            ),
+          ),
+        ],
+      ),
+    );
   }
 
   void _onScroll() {
@@ -280,67 +344,114 @@ class _AiChatConversationScreenState extends ConsumerState<AiChatConversationScr
         itemBuilder: (context, index) {
           final conversation = conversations[index];
 
-          return Column(
-            children: [
-              GestureDetector(
-                onTap: () => _openConversation(conversation),
-                child: Container(
-                  color: Colors.transparent,
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 12.0),
-                    child: Row(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              // Title
-                              Text(
-                                conversation.title ?? 'Untitled Conversation',
-                                style: const TextStyle(
-                                  color: Colors.white,
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.w500,
-                                ),
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                              ),
-                              const SizedBox(height: 8),
-                              // Metadata Row
-                              Row(
-                                children: [
-                                  const SizedBox(width: 4),
-                                  Text(
-                                    _formatDateTime(conversation.createdAt),
-                                    style: TextStyle(
-                                      color: Colors.white.withOpacity(0.5),
-                                      fontSize: 12,
-                                    ),
+          return Dismissible(
+            key: Key('conversation_${conversation.id}'),
+            direction: DismissDirection.endToStart,
+            background: Container(
+              alignment: Alignment.centerRight,
+              padding: const EdgeInsets.only(right: 20),
+              color: Colors.red.withOpacity(0.15),
+              child: const Icon(Icons.delete_outline, color: Colors.red, size: 24),
+            ),
+            confirmDismiss: (direction) async {
+              bool confirmed = false;
+              await showDialog(
+                context: context,
+                builder: (context) => AlertDialog(
+                  backgroundColor: const Color(0xFF1A191E),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                  title: const Text(
+                    'Delete Conversation',
+                    style: TextStyle(color: Colors.white),
+                  ),
+                  content: Text(
+                    'Are you sure you want to delete "${conversation.title ?? 'this conversation'}"? This cannot be undone.',
+                    style: const TextStyle(color: Color(0xFFB0B0B6)),
+                  ),
+                  actions: [
+                    TextButton(
+                      onPressed: () {
+                        confirmed = false;
+                        Navigator.pop(context);
+                      },
+                      child: const Text('Cancel', style: TextStyle(color: Color(0xFFB0B0B6))),
+                    ),
+                    TextButton(
+                      onPressed: () {
+                        confirmed = true;
+                        Navigator.pop(context);
+                      },
+                      child: const Text('Delete', style: TextStyle(color: Colors.red)),
+                    ),
+                  ],
+                ),
+              );
+              return confirmed;
+            },
+            onDismissed: (direction) => deleteConversation(conversation.id),
+            child: Column(
+              children: [
+                GestureDetector(
+                  onTap: () => _openConversation(conversation),
+                  onLongPress: () => _confirmDelete(conversation),
+                  child: Container(
+                    color: Colors.transparent,
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 12.0),
+                      child: Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                // Title
+                                Text(
+                                  conversation.title ?? 'Untitled Conversation',
+                                  style: const TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.w500,
                                   ),
-                                ],
-                              ),
-                            ],
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                                const SizedBox(height: 8),
+                                // Metadata Row
+                                Row(
+                                  children: [
+                                    const SizedBox(width: 4),
+                                    Text(
+                                      _formatDateTime(conversation.createdAt),
+                                      style: TextStyle(
+                                        color: Colors.white.withOpacity(0.5),
+                                        fontSize: 12,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ],
+                            ),
                           ),
-                        ),
-                        // Chevron
-                        const Icon(
-                          Icons.chevron_right,
-                          color: Color(0xFF656566),
-                          size: 20,
-                        ),
-                      ],
+                          // Chevron
+                          const Icon(
+                            Icons.chevron_right,
+                            color: Color(0xFF656566),
+                            size: 20,
+                          ),
+                        ],
+                      ),
                     ),
                   ),
                 ),
-              ),
-              const Divider(
-                color: Color(0xFF2C2C2C),
-                height: 1,
-                indent: 16,
-                endIndent: 16,
-              ),
-            ],
+                const Divider(
+                  color: Color(0xFF2C2C2C),
+                  height: 1,
+                  indent: 16,
+                  endIndent: 16,
+                ),
+              ],
+            ),
           );
         },
       ),

@@ -6,7 +6,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:soundhive2/components/rounded_button.dart';
-import 'package:soundhive2/lib/dashboard_provider/getAccountBalanceProvider.dart';
+import '../lib/dashboard_provider/checkOfferProvider.dart';
+import '../lib/dashboard_provider/getAccountBalanceProvider.dart';
 import '../model/user_model.dart';
 import '../screens/creator/profile/setup_screen.dart';
 import '../screens/dashboard/transaction_history.dart';
@@ -25,12 +26,11 @@ class WalletCard extends ConsumerWidget {
   final VoidCallback onAddFunds;
   final MemberCreatorResponse user;
 
-  const WalletCard({
-    super.key,
-    required this.balance,
-    required this.onAddFunds,
-    required this.user
-  });
+  const WalletCard(
+      {super.key,
+      required this.balance,
+      required this.onAddFunds,
+      required this.user});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -71,7 +71,8 @@ class WalletCard extends ConsumerWidget {
                 ),
                 style: ElevatedButton.styleFrom(
                   backgroundColor: Colors.white,
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(20),
                   ),
@@ -93,7 +94,8 @@ class WalletCard extends ConsumerWidget {
                   style: TextStyle(color: Colors.white, fontSize: 14),
                 ),
                 style: OutlinedButton.styleFrom(
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
                   side: const BorderSide(color: Colors.white),
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(20),
@@ -109,7 +111,9 @@ class WalletCard extends ConsumerWidget {
               Navigator.push(
                 context,
                 MaterialPageRoute(
-                  builder: (context) => TransactionHistory(user: user,),
+                  builder: (context) => TransactionHistory(
+                    user: user,
+                  ),
                 ),
               );
             },
@@ -187,10 +191,12 @@ class _PortfolioUploadSectionState extends State<PortfolioUploadSection> {
   void _initializeSelectedFormats() {
     final selectedFormats = <String>[];
 
-    if (widget.existingImageUrl != null && widget.existingImageUrl!.isNotEmpty) {
+    if (widget.existingImageUrl != null &&
+        widget.existingImageUrl!.isNotEmpty) {
       selectedFormats.add('image');
     }
-    if (widget.existingAudioUrl != null && widget.existingAudioUrl!.isNotEmpty) {
+    if (widget.existingAudioUrl != null &&
+        widget.existingAudioUrl!.isNotEmpty) {
       selectedFormats.add('audio');
     }
     if (widget.linkController.text.isNotEmpty) {
@@ -212,9 +218,6 @@ class _PortfolioUploadSectionState extends State<PortfolioUploadSection> {
     }
   }
 
-
-
-
   @override
   Widget build(BuildContext context) {
     return Padding(
@@ -234,21 +237,21 @@ class _PortfolioUploadSectionState extends State<PortfolioUploadSection> {
           DashedBorderBox(
             child: Column(
               children: [
-
                 ImagePickerComponent(
                   labelText: 'Cover Image',
                   imageNotifier: widget.coverImageNotifier,
                   hintText: "Upload Image",
                   initialImageUrl: widget.existingCoverUrl,
                   validator: (value) {
-                    if (value == null && (widget.existingCoverUrl == null || widget.existingCoverUrl!.isEmpty)) {
+                    if (value == null &&
+                        (widget.existingCoverUrl == null ||
+                            widget.existingCoverUrl!.isEmpty)) {
                       return 'Cover image is required';
                     }
                     return null;
                   },
                 ),
                 const SizedBox(height: 10),
-
                 ValueListenableBuilder<List<String>>(
                   valueListenable: widget.selectedFormatsNotifier,
                   builder: (context, selectedFormats, _) {
@@ -260,7 +263,8 @@ class _PortfolioUploadSectionState extends State<PortfolioUploadSection> {
                           selectedValues: selectedFormats,
                           onChanged: (values) {
                             // Clear data for formats that were removed
-                            final removedFormats = widget.selectedFormatsNotifier.value
+                            final removedFormats = widget
+                                .selectedFormatsNotifier.value
                                 .where((format) => !values.contains(format))
                                 .toList();
 
@@ -283,7 +287,6 @@ class _PortfolioUploadSectionState extends State<PortfolioUploadSection> {
                         if (selectedFormats.contains('audio'))
                           Column(
                             children: [
-
                               ValueListenableBuilder<File?>(
                                 valueListenable: widget.audioFileNotifier,
                                 builder: (context, audioFile, _) {
@@ -292,9 +295,10 @@ class _PortfolioUploadSectionState extends State<PortfolioUploadSection> {
                                     uploadText: audioFile != null
                                         ? 'Audio Selected'
                                         : widget.existingAudioUrl != null
-                                        ? 'Existing Audio (click to replace)'
-                                        : 'Upload Audio',
-                                    supportedFileTypes: 'Supported file types: mp3',
+                                            ? 'Existing Audio (click to replace)'
+                                            : 'Upload Audio',
+                                    supportedFileTypes:
+                                        'Supported file types: mp3',
                                     maxFileSize: 'Max file size: 10MB',
                                     uploadIcon: Icons.upload_file_outlined,
                                     onTap: _pickAudioFile,
@@ -304,7 +308,8 @@ class _PortfolioUploadSectionState extends State<PortfolioUploadSection> {
                               ),
                             ],
                           ),
-                        if (selectedFormats.contains('audio')) const SizedBox(height: 10),
+                        if (selectedFormats.contains('audio'))
+                          const SizedBox(height: 10),
 
                         // Link Section
                         if (selectedFormats.contains('link'))
@@ -313,20 +318,22 @@ class _PortfolioUploadSectionState extends State<PortfolioUploadSection> {
                             controller: widget.linkController,
                             hintText: 'Enter Link',
                           ),
-                        if (selectedFormats.contains('link')) const SizedBox(height: 10),
+                        if (selectedFormats.contains('link'))
+                          const SizedBox(height: 10),
 
                         // Image Section with existing preview
                         if (selectedFormats.contains('image'))
                           Column(
                             children: [
-
                               ImagePickerComponent(
                                 labelText: 'Image File',
                                 imageNotifier: widget.imageFileNotifier,
                                 hintText: "Upload Image",
                                 initialImageUrl: widget.existingImageUrl,
                                 validator: (value) {
-                                  if (value == null && (widget.existingImageUrl == null || widget.existingImageUrl!.isEmpty)) {
+                                  if (value == null &&
+                                      (widget.existingImageUrl == null ||
+                                          widget.existingImageUrl!.isEmpty)) {
                                     return 'Image file is required';
                                   }
                                   return null;
@@ -463,7 +470,6 @@ class FileUploadField extends StatelessWidget {
   }
 }
 
-
 class CurrencyInputFormatter extends TextInputFormatter {
   final NumberFormat _formatter = NumberFormat.currency(
     locale: 'en_NG',
@@ -494,7 +500,8 @@ class DashedBorderBox extends StatelessWidget {
   final Widget child;
   final Color? color;
   final Color? bgColor;
-  const DashedBorderBox({super.key, required this.child, this.color, this.bgColor});
+  const DashedBorderBox(
+      {super.key, required this.child, this.color, this.bgColor});
 
   @override
   Widget build(BuildContext context) {
@@ -989,8 +996,7 @@ class SingleDateSelectionInput extends StatefulWidget {
       _SingleDateSelectionInputState();
 }
 
-class _SingleDateSelectionInputState
-    extends State<SingleDateSelectionInput> {
+class _SingleDateSelectionInputState extends State<SingleDateSelectionInput> {
   DateTime? _selectedDate;
 
   @override
@@ -1117,8 +1123,7 @@ class _SingleDateCalendarBottomSheetState
           Row(
             children: [
               IconButton(
-                icon:
-                const Icon(Icons.chevron_left, color: Color(0xFF656566)),
+                icon: const Icon(Icons.chevron_left, color: Color(0xFF656566)),
                 onPressed: () {
                   setState(() {
                     _currentMonth = DateTime(
@@ -1127,8 +1132,7 @@ class _SingleDateCalendarBottomSheetState
                 },
               ),
               IconButton(
-                icon:
-                const Icon(Icons.chevron_right, color: Color(0xFF656566)),
+                icon: const Icon(Icons.chevron_right, color: Color(0xFF656566)),
                 onPressed: () {
                   setState(() {
                     _currentMonth = DateTime(
@@ -1149,16 +1153,16 @@ class _SingleDateCalendarBottomSheetState
       children: days
           .map(
             (d) => Expanded(
-          child: Text(
-            d,
-            textAlign: TextAlign.center,
-            style: const TextStyle(
-              color: Colors.white54,
-              fontSize: 12,
+              child: Text(
+                d,
+                textAlign: TextAlign.center,
+                style: const TextStyle(
+                  color: Colors.white54,
+                  fontSize: 12,
+                ),
+              ),
             ),
-          ),
-        ),
-      )
+          )
           .toList(),
     );
   }
@@ -1166,26 +1170,21 @@ class _SingleDateCalendarBottomSheetState
   Widget _buildDayCell(DateTime date) {
     final bool isSelected = _isDateSelected(date);
     final bool isCurrentMonth =
-        date.month == _currentMonth.month &&
-            date.year == _currentMonth.year;
+        date.month == _currentMonth.month && date.year == _currentMonth.year;
 
     return GestureDetector(
       onTap: isCurrentMonth ? () => _selectDate(date) : null,
       child: Container(
         margin: const EdgeInsets.all(4),
         decoration: BoxDecoration(
-          color: isSelected
-              ? AppColors.BUTTONCOLOR
-              : Colors.transparent,
+          color: isSelected ? AppColors.BUTTONCOLOR : Colors.transparent,
           shape: BoxShape.circle,
         ),
         alignment: Alignment.center,
         child: Text(
           date.day.toString(),
           style: TextStyle(
-            color: isCurrentMonth
-                ? Colors.white
-                : Colors.white38,
+            color: isCurrentMonth ? Colors.white : Colors.white38,
             fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
           ),
         ),
@@ -1194,8 +1193,7 @@ class _SingleDateCalendarBottomSheetState
   }
 
   Widget _buildCalendarGrid() {
-    final firstDay =
-    DateTime(_currentMonth.year, _currentMonth.month, 1);
+    final firstDay = DateTime(_currentMonth.year, _currentMonth.month, 1);
     final daysInMonth =
         DateTime(_currentMonth.year, _currentMonth.month + 1, 0).day;
     final firstWeekday = firstDay.weekday % 7;
@@ -1225,7 +1223,7 @@ class _SingleDateCalendarBottomSheetState
       shrinkWrap: true,
       physics: const NeverScrollableScrollPhysics(),
       gridDelegate:
-      const SliverGridDelegateWithFixedCrossAxisCount(crossAxisCount: 7),
+          const SliverGridDelegateWithFixedCrossAxisCount(crossAxisCount: 7),
       itemCount: cells.length,
       itemBuilder: (_, i) => cells[i],
     );
@@ -1251,7 +1249,6 @@ class _SingleDateCalendarBottomSheetState
             ),
           ),
           const SizedBox(height: 16),
-
           const Align(
             alignment: Alignment.centerLeft,
             child: Text(
@@ -1260,7 +1257,6 @@ class _SingleDateCalendarBottomSheetState
             ),
           ),
           const SizedBox(height: 8),
-
           Align(
             alignment: Alignment.centerLeft,
             child: Text(
@@ -1273,17 +1269,14 @@ class _SingleDateCalendarBottomSheetState
               ),
             ),
           ),
-
           const SizedBox(height: 16),
           const Divider(color: Colors.white12),
           const SizedBox(height: 16),
-
           _buildMonthHeader(),
           _buildWeekdaysRow(),
           const SizedBox(height: 8),
           _buildCalendarGrid(),
           const SizedBox(height: 24),
-
           Row(
             children: [
               Expanded(
@@ -1326,8 +1319,6 @@ class _SingleDateCalendarBottomSheetState
     );
   }
 }
-
-
 
 class ServiceActionSheet extends StatelessWidget {
   final VoidCallback? onView;
@@ -1434,7 +1425,6 @@ class EventActionSheet extends StatelessWidget {
             ),
             const SizedBox(height: 20),
           ],
-
           _buildItem(
             label: 'Cancel Event',
             onTap: onDelete,
@@ -1490,8 +1480,7 @@ class PaymentMethodSelector extends ConsumerStatefulWidget {
       _PaymentMethodSelectorState();
 }
 
-class _PaymentMethodSelectorState
-    extends ConsumerState<PaymentMethodSelector> {
+class _PaymentMethodSelectorState extends ConsumerState<PaymentMethodSelector> {
   String? _selectedMethod;
 
   @override
@@ -1516,7 +1505,9 @@ class _PaymentMethodSelectorState
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
             Text(
-              "Cre8Pay - ${ref.formatUserCurrency(widget.user.wallet?.balance)}",
+              _selectedMethod == 'flutterwave'
+                  ? "Pay with Flutterwave"
+                  : "Cre8Pay - ${ref.formatUserCurrency(widget.user.wallet?.balance)}",
               style: TextStyle(
                 color: _selectedMethod == null
                     ? theme.colorScheme.onSurface.withOpacity(0.6)
@@ -1534,9 +1525,8 @@ class _PaymentMethodSelectorState
     );
   }
 
-  void _showPaymentOptions(
-      BuildContext context, ThemeData theme, bool isDark) {
-    int selectedOption = _selectedMethod == 'Paystack Checkout' ? 1 : 0;
+  void _showPaymentOptions(BuildContext context, ThemeData theme, bool isDark) {
+    int selectedOption = _selectedMethod == 'flutterwave' ? 1 : 0;
 
     showModalBottomSheet(
       context: context,
@@ -1563,7 +1553,7 @@ class _PaymentMethodSelectorState
                   ),
                   const SizedBox(height: 8),
                   Text(
-                    'Don’t worry, the service provider will not be paid until the job has been completed.',
+                    'Don\'t worry, the service provider will not be paid until the job has been completed.',
                     style: TextStyle(
                       fontSize: 14,
                       color: theme.colorScheme.onSurface.withOpacity(0.6),
@@ -1571,21 +1561,83 @@ class _PaymentMethodSelectorState
                   ),
                   const SizedBox(height: 16),
 
+                  // Wallet Option
                   _buildPaymentOption(
                     context,
-                    title: 'Cre8Pay - ${ref.formatUserCurrency(widget.user.wallet?.balance)}',
+                    title:
+                        'Cre8Pay - ${ref.formatUserCurrency(widget.user.wallet?.balance)}',
+                    subtitle: 'Pay using your wallet balance',
                     icon: "images/logo1.png",
                     selected: selectedOption == 0,
                     onTap: () => setStateBottomSheet(() => selectedOption = 0),
                     theme: theme,
                     isDark: isDark,
                   ),
+                  const SizedBox(height: 12),
+
+                  // Flutterwave Option
+                  _buildPaymentOption(
+                    context,
+                    title: 'Flutterwave',
+                    subtitle: 'Pay with Card, Bank Transfer, or USSD',
+                    icon: "images/flutterwave.png", // Add your Flutterwave logo
+                    selected: selectedOption == 1,
+                    onTap: () => setStateBottomSheet(() => selectedOption = 1),
+                    theme: theme,
+                    isDark: isDark,
+                  ),
                   const SizedBox(height: 24),
+
+                  // Warning for insufficient wallet balance
+                  if (selectedOption == 0 &&
+                      (widget.user.wallet?.balance ?? 0) < _getBookingAmount())
+                    Container(
+                      padding: const EdgeInsets.all(12),
+                      margin: const EdgeInsets.only(bottom: 16),
+                      decoration: BoxDecoration(
+                        color: Colors.red.withOpacity(0.1),
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(color: Colors.red.withOpacity(0.3)),
+                      ),
+                      child: Row(
+                        children: [
+                          Icon(Icons.warning_amber_rounded,
+                              color: Colors.red, size: 20),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: Text(
+                              'Insufficient wallet balance. Please choose Flutterwave or add funds to your wallet.',
+                              style: TextStyle(
+                                color: Colors.red,
+                                fontSize: 12,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
 
                   RoundedButton(
                     title: 'Proceed',
                     onPressed: () {
-                      String method = "wallet";
+                      String method =
+                          selectedOption == 0 ? "wallet" : "flutterwave";
+
+                      // Check if wallet has sufficient balance
+                      if (method == "wallet") {
+                        final bookingAmount = _getBookingAmount();
+                        if ((widget.user.wallet?.balance ?? 0) <
+                            bookingAmount) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                              content: Text(
+                                  'Insufficient wallet balance. Please choose Flutterwave or add funds.'),
+                              backgroundColor: Colors.red,
+                            ),
+                          );
+                          return;
+                        }
+                      }
 
                       setState(() => _selectedMethod = method);
                       widget.onSelected(method);
@@ -1604,15 +1656,27 @@ class _PaymentMethodSelectorState
     );
   }
 
+  double _getBookingAmount() {
+    final offerState = ref.read(checkOfferProvider);
+    final hasAcceptedOffer = offerState.value?.offer?.status == 'ACCEPTED';
+    final offerAmount = offerState.value?.offer?.amount;
+
+    if (hasAcceptedOffer && offerAmount != null) {
+      return double.parse(offerAmount);
+    }
+    return 0; // This will be set from the service rate
+  }
+
   Widget _buildPaymentOption(
-      BuildContext context, {
-        required String title,
-        required String icon,
-        required bool selected,
-        required VoidCallback onTap,
-        required ThemeData theme,
-        required bool isDark,
-      }) {
+    BuildContext context, {
+    required String title,
+    required String subtitle,
+    required String icon,
+    required bool selected,
+    required VoidCallback onTap,
+    required ThemeData theme,
+    required bool isDark,
+  }) {
     return GestureDetector(
       onTap: onTap,
       child: Container(
@@ -1620,13 +1684,13 @@ class _PaymentMethodSelectorState
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(8),
           border: Border.all(
-            color: selected
-                ? AppColors.BUTTONCOLOR
-                : theme.dividerColor,
+            color: selected ? AppColors.BUTTONCOLOR : theme.dividerColor,
           ),
-          color: isDark
-              ? Colors.transparent
-              : Colors.grey[100]?.withOpacity(0.5),
+          color: selected
+              ? AppColors.BUTTONCOLOR.withOpacity(0.05)
+              : (isDark
+                  ? Colors.transparent
+                  : Colors.grey[100]?.withOpacity(0.5)),
         ),
         child: Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -1634,24 +1698,52 @@ class _PaymentMethodSelectorState
             Expanded(
               child: Row(
                 children: [
-                  Image.asset(
-                    icon,
-                    color: selected
-                        ? AppColors.BUTTONCOLOR
-                        : theme.colorScheme.onSurface.withOpacity(0.6),
-                    width: 50,
+                  Container(
+                    width: 40,
+                    height: 40,
+                    decoration: BoxDecoration(
+                      color: selected
+                          ? AppColors.BUTTONCOLOR.withOpacity(0.1)
+                          : Colors.transparent,
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Image.asset(
+                      icon,
+                      color: selected
+                          ? AppColors.BUTTONCOLOR
+                          : theme.colorScheme.onSurface.withOpacity(0.6),
+                      width: 30,
+                      errorBuilder: (context, error, stackTrace) => Icon(
+                          Icons.account_balance_wallet,
+                          color: selected
+                              ? AppColors.BUTTONCOLOR
+                              : theme.colorScheme.onSurface.withOpacity(0.6)),
+                    ),
                   ),
-                  const SizedBox(width: 8),
+                  const SizedBox(width: 12),
                   Expanded(
-                    child: Text(
-                      title,
-                      style: TextStyle(
-                        color: selected
-                            ? theme.colorScheme.onSurface
-                            : theme.colorScheme.onSurface.withOpacity(0.8),
-                        fontSize: 14,
-                      ),
-                      overflow: TextOverflow.ellipsis,
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          title,
+                          style: TextStyle(
+                            color: selected
+                                ? theme.colorScheme.onSurface
+                                : theme.colorScheme.onSurface.withOpacity(0.8),
+                            fontSize: 14,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                        const SizedBox(height: 2),
+                        Text(
+                          subtitle,
+                          style: TextStyle(
+                            color: theme.colorScheme.onSurface.withOpacity(0.5),
+                            fontSize: 11,
+                          ),
+                        ),
+                      ],
                     ),
                   ),
                 ],
@@ -1671,16 +1763,15 @@ class _PaymentMethodSelectorState
 }
 
 class ConfirmBottomSheet {
-  static Future<void> show({
-    required BuildContext context,
-    required String message,
-    String cancelText = "Cancel",
-    String confirmText = "Delete",
-    Color confirmColor = Colors.redAccent,
-    required VoidCallback onConfirm,
-    VoidCallback? onCancel,
-    TextEditingController? controller
-  }) {
+  static Future<void> show(
+      {required BuildContext context,
+      required String message,
+      String cancelText = "Cancel",
+      String confirmText = "Delete",
+      Color confirmColor = Colors.redAccent,
+      required VoidCallback onConfirm,
+      VoidCallback? onCancel,
+      TextEditingController? controller}) {
     return showModalBottomSheet(
       context: context,
       backgroundColor: const Color(0xFF1A191E),
@@ -1691,7 +1782,9 @@ class ConfirmBottomSheet {
       builder: (ctx) {
         return Padding(
           padding: EdgeInsets.only(
-            bottom: MediaQuery.of(ctx).viewInsets.bottom, // Add this for proper keyboard spacing
+            bottom: MediaQuery.of(ctx)
+                .viewInsets
+                .bottom, // Add this for proper keyboard spacing
             left: 24,
             right: 24,
             top: 24,
@@ -1708,7 +1801,8 @@ class ConfirmBottomSheet {
                   shape: BoxShape.circle,
                 ),
                 child: const Center(
-                  child: Icon(Icons.error_outline, color: Colors.white, size: 36),
+                  child:
+                      Icon(Icons.error_outline, color: Colors.white, size: 36),
                 ),
               ),
               const SizedBox(height: 20),
@@ -1724,7 +1818,7 @@ class ConfirmBottomSheet {
               ),
               const SizedBox(height: 8),
 
-              if(controller != null) ...[
+              if (controller != null) ...[
                 const SizedBox(height: 16),
                 LabeledTextField(
                   label: 'Reason for cancelling',
@@ -1772,7 +1866,10 @@ class ConfirmBottomSheet {
                         Navigator.pop(ctx);
                         onConfirm();
                       },
-                      child: Text(confirmText, style: const TextStyle(color: Colors.white),),
+                      child: Text(
+                        confirmText,
+                        style: const TextStyle(color: Colors.white),
+                      ),
                     ),
                   ),
                 ],
@@ -1784,7 +1881,6 @@ class ConfirmBottomSheet {
     );
   }
 }
-
 
 class CreatorBanner extends StatelessWidget {
   final MemberCreatorResponse user;
@@ -1814,4 +1910,202 @@ class CreatorBanner extends StatelessWidget {
   }
 }
 
+class UserAvatarWidget extends StatelessWidget {
+  final String? imageUrl;
+  final String firstName;
+  final double radius;
 
+  const UserAvatarWidget({
+    super.key,
+    required this.firstName,
+    this.imageUrl,
+    this.radius = 50,
+  });
+
+  void _openFullScreen(BuildContext context) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => _FullScreenAvatar(
+          imageUrl: imageUrl,
+          firstName: firstName,
+        ),
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: () => _openFullScreen(context),
+      child: CircleAvatar(
+        radius: radius,
+        backgroundColor: AppColors.BUTTONCOLOR.withOpacity(0.8),
+        backgroundImage: imageUrl != null ? NetworkImage(imageUrl!) : null,
+        child: imageUrl == null
+            ? Text(
+                firstName.isNotEmpty ? firstName[0].toUpperCase() : '',
+                style: const TextStyle(fontSize: 24, color: Colors.white),
+              )
+            : null,
+      ),
+    );
+  }
+}
+
+class _FullScreenAvatar extends StatelessWidget {
+  final String? imageUrl;
+  final String firstName;
+
+  const _FullScreenAvatar({
+    required this.firstName,
+    this.imageUrl,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: Colors.black,
+      appBar: AppBar(
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        leading: IconButton(
+          icon: const Icon(Icons.close, color: Colors.white),
+          onPressed: () => Navigator.pop(context),
+        ),
+      ),
+      body: Center(
+        child: imageUrl != null
+            ? InteractiveViewer(
+                // allows pinch-to-zoom
+                child: Image.network(
+                  imageUrl!,
+                  fit: BoxFit.contain,
+                  loadingBuilder: (context, child, loadingProgress) {
+                    if (loadingProgress == null) return child;
+                    return const CircularProgressIndicator(color: Colors.white);
+                  },
+                  errorBuilder: (_, __, ___) => _fallbackAvatar(),
+                ),
+              )
+            : _fallbackAvatar(),
+      ),
+    );
+  }
+
+  Widget _fallbackAvatar() {
+    return CircleAvatar(
+      radius: 100,
+      backgroundColor: AppColors.BUTTONCOLOR.withOpacity(0.8),
+      child: Text(
+        firstName.isNotEmpty ? firstName[0].toUpperCase() : '',
+        style: const TextStyle(fontSize: 64, color: Colors.white),
+      ),
+    );
+  }
+}
+
+class NetworkImageWithLoader extends StatelessWidget {
+  final String imageUrl;
+  final double? width;
+  final double? height;
+  final BoxFit fit;
+  final double borderRadius;
+  final bool enableFullScreen;
+
+  const NetworkImageWithLoader({
+    super.key,
+    required this.imageUrl,
+    this.width,
+    this.height,
+    this.fit = BoxFit.cover,
+    this.borderRadius = 8,
+    this.enableFullScreen = true,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    Widget imageWidget = ClipRRect(
+      borderRadius: BorderRadius.circular(borderRadius),
+      child: SizedBox(
+        width: width,
+        height: height,
+        child: imageUrl.isNotEmpty
+            ? Image.network(
+                imageUrl,
+                fit: fit,
+                width: width,
+                height: height,
+                loadingBuilder: (context, child, loadingProgress) {
+                  if (loadingProgress == null) return child;
+
+                  return Container(
+                    color: Colors.grey[800],
+                    child: Center(
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        color: const Color(0xFF8C52FF),
+                        value: loadingProgress.expectedTotalBytes != null
+                            ? loadingProgress.cumulativeBytesLoaded /
+                                loadingProgress.expectedTotalBytes!
+                            : null,
+                      ),
+                    ),
+                  );
+                },
+                errorBuilder: (context, error, stackTrace) =>
+                    Utils.buildImagePlaceholder(),
+              )
+            : Utils.buildImagePlaceholder(),
+      ),
+    );
+
+    if (!enableFullScreen || imageUrl.isEmpty) {
+      return imageWidget;
+    }
+
+    return GestureDetector(
+      onTap: () {
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (_) => FullScreenImage(imageUrl: imageUrl),
+          ),
+        );
+      },
+      child: imageWidget,
+    );
+  }
+}
+
+class FullScreenImage extends StatelessWidget {
+  final String imageUrl;
+
+  const FullScreenImage({super.key, required this.imageUrl});
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: Colors.black,
+      appBar: AppBar(
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        leading: IconButton(
+          icon: const Icon(Icons.close, color: Colors.white),
+          onPressed: () => Navigator.pop(context),
+        ),
+      ),
+      body: Center(
+        child: InteractiveViewer(
+          minScale: 0.5,
+          maxScale: 4.0,
+          child: Image.network(
+            imageUrl,
+            fit: BoxFit.contain,
+            width: double.infinity,
+          ),
+        ),
+      ),
+    );
+  }
+}

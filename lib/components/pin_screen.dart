@@ -18,7 +18,7 @@ class PinAuthenticationScreen extends StatefulWidget {
   });
 
   @override
-  _PinAuthenticationScreenState createState() =>
+  State<PinAuthenticationScreen> createState() =>
       _PinAuthenticationScreenState();
 }
 
@@ -93,6 +93,7 @@ class _PinAuthenticationScreenState extends State<PinAuthenticationScreen> {
                 child: Text(widget.buttonName, style: const TextStyle(color: Colors.white, fontSize: 16)),
               ),
             ),
+            const SizedBox(height: 20,)
           ],
         ),
       ),

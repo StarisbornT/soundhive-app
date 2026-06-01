@@ -20,6 +20,8 @@ import '../../../utils/alert_helper.dart';
 import '../../../utils/app_colors.dart';
 import '../../creator/profile/profile_screen.dart';
 import '../../dashboard/marketplace/markplace_recept.dart';
+import '../../dashboard/verification_webview.dart';
+import 'creator.dart';
 
 final withdrawStateProvider = StateProvider<bool>((ref) => false);
 
@@ -373,20 +375,8 @@ class _MarketplaceDetailsScreenState extends ConsumerState<MarketplaceDetails> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Center(
-          child: ClipRRect(
-            borderRadius: BorderRadius.circular(10),
-            child: widget.service.coverImage.isNotEmpty
-                ? Image.network(
-              widget.service.coverImage,
-              height: 200,
-              width: double.infinity,
-              fit: BoxFit.cover,
-              errorBuilder: (context, error, stackTrace) =>
-                  Utils.buildImagePlaceholder(),
-            )
-                : Utils.buildImagePlaceholder(),
-          ),
+        NetworkImageWithLoader(
+          imageUrl: widget.service.coverImage,
         ),
 
         const SizedBox(height: 16),
@@ -403,37 +393,53 @@ class _MarketplaceDetailsScreenState extends ConsumerState<MarketplaceDetails> {
         _buildPriceDisplay(theme),
 
         const SizedBox(height: 8),
-        Row(
-          children: [
-            CircleAvatar(
-              radius: 15,
-              backgroundColor: AppColors.BUTTONCOLOR,
-              backgroundImage: (widget.service.user?.image != null &&
-                  widget.service.user!.image!.isNotEmpty)
-                  ? NetworkImage(widget.service.user!.image!)
-                  : null,
-              child: (widget.service.user?.image == null ||
-                  widget.service.user!.image!.isEmpty)
-                  ? Text(
-                (
-                    widget.service.user?.creator?.businessName?.isNotEmpty == true
-                        ? widget.service.user!.creator!.businessName!
-                        : widget.service.user?.firstName
-                )!
-                    .trim()
-                    .characters
-                    .first
-                    .toUpperCase(),
-                style: const TextStyle(fontSize: 14, color: Colors.white),
-              )
-                  : null,
-            ),
-            const SizedBox(width: 8),
-            Text(
-              widget.service.user?.creator?.businessName ??  "${widget.service.user?.firstName} ${widget.service.user?.lastName}",
-              style: TextStyle(color: theme.colorScheme.onSurface, fontSize: 14),
-            ),
-          ],
+        GestureDetector(
+          onTap: () {
+            final creator = widget.service.user?.creator;
+
+            if (creator != null) {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => CreatorProfile(
+                    creator: creator,
+                  ),
+                ),
+              );
+            }
+          },
+          child: Row(
+            children: [
+              CircleAvatar(
+                radius: 15,
+                backgroundColor: AppColors.BUTTONCOLOR,
+                backgroundImage: (widget.service.user?.image != null &&
+                    widget.service.user!.image!.isNotEmpty)
+                    ? NetworkImage(widget.service.user!.image!)
+                    : null,
+                child: (widget.service.user?.image == null ||
+                    widget.service.user!.image!.isEmpty)
+                    ? Text(
+                  (
+                      widget.service.user?.creator?.businessName?.isNotEmpty == true
+                          ? widget.service.user!.creator!.businessName!
+                          : widget.service.user?.firstName
+                  )!
+                      .trim()
+                      .characters
+                      .first
+                      .toUpperCase(),
+                  style: const TextStyle(fontSize: 14, color: Colors.white),
+                )
+                    : null,
+              ),
+              const SizedBox(width: 8),
+              Text(
+                widget.service.user?.creator?.businessName ??  "${widget.service.user?.firstName} ${widget.service.user?.lastName}",
+                style: TextStyle(color: theme.colorScheme.onSurface, fontSize: 14),
+              ),
+            ],
+          ),
         ),
         const SizedBox(height: 10),
         Row(
@@ -444,17 +450,6 @@ class _MarketplaceDetailsScreenState extends ConsumerState<MarketplaceDetails> {
                   ? Utils.getOverallRating(widget.service.user!.creator!).toString()
                   : "0.0",
 
-              style: TextStyle(
-                color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
-                fontSize: 12,
-              ),
-            ),
-            const SizedBox(width: 10),
-            Icon(Icons.download,
-                color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
-                size: 18),
-            Text(
-              '20k downloads',
               style: TextStyle(
                 color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
                 fontSize: 12,
@@ -882,8 +877,7 @@ class _MarketplaceDetailsScreenState extends ConsumerState<MarketplaceDetails> {
       final offerAmount = offerState.value?.offer?.amount;
 
       // Use accepted offer amount if available, otherwise use service rate
-      final bookingAmount =
-      hasAcceptedOffer ? offerAmount : widget.service.convertedRate;
+      final bookingAmount = hasAcceptedOffer ? double.parse(offerAmount!) : widget.service.convertedRate;
 
       final payload = {
         "service_id": widget.service.id,
@@ -892,6 +886,11 @@ class _MarketplaceDetailsScreenState extends ConsumerState<MarketplaceDetails> {
             .toList(),
         "amount": bookingAmount,
       };
+
+      // Add payment method to payload
+      if (selectedPaymentOption != null) {
+        payload["payment_method"] = selectedPaymentOption;
+      }
 
       final response = await ref.read(apiresponseProvider.notifier).buyServices(
         context: context,
@@ -903,30 +902,76 @@ class _MarketplaceDetailsScreenState extends ConsumerState<MarketplaceDetails> {
         ref.read(getActiveInvestmentProvider.notifier).getActiveInvestments(
           pageSize: 10,
         );
-        final bookings = ActiveInvestment.fromMap(response.data);
 
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(
-            builder: (context) => Success(
-              title: 'Booked Successfully',
-              subtitle: 'You have successfully booked this service',
-              onButtonPressed: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => MarketplaceReceiptScreen(
-                      service: bookings,
-                      paymentMethod: selectedPaymentOption ?? '',
-                      price: bookingAmount.toString(),
-                      availability: availabilityDates,
-                    ),
-                  ),
-                );
-              },
+        // Check if it's a Flutterwave payment (has payment_link)
+        if (response.data != null && response.data['payment_link'] != null) {
+          // Open Flutterwave webview for payment
+          final result = await Navigator.push<String>(
+            context,
+            MaterialPageRoute(
+              builder: (context) => VerificationWebView(
+                url: response.data['payment_link'],
+                title: 'Complete Payment',
+              ),
             ),
-          ),
-        );
+          );
+
+          if (result == 'success' && mounted) {
+            // Refresh after successful payment
+            await ref.read(userProvider.notifier).loadUserProfile();
+            await ref.read(getActiveInvestmentProvider.notifier).getActiveInvestments(
+              pageSize: 10,
+            );
+
+            if (mounted) {
+              Navigator.pushReplacement(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => Success(
+                    title: 'Booking Confirmed',
+                    subtitle: 'Your booking has been confirmed successfully!',
+                    onButtonPressed: () {
+                      Navigator.pop(context);
+                    },
+                  ),
+                ),
+              );
+            }
+          } else if (result != 'success' && mounted) {
+            showCustomAlert(
+              context: context,
+              isSuccess: false,
+              title: 'Payment Failed',
+              message: 'Payment was not completed. Please try again.',
+            );
+          }
+        } else {
+          // Wallet payment - success
+          final bookings = ActiveInvestment.fromMap(response.data);
+
+          Navigator.pushReplacement(
+            context,
+            MaterialPageRoute(
+              builder: (context) => Success(
+                title: 'Booked Successfully',
+                subtitle: 'You have successfully booked this service',
+                onButtonPressed: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => MarketplaceReceiptScreen(
+                        service: bookings,
+                        paymentMethod: selectedPaymentOption ?? '',
+                        price: bookingAmount.toString(),
+                        availability: availabilityDates,
+                      ),
+                    ),
+                  );
+                },
+              ),
+            ),
+          );
+        }
       }
     } catch (error) {
       _handleBookingError(error);

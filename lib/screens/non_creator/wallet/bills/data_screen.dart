@@ -10,6 +10,7 @@ import '../../../../components/success.dart';
 import 'package:soundhive2/lib/dashboard_provider/apiresponseprovider.dart';
 import 'package:soundhive2/lib/dashboard_provider/variation_provider.dart';
 import 'package:soundhive2/lib/dashboard_provider/user_provider.dart';
+import '../../../../lib/dashboard_provider/getTransactionHistory.dart';
 import '../../../../model/apiresponse_model.dart';
 import '../../../../model/user_model.dart';
 import 'bill_confirmation_screen.dart';
@@ -67,7 +68,7 @@ class _DataScreenState extends ConsumerState<DataScreen> {
     try {
       final payload = {
         "amount": amountController.text,
-        'serviceID': "${selectedNetwork?.toLowerCase()}-data",
+        'serviceID': selectedNetwork?.toLowerCase() == '9mobile' ? 'etisalat-data' : '${selectedNetwork?.toLowerCase()}-data',
         'phone_number': phoneController.text,
         'pin': pin,
         "variation_code": selectedVariation
@@ -80,6 +81,7 @@ class _DataScreenState extends ConsumerState<DataScreen> {
 
       if (response.status) {
         await ref.read(userProvider.notifier).loadUserProfile();
+        ref.read(getTransactionHistoryPlaceProvider.notifier).getTransactionHistory();
         Navigator.pushReplacement(
           context,
           MaterialPageRoute(
@@ -373,7 +375,7 @@ class _DataScreenState extends ConsumerState<DataScreen> {
               .toList(),
           onChanged: (value) {
             setState(() => selectedNetwork = value);
-            ref.read(variationProvider.notifier).loadServiceVariation("${selectedNetwork?.toLowerCase()}-data");
+            ref.read(variationProvider.notifier).loadServiceVariation(selectedNetwork?.toLowerCase() == '9mobile' ? 'etisalat-data' : '${selectedNetwork?.toLowerCase()}-data');
           },
         ),
       ),

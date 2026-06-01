@@ -324,60 +324,64 @@ class _ServiceScreenState extends ConsumerState<ServiceScreen> with TickerProvid
       itemCount: items.length,
       itemBuilder: (context, index) {
         final item = items[index];
-        return Container(
-          padding: const EdgeInsets.all(12),
-          decoration: BoxDecoration(
-            color: Colors.transparent,
-            borderRadius: BorderRadius.circular(12),
-          ),
-          child: Row(
-            children: [
-              SizedBox(
-                width: 100,
-                height: 100,
-                child: (item.coverImage.isNotEmpty)
-                    ? Image.network(
-                  item.coverImage,
-                  fit: BoxFit.cover,
-                  errorBuilder: (context, error, stackTrace) => Utils.buildImagePlaceholder(),
-                )
-                    : Utils.buildImagePlaceholder(),
+        return GestureDetector(
+          onTap: (){
+            Navigator.push(context,  MaterialPageRoute(
+              builder: (context) => ServiceDetailsScreen(
+                  services: item,
+                  earnings: earnings
               ),
-              const SizedBox(width: 10),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      item.serviceName,
-                      style: const TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.bold
-                      ),
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                    const SizedBox(height: 5),
-                    Text(
-                      ref.formatCreatorCurrency(item.rate),
-                      style: const TextStyle( fontSize: 18, fontWeight: FontWeight.w500),
-                    ),
-                    const SizedBox(height: 5),
-                    Text(
-                      item.status == "PENDING" ? 'Submitted ${DateFormat('dd/MM/yyyy').format(DateTime.parse(item.createdAt))}' : '',
-                      style: const TextStyle( fontSize: 12, fontWeight: FontWeight.w500),
-                    ),
-
-                  ],
+            ),);
+          },
+          child: Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: Colors.transparent,
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Row(
+              children: [
+                NetworkImageWithLoader(
+                  imageUrl: item.coverImage,
+                  width: 100,
+                  height: 100,
                 ),
-              ),
-              GestureDetector(
-                  onTap: () {
-                    showBottomSheet(item, earnings);
-                  },
-                  child: const Icon(Icons.more_vert)
-              )
-            ],
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        item.serviceName,
+                        style: const TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold
+                        ),
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      const SizedBox(height: 5),
+                      Text(
+                        ref.formatCreatorCurrency(item.rate),
+                        style: const TextStyle( fontSize: 18, fontWeight: FontWeight.w500),
+                      ),
+                      const SizedBox(height: 5),
+                      Text(
+                        item.status == "PENDING" ? 'Submitted ${DateFormat('dd/MM/yyyy').format(DateTime.parse(item.createdAt))}' : '',
+                        style: const TextStyle( fontSize: 12, fontWeight: FontWeight.w500),
+                      ),
+
+                    ],
+                  ),
+                ),
+                GestureDetector(
+                    onTap: () {
+                      showBottomSheet(item, earnings);
+                    },
+                    child: const Icon(Icons.more_vert)
+                )
+              ],
+            ),
           ),
         );
       },

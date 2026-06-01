@@ -1,4 +1,3 @@
-
 import 'dart:convert';
 
 import 'package:dio/dio.dart';
@@ -21,24 +20,26 @@ class AddMoneyNotifier extends StateNotifier<AsyncValue<void>> {
 
   AddMoneyNotifier(this._dio, this._storage) : super(const AsyncValue.loading());
 
-  Future<AddMoneyModel> addMoney({
+  Future<AddMoneyResponse> addMoney({
     required BuildContext context,
     required double amount,
-    required String currency
+    required String currency,
+    required String gateway, // 'paystack' | 'flutterwave'
   }) async {
     state = const AsyncValue.loading();
     try {
       LoaderService.showLoader(context);
       final response = await _dio.post(
-        '/payment',
+        '/wallet/fund',
         data: jsonEncode({
           'amount': amount,
-          'currency': currency
+          'currency': currency,
+          'gateway': gateway,
         }),
       );
       if (response.statusCode == 200) {
         state = const AsyncValue.data(null);
-        return AddMoneyModel.fromJson(response.data);
+        return AddMoneyResponse.fromJson(response.data);
       } else {
         throw Exception(response.data['message'] ?? 'Something went wrong');
       }

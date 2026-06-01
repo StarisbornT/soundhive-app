@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import 'package:just_audio_background/just_audio_background.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:soundhive2/screens/auth/create_account.dart';
 import 'package:soundhive2/screens/auth/creator_identity.dart';
@@ -30,6 +31,7 @@ import 'package:webview_flutter/webview_flutter.dart';
 import 'lib/app_life_cycle.dart';
 import 'lib/auth_state_provider.dart';
 import 'lib/interceptor.dart';
+import 'lib/no_network_overlay.dart';
 import 'lib/provider.dart';
 
 void main() async {
@@ -134,6 +136,7 @@ class SoundHive extends ConsumerWidget {
         ),
       );
     }
+
 
     final routeObserver = ref.read(routeObserverProvider);
 

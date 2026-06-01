@@ -16,7 +16,7 @@ class SharedBottomSheets {
   // Song Options Bottom Sheet
   static void showSongOptions({
     required BuildContext context,
-    required SongItem song,
+    required SongItemData song,
     required WidgetRef ref,
     required VoidCallback onAddToPlaylist,
     required VoidCallback onArtistProfile,
@@ -42,7 +42,7 @@ class SharedBottomSheets {
 
   static Widget _buildSongOptionsContent({
     required BuildContext context,
-    required SongItem song,
+    required SongItemData song,
     required VoidCallback onAddToPlaylist,
     required VoidCallback onArtistProfile,
     required ThemeData theme,
@@ -81,7 +81,7 @@ class SharedBottomSheets {
 
   static List<Widget> _buildSongOptions({
     required BuildContext context,
-    required SongItem song,
+    required SongItemData song,
     required VoidCallback onAddToPlaylist,
     required VoidCallback onArtistProfile,
     required ThemeData theme,
@@ -135,10 +135,10 @@ class SharedBottomSheets {
   // Add to Playlist Bottom Sheet
   static void showAddToPlaylist({
     required BuildContext context,
-    required SongItem song,
+    required SongItemData song,
     required WidgetRef ref,
     required VoidCallback onCreatePlaylist,
-    required Function(Playlist, SongItem) onPlaylistTap,
+    required Function(Playlist, SongItemData) onPlaylistTap,
     required Function(Playlist) onPlaylistRename,
     required Function(Playlist) onPlaylistDelete,
     ThemeData? theme,
@@ -167,10 +167,10 @@ class SharedBottomSheets {
 
   static Widget _buildAddToPlaylistContent({
     required BuildContext context,
-    required SongItem song,
+    required SongItemData song,
     required WidgetRef ref,
     required VoidCallback onCreatePlaylist,
-    required Function(Playlist, SongItem) onPlaylistTap,
+    required Function(Playlist, SongItemData) onPlaylistTap,
     required Function(Playlist) onPlaylistRename,
     required Function(Playlist) onPlaylistDelete,
     required ThemeData theme,
@@ -211,9 +211,9 @@ class SharedBottomSheets {
 
   static Widget _buildPlaylistList({
     required BuildContext context,
-    required SongItem song,
+    required SongItemData song,
     required WidgetRef ref,
-    required Function(Playlist, SongItem) onPlaylistTap,
+    required Function(Playlist, SongItemData) onPlaylistTap,
     required Function(Playlist) onPlaylistRename,
     required Function(Playlist) onPlaylistDelete,
     required ThemeData theme,
@@ -248,9 +248,9 @@ class SharedBottomSheets {
   static Widget _buildPlaylistListView({
     required BuildContext context,
     required List<Playlist> playlists,
-    required SongItem song,
+    required SongItemData song,
     required GetPlaylistNotifier playlistNotifier,
-    required Function(Playlist, SongItem) onPlaylistTap,
+    required Function(Playlist, SongItemData) onPlaylistTap,
     required Function(Playlist) onPlaylistRename,
     required Function(Playlist) onPlaylistDelete,
     required ThemeData theme,
@@ -302,8 +302,8 @@ class SharedBottomSheets {
 
   static Widget _buildPlaylistTile({
     required Playlist playlist,
-    required SongItem song,
-    required Function(Playlist, SongItem) onPlaylistTap,
+    required SongItemData song,
+    required Function(Playlist, SongItemData) onPlaylistTap,
     required Function(Playlist) onPlaylistRename,
     required Function(Playlist) onPlaylistDelete,
     required ThemeData theme,

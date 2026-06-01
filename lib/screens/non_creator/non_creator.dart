@@ -142,22 +142,34 @@ class NonCreatorDashboard extends ConsumerWidget {
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            CircleAvatar(
-                              radius: 30,
-                              backgroundColor: AppColors.BUTTONCOLOR,
-                              backgroundImage: (user?.image != null)
-                                  ? NetworkImage(user!.image!)
-                                  : null,
-                              child:(user?.image == null)
-                                  ?  Text(
-                                (user?.firstName.isNotEmpty == true)
-                                    ? "${user?.firstName[0]}${user?.lastName[0]}"
-                                    : '?',
-                                style: const TextStyle(
-                                  fontSize: 30,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ): null,
+                            GestureDetector(
+                              onTap: () {
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (_) => NonCreatorProfile(
+                                      user: userData,
+                                    ),
+                                  ),
+                                );
+              },
+                              child: CircleAvatar(
+                                radius: 30,
+                                backgroundColor: AppColors.BUTTONCOLOR,
+                                backgroundImage: (user?.image != null)
+                                    ? NetworkImage(user!.image!)
+                                    : null,
+                                child:(user?.image == null)
+                                    ?  Text(
+                                  (user?.firstName.isNotEmpty == true)
+                                      ? "${user?.firstName[0]}${user?.lastName[0]}"
+                                      : '?',
+                                  style: const TextStyle(
+                                    fontSize: 30,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ): null,
+                              ),
                             ),
                             const SizedBox(height: 10),
                             Text(
@@ -248,7 +260,7 @@ class NonCreatorDashboard extends ConsumerWidget {
                       _drawerItem(
                         context,
                         icon: 'images/wallet.png',
-                        text: 'Cre8pay - Wallet',
+                        text: 'Cre8Pay - Wallet',
                         onTap: () {
                           Navigator.pop(context);
                           ref
@@ -334,7 +346,7 @@ class NonCreatorDashboard extends ConsumerWidget {
             final pages = [
               Marketplace(user: user),
               WalletScreen(user: user.user!),
-              SoundhiveVestScreen(user: user),
+              SoundHiveVestScreen(user: user),
               const Placeholder(),
             ];
 

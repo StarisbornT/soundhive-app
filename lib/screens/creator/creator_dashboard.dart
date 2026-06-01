@@ -166,22 +166,32 @@ class CreatorDashboard extends ConsumerWidget {
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            CircleAvatar(
-                              radius: 30,
-                              backgroundColor: AppColors.BUTTONCOLOR,
-                              backgroundImage: (user?.image != null)
-                                  ? NetworkImage(user!.image!)
-                                  : null,
-                              child:(user?.image == null)
-                                  ?  Text(
-                                (user?.firstName.isNotEmpty == true)
-                                    ? "${user?.firstName[0]}${user?.lastName[0]}"
-                                    : '?',
-                                style: const TextStyle(
-                                  fontSize: 30,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ): null,
+                            GestureDetector(
+                              onTap: () {
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (context) =>  ProfileScreen(user: userData),
+                                  ),
+                                );
+              },
+                              child: CircleAvatar(
+                                radius: 30,
+                                backgroundColor: AppColors.BUTTONCOLOR,
+                                backgroundImage: (user?.image != null)
+                                    ? NetworkImage(user!.image!)
+                                    : null,
+                                child:(user?.image == null)
+                                    ?  Text(
+                                  (user?.firstName.isNotEmpty == true)
+                                      ? "${user?.firstName[0]}${user?.lastName[0]}"
+                                      : '?',
+                                  style: const TextStyle(
+                                    fontSize: 30,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ): null,
+                              ),
                             ),
                             const SizedBox(height: 10),
                             Text(

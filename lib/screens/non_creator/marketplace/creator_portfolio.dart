@@ -3,7 +3,8 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../../components/audio_player.dart';
 import '../../../components/rounded_button.dart';
-import 'package:soundhive2/lib/dashboard_provider/user_provider.dart';
+import '../../../components/widgets.dart';
+import '../../../lib/dashboard_provider/user_provider.dart';
 import '../../../model/market_orders_service_model.dart';
 import '../../../utils/app_colors.dart';
 import '../../../utils/utils.dart';
@@ -40,11 +41,8 @@ class _CreatorPortfolioState extends ConsumerState<CreatorPortfolio> {
               child: Stack(
                 fit: StackFit.expand,
                 children: [
-                  Image.network(
-                    service.serviceImage,
-                    fit: BoxFit.cover,
-                    errorBuilder: (context, error, stackTrace) =>
-                    const Center(child: Icon(Icons.error)),
+                  NetworkImageWithLoader(
+                    imageUrl: service.serviceImage,
                   ),
                   Positioned(
                     top: 40,
@@ -114,14 +112,8 @@ class _CreatorPortfolioState extends ConsumerState<CreatorPortfolio> {
                   ),
                 ],
               ),
-              child: ClipRRect(
-                borderRadius: BorderRadius.circular(20),
-                child: Image.network(
-                  service.coverImage,
-                  fit: BoxFit.cover,
-                  errorBuilder: (context, error, stackTrace) =>
-                  const Center(child: Icon(Icons.error)),
-                ),
+              child:  NetworkImageWithLoader(
+                imageUrl: service.coverImage,
               ),
             ),
           ),

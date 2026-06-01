@@ -4,6 +4,7 @@ import 'package:soundhive2/lib/dashboard_provider/eventProvider.dart';
 import 'package:soundhive2/lib/dashboard_provider/event_stats_provider.dart';
 import 'package:soundhive2/model/event_model.dart';
 import 'package:soundhive2/screens/creator/events/event_details_screen.dart';
+import '../../../components/widgets.dart';
 import '../../../model/event_stats_model.dart';
 import 'create_event_screen.dart';
 
@@ -389,34 +390,10 @@ class _EventScreenState extends ConsumerState<EventScreen> with SingleTickerProv
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          SizedBox(
+          NetworkImageWithLoader(
+            imageUrl: item.image,
             width: 70,
             height: 70,
-            child: (item.image.isNotEmpty)
-                ? ClipRRect(
-              borderRadius: BorderRadius.circular(8),
-              child: Image.network(
-                item.image,
-                fit: BoxFit.cover,
-                errorBuilder: (context, error, stackTrace) => Container(
-                  color: isDark ? Colors.grey[800] : Colors.grey[200],
-                  child: Icon(
-                    Icons.event,
-                    color: theme.colorScheme.onSurface.withOpacity(0.3),
-                  ),
-                ),
-              ),
-            )
-                : Container(
-              decoration: BoxDecoration(
-                color: isDark ? Colors.grey[800] : Colors.grey[200],
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: Icon(
-                Icons.event,
-                color: theme.colorScheme.onSurface.withOpacity(0.3),
-              ),
-            ),
           ),
           const SizedBox(width: 15),
           Expanded(

@@ -42,6 +42,18 @@
     <string>Cre8Hive</string>
     <key>CFBundlePackageType</key>
     <string>APPL</string>
+    
+    <key>NSLocalNetworkUsageDescription</key>
+    <string>This app checks network connectivity.</string>
+    
+    <key>UIBackgroundModes</key>
+    <array>
+        <string>audio</string>
+        <string>fetch</string>
+        <string>processing</string>
+        <string>remote-notification</string>
+    </array>
+    
     <key>CFBundleShortVersionString</key>
     <string>$(FLUTTER_BUILD_NAME)</string>
     <key>CFBundleSignature</key>
@@ -80,13 +92,6 @@
 
     <key>UIApplicationSupportsIndirectInputEvents</key>
     <true/>
-
-    <key>UIBackgroundModes</key>
-    <array>
-        <string>remote-notification</string>
-        <string>fetch</string>
-        <string>processing</string>
-    </array>
 
     <key>UILaunchStoryboardName</key>
     <string>LaunchScreen</string>

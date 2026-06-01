@@ -51,7 +51,7 @@ class BillConfirmationScreen extends ConsumerWidget {
               _pinSection(),
               const SizedBox(height: 40),
 
-              _biometricIcon(),
+              // _biometricIcon(),
 
               const Spacer(),
             ],

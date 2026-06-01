@@ -1,5 +1,9 @@
 import 'dart:convert';
 
+import 'package:soundhive2/model/service_model.dart';
+
+import 'user_model.dart';
+
 class CreatorBookingsModel {
   final bool status;
   final PaginatedBookingData data;
@@ -103,8 +107,8 @@ class Booking {
   final String status;
   final String createdAt;
   final String updatedAt;
-  final Service? service;
-  final BookingUser? user;
+  final ServiceItem? service;
+  final User? user;
 
   Booking({
     required this.id,
@@ -129,67 +133,12 @@ class Booking {
       status: map['status'] ?? '',
       createdAt: map['created_at'] ?? '',
       updatedAt: map['updated_at'] ?? '',
-      service: map['service'] != null ? Service.fromMap(map['service']) : null,
-      user: map['user'] != null ? BookingUser.fromMap(map['user']) : null,
+      service: map['service'] != null ? ServiceItem.fromMap(map['service']) : null,
+      user: map['user'] != null ? User.fromJson(map['user']) : null,
     );
   }
 }
 
-class Service {
-  final int id;
-  final String userId;
-  final String serviceName;
-  final String categoryId;
-  final String subCategoryId;
-  final String rate;
-  final String? coverImage;
-  final String? link;
-  final String? serviceImage;
-  final String? serviceAudio;
-  final String status;
-  final String createdAt;
-  final String updatedAt;
-  final String currency;
-  final String? serviceDescription;
-
-  Service({
-    required this.id,
-    required this.userId,
-    required this.serviceName,
-    required this.categoryId,
-    required this.subCategoryId,
-    required this.rate,
-    this.coverImage,
-    this.link,
-    this.serviceImage,
-    this.serviceAudio,
-    required this.status,
-    required this.createdAt,
-    required this.updatedAt,
-    required this.currency,
-    this.serviceDescription,
-  });
-
-  factory Service.fromMap(Map<String, dynamic> map) {
-    return Service(
-      id: map['id'] ?? 0,
-      userId: map['user_id']?.toString() ?? '',
-      serviceName: map['service_name'] ?? '',
-      categoryId: map['category_id']?.toString() ?? '',
-      subCategoryId: map['sub_category_id']?.toString() ?? '',
-      rate: map['rate']?.toString() ?? '',
-      coverImage: map['cover_image'],
-      link: map['link'],
-      serviceImage: map['service_image'],
-      serviceAudio: map['service_audio'],
-      status: map['status'] ?? '',
-      createdAt: map['created_at'] ?? '',
-      updatedAt: map['updated_at'] ?? '',
-      currency: map['currency'] ?? '',
-      serviceDescription: map['service_description'],
-    );
-  }
-}
 
 class BookingUser {
   final int id;

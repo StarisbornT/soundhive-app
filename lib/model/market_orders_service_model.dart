@@ -2,25 +2,26 @@ import 'dart:convert';
 
 import 'package:soundhive2/model/user_model.dart';
 
+
 class MarketOrdersPaginatedModel {
   final bool status;
   final String message;
   final MarketOrdersPaginatedData data;
+  final int? seed; // ← ADD THIS
 
   MarketOrdersPaginatedModel({
     required this.status,
     required this.message,
     required this.data,
+    this.seed, // ← ADD THIS
   });
-
-  factory MarketOrdersPaginatedModel.fromJson(String source) =>
-      MarketOrdersPaginatedModel.fromMap(json.decode(source));
 
   factory MarketOrdersPaginatedModel.fromMap(Map<String, dynamic> map) {
     return MarketOrdersPaginatedModel(
       status: map['status'] ?? false,
       message: map['message'] ?? '',
       data: MarketOrdersPaginatedData.fromMap(map['data'] ?? {}),
+      seed: map['seed'], // ← ADD THIS
     );
   }
 }

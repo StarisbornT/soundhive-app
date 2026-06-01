@@ -6,6 +6,8 @@ import 'dart:convert';
 import 'dart:io';
 import 'package:image_picker/image_picker.dart';
 import 'package:file_picker/file_picker.dart';
+import 'package:open_file/open_file.dart';
+import 'package:path_provider/path_provider.dart';
 import 'package:soundhive2/utils/app_colors.dart';
 import 'package:soundhive2/lib/dashboard_provider/user_provider.dart';
 
@@ -1046,78 +1048,175 @@ class _ChatBubble extends StatelessWidget {
     required this.isDark,
   });
 
-  Widget _buildFilePreview(FileData fileData) {
+  Future<void> _downloadAndOpenFile(
+      BuildContext context, FileData fileData) async {
+    try {
+      // Show loading
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Row(
+            children: [
+              SizedBox(
+                width: 16,
+                height: 16,
+                child: CircularProgressIndicator(
+                    strokeWidth: 2, color: Colors.white),
+              ),
+              SizedBox(width: 12),
+              Text('Saving file...'),
+            ],
+          ),
+          duration: Duration(seconds: 10),
+        ),
+      );
+
+      final bytes = base64Decode(fileData.base64Data);
+
+      // Get downloads/documents directory
+      Directory? directory;
+      if (Platform.isAndroid) {
+        directory = Directory('/storage/emulated/0/Download');
+        if (!await directory.exists()) {
+          directory = await getApplicationDocumentsDirectory();
+        }
+      } else {
+        directory = await getApplicationDocumentsDirectory();
+      }
+
+      // Save file
+      final filePath = '${directory.path}/${fileData.name}';
+      final file = File(filePath);
+      await file.writeAsBytes(bytes);
+
+      ScaffoldMessenger.of(context).hideCurrentSnackBar();
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Saved to ${directory.path}'),
+          backgroundColor: Colors.green,
+          action: SnackBarAction(
+            label: 'Open',
+            textColor: Colors.white,
+            onPressed: () => OpenFile.open(filePath),
+          ),
+        ),
+      );
+    } catch (e) {
+      ScaffoldMessenger.of(context).hideCurrentSnackBar();
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Failed to save file: $e'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
+  }
+
+  void _openImageViewer(BuildContext context, FileData fileData) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => _ImageViewerScreen(fileData: fileData),
+      ),
+    );
+  }
+
+  Widget _buildFilePreview(BuildContext context, FileData fileData) {
     final bytes = base64Decode(fileData.base64Data);
 
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 8),
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(8),
-        child: fileData.type == 'pdf'
-            ? Container(
-                width: 200,
-                height: 200,
-                color: isDark ? Colors.grey[800] : Colors.grey[200],
+    if (fileData.type == 'image') {
+      return GestureDetector(
+        onTap: () => _openImageViewer(context, fileData),
+        child: Padding(
+          padding: const EdgeInsets.only(bottom: 4),
+          child: Stack(
+            children: [
+              ClipRRect(
+                borderRadius: BorderRadius.circular(8),
+                child: Image.memory(
+                  bytes,
+                  width: 200,
+                  height: 200,
+                  fit: BoxFit.cover,
+                ),
+              ),
+              // View icon overlay
+              Positioned(
+                bottom: 6,
+                right: 6,
+                child: Container(
+                  padding: const EdgeInsets.all(4),
+                  decoration: BoxDecoration(
+                    color: Colors.black.withOpacity(0.5),
+                    borderRadius: BorderRadius.circular(4),
+                  ),
+                  child: const Icon(Icons.fullscreen,
+                      color: Colors.white, size: 14),
+                ),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
+    // PDF / Document
+    final IconData fileIcon =
+    fileData.type == 'pdf' ? Icons.picture_as_pdf : Icons.insert_drive_file;
+    final Color iconColor =
+    fileData.type == 'pdf' ? Colors.red[400]! : Colors.blue[400]!;
+
+    return GestureDetector(
+      onTap: () => _downloadAndOpenFile(context, fileData),
+      child: Padding(
+        padding: const EdgeInsets.only(bottom: 4),
+        child: Container(
+          width: 220,
+          padding: const EdgeInsets.all(12),
+          decoration: BoxDecoration(
+            color: isDark ? Colors.grey[800] : Colors.grey[200],
+            borderRadius: BorderRadius.circular(8),
+          ),
+          child: Row(
+            children: [
+              Container(
+                width: 40,
+                height: 40,
+                decoration: BoxDecoration(
+                  color: iconColor.withOpacity(0.15),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Icon(fileIcon, color: iconColor, size: 22),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
                 child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Icon(Icons.picture_as_pdf,
-                        size: 48,
-                        color: isDark ? Colors.white : Colors.grey[700]),
-                    const SizedBox(height: 8),
-                    Text('PDF Document',
-                        style: TextStyle(
-                            color: isDark ? Colors.white : Colors.grey[700])),
-                    const SizedBox(height: 4),
                     Text(
                       fileData.name,
                       style: TextStyle(
-                          color: isDark ? Colors.white70 : Colors.grey[600],
-                          fontSize: 10),
+                        color: isDark ? Colors.white : Colors.black87,
+                        fontSize: 12,
+                        fontWeight: FontWeight.w500,
+                      ),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                     ),
-                  ],
-                ),
-              )
-            : fileData.type == 'image'
-                ? Image.memory(
-                    bytes,
-                    width: 200,
-                    height: 200,
-                    fit: BoxFit.cover,
-                  )
-                : Container(
-                    width: 200,
-                    height: 200,
-                    color: isDark ? Colors.grey[800] : Colors.grey[200],
-                    child: Center(
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Icon(Icons.insert_drive_file,
-                              size: 48,
-                              color: isDark ? Colors.white : Colors.grey[700]),
-                          const SizedBox(height: 8),
-                          Text('Download File',
-                              style: TextStyle(
-                                  color: isDark
-                                      ? Colors.white
-                                      : Colors.grey[700])),
-                          const SizedBox(height: 4),
-                          Text(
-                            fileData.name,
-                            style: TextStyle(
-                                color:
-                                    isDark ? Colors.white70 : Colors.grey[600],
-                                fontSize: 10),
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                        ],
+                    const SizedBox(height: 2),
+                    Text(
+                      '${(fileData.size / 1024).toStringAsFixed(1)} KB · Tap to download',
+                      style: TextStyle(
+                        color: isDark ? Colors.white54 : Colors.grey[600],
+                        fontSize: 10,
                       ),
                     ),
-                  ),
+                  ],
+                ),
+              ),
+              Icon(Icons.download, color: iconColor, size: 18),
+            ],
+          ),
+        ),
       ),
     );
   }
@@ -1129,9 +1228,8 @@ class _ChatBubble extends StatelessWidget {
         : (isDark ? const Color(0xFF1A191E) : Colors.grey[100]!);
 
     final textColor = isMe ? Colors.white : theme.colorScheme.onSurface;
-
     final timeColor =
-        isMe ? Colors.white70 : theme.colorScheme.onSurface.withOpacity(0.6);
+    isMe ? Colors.white70 : theme.colorScheme.onSurface.withOpacity(0.6);
 
     return Align(
       alignment: isMe ? Alignment.centerRight : Alignment.centerLeft,
@@ -1145,21 +1243,28 @@ class _ChatBubble extends StatelessWidget {
           borderRadius: BorderRadius.circular(12),
           boxShadow: !isDark
               ? [
-                  BoxShadow(
-                    color: Colors.black.withOpacity(0.05),
-                    blurRadius: 4,
-                    offset: const Offset(0, 2),
-                  ),
-                ]
+            BoxShadow(
+              color: Colors.black.withOpacity(0.05),
+              blurRadius: 4,
+              offset: const Offset(0, 2),
+            ),
+          ]
               : null,
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.end,
           children: [
             if (message.files.isNotEmpty)
-              ...message.files.map((file) => _buildFilePreview(file)),
+              Padding(
+                padding: const EdgeInsets.fromLTRB(8, 8, 8, 0),
+                child: Column(
+                  children: message.files
+                      .map((file) => _buildFilePreview(context, file))
+                      .toList(),
+                ),
+              ),
             Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.end,
                 children: [
@@ -1171,10 +1276,7 @@ class _ChatBubble extends StatelessWidget {
                   const SizedBox(height: 4),
                   Text(
                     formatTime(message.timestamp),
-                    style: TextStyle(
-                      fontSize: 10,
-                      color: timeColor,
-                    ),
+                    style: TextStyle(fontSize: 10, color: timeColor),
                   ),
                 ],
               ),
@@ -1327,6 +1429,118 @@ class _MessageInput extends StatelessWidget {
             ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+class _ImageViewerScreen extends StatefulWidget {
+  final FileData fileData;
+
+  const _ImageViewerScreen({required this.fileData});
+
+  @override
+  State<_ImageViewerScreen> createState() => _ImageViewerScreenState();
+}
+
+class _ImageViewerScreenState extends State<_ImageViewerScreen> {
+  final TransformationController _transformationController =
+  TransformationController();
+
+  @override
+  void dispose() {
+    _transformationController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _saveImage(BuildContext context) async {
+    try {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Row(
+            children: [
+              SizedBox(
+                width: 16,
+                height: 16,
+                child: CircularProgressIndicator(
+                    strokeWidth: 2, color: Colors.white),
+              ),
+              SizedBox(width: 12),
+              Text('Saving image...'),
+            ],
+          ),
+          duration: Duration(seconds: 10),
+        ),
+      );
+
+      final bytes = base64Decode(widget.fileData.base64Data);
+
+      Directory? directory;
+      if (Platform.isAndroid) {
+        directory = Directory('/storage/emulated/0/Download');
+        if (!await directory.exists()) {
+          directory = await getApplicationDocumentsDirectory();
+        }
+      } else {
+        directory = await getApplicationDocumentsDirectory();
+      }
+
+      final filePath = '${directory.path}/${widget.fileData.name}';
+      await File(filePath).writeAsBytes(bytes);
+
+      ScaffoldMessenger.of(context).hideCurrentSnackBar();
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Image saved to ${directory.path}'),
+          backgroundColor: Colors.green,
+        ),
+      );
+    } catch (e) {
+      ScaffoldMessenger.of(context).hideCurrentSnackBar();
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Failed to save: $e'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final bytes = base64Decode(widget.fileData.base64Data);
+
+    return Scaffold(
+      backgroundColor: Colors.black,
+      appBar: AppBar(
+        backgroundColor: Colors.black,
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back_ios, color: Colors.white),
+          onPressed: () => Navigator.pop(context),
+        ),
+        title: Text(
+          widget.fileData.name,
+          style: const TextStyle(color: Colors.white, fontSize: 14),
+          overflow: TextOverflow.ellipsis,
+        ),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.download, color: Colors.white),
+            onPressed: () => _saveImage(context),
+            tooltip: 'Save image',
+          ),
+        ],
+      ),
+      body: Center(
+        child: InteractiveViewer(
+          transformationController: _transformationController,
+          minScale: 0.5,
+          maxScale: 4.0,
+          child: Image.memory(
+            bytes,
+            fit: BoxFit.contain,
+          ),
+        ),
       ),
     );
   }

@@ -149,3 +149,78 @@ class SongItem {
     );
   }
 }
+
+
+class DeepFreezerModel {
+  final int status;
+  final int page;
+  final int limit;
+  final int total;
+  final bool hasMore;
+  final List<SongItemData> data;
+
+  DeepFreezerModel({
+    required this.status,
+    required this.page,
+    required this.limit,
+    required this.total,
+    required this.hasMore,
+    required this.data,
+  });
+
+  factory DeepFreezerModel.fromJson(String source) =>
+      DeepFreezerModel.fromMap(json.decode(source));
+
+  factory DeepFreezerModel.fromMap(Map<String, dynamic> map) {
+    return DeepFreezerModel(
+      status: map['status'] ?? 0,
+      page: map['page'] ?? 1,
+      limit: map['limit'] ?? 25,
+      total: map['total'] ?? 0,
+      hasMore: map['has_more'] ?? false,
+      data: List<SongItemData>.from(
+        (map['data'] ?? []).map((x) => SongItemData.fromMap(x)),
+      ),
+    );
+  }
+}
+
+class SongItemData {
+  final int id;
+  final String title;
+  final String artist;
+  final String album;
+  final String preview;
+  final String cover;
+
+  SongItemData({
+    required this.id,
+    required this.title,
+    required this.artist,
+    required this.album,
+    required this.preview,
+    required this.cover,
+  });
+
+  factory SongItemData.fromMap(Map<String, dynamic> map) {
+    return SongItemData(
+      id: map['id'] ?? 0,
+      title: map['title'] ?? '',
+      artist: map['artist'] ?? '',
+      album: map['album'] ?? '',
+      preview: map['preview'] ?? '',
+      cover: map['cover'] ?? '',
+    );
+  }
+
+  Map<String, dynamic> toMap() {
+    return {
+      'id': id,
+      'title': title,
+      'artist': artist,
+      'album': album,
+      'preview': preview,
+      'cover': cover,
+    };
+  }
+}

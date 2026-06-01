@@ -5,6 +5,7 @@ import 'package:intl/intl.dart';
 import 'package:soundhive2/lib/dashboard_provider/notification_api_provider.dart';
 import 'package:soundhive2/model/user_model.dart';
 import 'package:soundhive2/screens/creator/creator_dashboard.dart';
+import 'package:soundhive2/screens/creator/services/services.dart';
 import 'package:soundhive2/screens/non_creator/marketplace/marketplace_details.dart';
 import 'package:soundhive2/screens/non_creator/non_creator.dart';
 import 'package:soundhive2/lib/dashboard_provider/user_provider.dart';
@@ -298,10 +299,9 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
     // Handle navigation based on notification type
     switch (notification.type) {
       case 'fund_wallet':
+      case 'wallet':
         Navigator.pushNamed(context, NonCreatorDashboard.id);
-        ref
-            .read(bottomNavigationProvider.notifier)
-            .state = 1;
+        ref.read(bottomNavigationProvider.notifier).state = 1;
         break;
       case 'book':
         final data = ActiveInvestment.fromMap(notification.data['booking']);
@@ -336,6 +336,7 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
           print('Offer data not available in notification');
         }
         break;
+
       case 'offer_sent':
         if (notification.data['service'] != null) {
           // Convert Map to OfferFromUser object
@@ -356,7 +357,16 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
           print('Offer data not available in notification');
         }
         break;
-    // Add other cases as needed
+      case 'new_offer':
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => ServiceScreen(
+              user: user,
+            ),
+          ),
+        );
+        break;
     }
   }
 }

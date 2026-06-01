@@ -7,8 +7,9 @@ import 'package:image_picker/image_picker.dart';
 import 'package:soundhive2/model/user_model.dart';
 import 'package:soundhive2/utils/utils.dart';
 
-import 'package:soundhive2/lib/dashboard_provider/apiresponseprovider.dart';
-import 'package:soundhive2/lib/dashboard_provider/user_provider.dart';
+import '../../components/widgets.dart';
+import '../../lib/dashboard_provider/apiresponseprovider.dart';
+import '../../lib/dashboard_provider/user_provider.dart';
 import '../../model/apiresponse_model.dart';
 import '../../utils/alert_helper.dart';
 import '../../utils/app_colors.dart';
@@ -158,23 +159,9 @@ class _NonCreatorProfileState extends ConsumerState<NonCreatorProfile> {
             ),
             const SizedBox(height: 10),
             // Profile Picture Section
-            CircleAvatar(
-              radius: 50,
-              backgroundColor: AppColors.BUTTONCOLOR.withOpacity(0.8),
-              backgroundImage: (user.value?.user?.image != null)
-                  ? NetworkImage(user.value!.user!.image!)
-                  : null,
-              child: (user.value?.user?.image == null)
-                  ? Text(
-                widget.user.user!.firstName.isNotEmpty
-                    ? widget.user.user!.firstName[0].toUpperCase()
-                    : '',
-                style: const TextStyle(
-                  fontSize: 24,
-                  color: Colors.white,
-                ),
-              )
-                  : null,
+            UserAvatarWidget(
+              imageUrl: user.value?.user?.image,
+              firstName: widget.user.user!.firstName,
             ),
             const SizedBox(height: 12),
             Text(

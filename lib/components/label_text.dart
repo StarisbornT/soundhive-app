@@ -260,12 +260,13 @@ class _LabeledSelectFieldState extends State<LabeledSelectField> {
       context: context,
       isScrollControlled: true,
       builder: (BuildContext context) {
-        final filteredItems = widget.items
-            .where((item) =>
-            item['label']!.toLowerCase().contains(_searchQuery.toLowerCase()))
-            .toList();
+
         return StatefulBuilder(
           builder: (context, setModalState) {
+            final filteredItems = widget.items
+                .where((item) =>
+                item['label']!.toLowerCase().contains(_searchQuery.toLowerCase()))
+                .toList();
             return Padding(
               padding: EdgeInsets.only(
                 bottom: MediaQuery.of(context).viewInsets.bottom,

@@ -1,47 +1,64 @@
-class AddMoneyModel {
+// add_money_model.dart
+class AddMoneyResponse {
   final bool success;
   final String message;
   final AddMoneyData? data;
 
-  AddMoneyModel({
+  AddMoneyResponse({
     required this.success,
     required this.message,
     this.data,
   });
 
-  factory AddMoneyModel.fromJson(Map<String, dynamic> json) {
-    return AddMoneyModel(
+  factory AddMoneyResponse.fromJson(Map<String, dynamic> json) {
+    return AddMoneyResponse(
       success: json['success'] ?? false,
-      message: json['message'] ?? 'Something went wrong',
-      data: json['data'] != null
-          ? AddMoneyData.fromJson(json['data'])
-          : null,
+      message: json['message'] ?? '',
+      data: json['data'] != null ? AddMoneyData.fromJson(json['data']) : null,
     );
   }
 }
 
 class AddMoneyData {
-  final String checkoutUrl;
-  final String payCode;
-  final String currency;
-  final int amount;
-  final String reference;
+  final String? checkoutUrl;
+  final String? reference;
+  final dynamic accountNumber;
+  final String? accountName;
+  final String? bankName;
+  final double? amount;
+  final String? currency;
+  final int? expiryInSeconds;
+  final String? expiryDate;
 
   AddMoneyData({
-    required this.checkoutUrl,
-    required this.payCode,
-    required this.currency,
-    required this.amount,
-    required this.reference,
+    this.checkoutUrl,
+    this.reference,
+    this.accountNumber,
+    this.accountName,
+    this.bankName,
+    this.amount,
+    this.currency,
+    this.expiryInSeconds,
+    this.expiryDate,
   });
 
   factory AddMoneyData.fromJson(Map<String, dynamic> json) {
+    // Handle account_number that could be int or String
+    String? accountNumberStr;
+    if (json['account_number'] != null) {
+      accountNumberStr = json['account_number'].toString();
+    }
+
     return AddMoneyData(
-      checkoutUrl: json['checkout_url'] ?? '',
-      payCode: json['pay_code'] ?? '',
-      currency: json['currency'] ?? '',
-      amount: json['amount'] ?? 0,
-      reference: json['reference'] ?? '',
+      checkoutUrl: json['checkout_url'],
+      reference: json['reference'],
+      accountNumber: accountNumberStr,
+      accountName: json['account_name'],
+      bankName: json['bank_name'],
+      amount: json['amount']?.toDouble(),
+      currency: json['currency'],
+      expiryInSeconds: json['expiry_in_seconds'],
+      expiryDate: json['expiry_date'],
     );
   }
 }

@@ -25,16 +25,6 @@ class JustCurious extends ConsumerStatefulWidget {
 }
 
 class _JustCuriousState extends ConsumerState<JustCurious> {
-  void _showCre8paySheet(BuildContext context) {
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (BuildContext context) {
-        return const Cre8payComingSoonBottomSheet();
-      },
-    );
-  }
   @override
   Widget build(BuildContext context) {
     final user = ref.watch(userProvider);
@@ -156,11 +146,13 @@ class _JustCuriousState extends ConsumerState<JustCurious> {
 
                     _buildOptionCard(
                       icon: FontAwesomeIcons.wallet,
-                      text: "Cre8pay – Coming soon",
+                      text: "Cre8Pay",
                       color: const Color.fromRGBO(141, 160, 255, 0.1),
                       backgroundImage: "images/c5.png",
                       onTap: () {
-                        _showCre8paySheet(context);
+                        ref.read(bottomNavigationProvider.notifier).state = 1;
+
+                        Navigator.pushNamed(context, NonCreatorDashboard.id);
                       },
                     ),
                   ],
