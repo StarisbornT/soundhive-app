@@ -204,35 +204,70 @@ class _CreateAccountScreenState extends State<CreateAccount> {
 
 
   Future<void> _sendGoogleUserToBackend(User user) async {
-    final payload = {
-      "email": user.email?.toLowerCase(),
-      "name": user.displayName,
-      "google_id": user.uid,
-      "role": identity == "creator" ? "CREATOR" : "USER",
-      "creator_role": creatorIdentity?.toUpperCase() ?? ""
-    };
+    try {
+      final payload = {
+        "email": user.email?.toLowerCase(),
+        "name": user.displayName,
+        "google_id": user.uid,
+        "avatar": user.photoURL,
+        "role": identity == "creator" ? "CREATOR" : "USER",
+        "creator_role": creatorIdentity?.toUpperCase() ?? ""
+      };
 
-    final response = await widget.dio.post(
-      '/auth/register/google',
-      data: jsonEncode(payload),
-      options: Options(headers: {'Accept': 'application/json'}),
-    );
+      print("Sending to backend: $payload");
 
-    setState(() => isLoading = false);
+      final response = await widget.dio.post(
+        '/auth/register/google',
+        data: jsonEncode(payload),
+        options: Options(headers: {'Accept': 'application/json'}),
+      );
 
-    if (response.statusCode == 200) {
-      final responseData = response.data;
-      final fcmService = FcmTokenService(widget.dio);
-      await fcmService.registerFcmToken(user.email ?? "");
-      await widget.storage.write(key: 'auth_token', value: responseData['token']);
-      Navigator.pushNamed(context, TermsAndCondition.id);
-    } else {
-      throw Exception("Backend auth failed");
+      setState(() => isLoading = false);
+
+      if (response.statusCode == 200) {
+        final responseData = response.data;
+        final fcmService = FcmTokenService(widget.dio);
+        await fcmService.registerFcmToken(user.email ?? "");
+        await widget.storage.write(key: 'auth_token', value: responseData['token']);
+        Navigator.pushNamed(context, TermsAndCondition.id);
+      }
+    } on DioException catch (error) {
+      setState(() => isLoading = false);
+
+      String errorMessage = "Google registration failed";
+
+      if (error.response != null && error.response!.data != null) {
+        final responseData = error.response!.data;
+        if (responseData.containsKey('message')) {
+          errorMessage = responseData['message'];
+        } else if (responseData.containsKey('errors')) {
+          Map<String, dynamic> errors = responseData['errors'];
+          List<String> messages = [];
+          errors.forEach((key, value) {
+            if (value is List && value.isNotEmpty) {
+              messages.addAll(value.map((e) => "$key: $e"));
+            }
+          });
+          errorMessage = messages.join("\n");
+        }
+      }
+
+      showCustomAlert(
+        context: context,
+        isSuccess: false,
+        title: 'Error',
+        message: errorMessage,
+      );
+    } catch (e) {
+      setState(() => isLoading = false);
+      showCustomAlert(
+        context: context,
+        isSuccess: false,
+        title: 'Error',
+        message: 'An unexpected error occurred. Please try again.',
+      );
     }
   }
-
-
-
 
   void _validatePassword() {
     final password = passwordController.text;

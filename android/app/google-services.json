@@ -10,10 +10,18 @@
       "client_info": {
         "mobilesdk_app_id": "1:153492997340:android:f2447739a5d577614d2019",
         "android_client_info": {
-          "package_name": "com.webedge.cre8hive"
+          "package_name": "com.example.soundhive2"
         }
       },
       "oauth_client": [
+        {
+          "client_id": "153492997340-43gd036a06vud6gg0csgoffmj992vaav.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.example.soundhive2",
+            "certificate_hash": "e30e305e112cb1e2532701ab3139c22ba0a2ccc1"
+          }
+        },
         {
           "client_id": "153492997340-d0bqbkue3856lgusvoil9g36hmg9nl30.apps.googleusercontent.com",
           "client_type": 3
@@ -30,6 +38,65 @@
             {
               "client_id": "153492997340-d0bqbkue3856lgusvoil9g36hmg9nl30.apps.googleusercontent.com",
               "client_type": 3
+            },
+            {
+              "client_id": "153492997340-qpuqmu0llf7pig08nqokps1732sgfgcf.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.soundhive.techsavvyteacherintl"
+              }
+            }
+          ]
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:153492997340:android:0e422e9f1adb1b514d2019",
+        "android_client_info": {
+          "package_name": "com.webedge.cre8hive"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "153492997340-1pjisn8gdavrlggnp38c9d5gn85agojh.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.webedge.cre8hive",
+            "certificate_hash": "138b8399e7faf406cabd171344025dba18b0f098"
+          }
+        },
+        {
+          "client_id": "153492997340-eh1pmhco8djgvf8k55q1g18m5bv6tb1f.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.webedge.cre8hive",
+            "certificate_hash": "e30e305e112cb1e2532701ab3139c22ba0a2ccc1"
+          }
+        },
+        {
+          "client_id": "153492997340-d0bqbkue3856lgusvoil9g36hmg9nl30.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCo3xed0vvckcQkeIvQOmQIxr-avDVFZ7s"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "153492997340-d0bqbkue3856lgusvoil9g36hmg9nl30.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "153492997340-qpuqmu0llf7pig08nqokps1732sgfgcf.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.soundhive.techsavvyteacherintl"
+              }
             }
           ]
         }

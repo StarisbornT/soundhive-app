@@ -197,33 +197,56 @@ class _LoginScreenState extends State<Login> {
 
 
   Future<void> _sendGoogleUserToBackend(User user) async {
-    final payload = {
-      "email": user.email?.toLowerCase(),
-    };
+    try {
+      final payload = {
+        "email": user.email?.toLowerCase(),
+      };
 
-    final response = await widget.dio.post(
-      '/auth/login/google',
-      data: jsonEncode(payload),
-      options: Options(headers: {'Accept': 'application/json'}),
-    );
+      final response = await widget.dio.post(
+        '/auth/login/google',
+        data: jsonEncode(payload),
+        options: Options(headers: {'Accept': 'application/json'}),
+      );
 
-   LoaderService.hideLoader(context);
+      LoaderService.hideLoader(context);
 
-    if (response.statusCode == 200) {
-      final responseData = response.data;
+      if (response.statusCode == 200) {
+        final responseData = response.data;
+        await widget.storage.write(key: 'auth_token', value: responseData['token']);
 
-      await widget.storage.write(key: 'auth_token', value: responseData['token']);
-
-      print("FULL RESPONSE: ${response.data}");
-
-
-      if (responseData['user']['first_name'] != null) {
-        Navigator.pushNamed(context, DashboardScreen.id);
-      } else {
-        Navigator.pushNamed(context, UpdateProfile1.id);
+        if (responseData['user']['first_name'] != null) {
+          Navigator.pushNamed(context, DashboardScreen.id);
+        } else {
+          Navigator.pushNamed(context, UpdateProfile1.id);
+        }
       }
-    } else {
-      throw Exception("Backend auth failed");
+    } on DioException catch (error) {
+      LoaderService.hideLoader(context);
+
+      String errorMessage = "Google login failed";
+
+      if (error.response != null && error.response!.data != null) {
+        final responseData = error.response!.data;
+        if (responseData.containsKey('message')) {
+          errorMessage = responseData['message'];
+        } else if (responseData.containsKey('errors')) {
+          Map<String, dynamic> errors = responseData['errors'];
+          List<String> messages = [];
+          errors.forEach((key, value) {
+            if (value is List && value.isNotEmpty) {
+              messages.addAll(value.map((e) => "$key: $e"));
+            }
+          });
+          errorMessage = messages.join("\n");
+        }
+      }
+
+      showCustomAlert(
+        context: context,
+        isSuccess: false,
+        title: 'Error',
+        message: errorMessage,
+      );
     }
   }
   @override
