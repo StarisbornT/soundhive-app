@@ -16,4 +16,4 @@ For help getting started with Flutter development, view the
 samples, guidance on mobile development, and a full API reference.
 
 last build
-flutter build ios --release --build-name=1.0.0 --build-number=1
+flutter build ipa --release --build-name=1.0.0 --build-number=11

@@ -1,5 +1,7 @@
 import 'dart:convert';
+import 'dart:math';
 
+import 'package:crypto/crypto.dart';
 import 'package:dio/dio.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
@@ -153,30 +155,67 @@ class _LoginScreenState extends State<Login> {
     }
   }
 
+  String _generateNonce([int length = 32]) {
+    const charset =
+        '0123456789ABCDEFGHIJKLMNOPQRSTUVXYZabcdefghijklmnopqrstuvwxyz-._';
+    final random = Random.secure();
+    return List.generate(length, (_) => charset[random.nextInt(charset.length)])
+        .join();
+  }
+
+  String _sha256OfString(String input) {
+    final bytes = utf8.encode(input);
+    return sha256.convert(bytes).toString();
+  }
+
   Future<void> _signUpWithApple() async {
     try {
       LoaderService.showLoader(context);
-      final firebaseAuth = FirebaseAuth.instance;
 
-    final credential = await SignInWithApple.getAppleIDCredential(scopes: [
-        AppleIDAuthorizationScopes.email,
-        AppleIDAuthorizationScopes.fullName,
-      ]);
+      final rawNonce = _generateNonce();
+      final nonce = _sha256OfString(rawNonce);
+
+      final credential = await SignInWithApple.getAppleIDCredential(
+        scopes: [
+          AppleIDAuthorizationScopes.email,
+          AppleIDAuthorizationScopes.fullName,
+        ],
+        nonce: nonce,
+      );
+
+      if (credential.identityToken == null) {
+        throw Exception('Apple Sign In did not return an identity token');
+      }
+
       final oauthCredential = OAuthProvider('apple.com').credential(
         idToken: credential.identityToken,
-        accessToken: credential.authorizationCode,
+        rawNonce: rawNonce,
       );
-      final userCredential = await firebaseAuth.signInWithCredential(oauthCredential);
+
+      final userCredential =
+          await FirebaseAuth.instance.signInWithCredential(oauthCredential);
       final user = userCredential.user;
       if (user == null) throw Exception('Firebase auth failed');
-      await _sendGoogleUserToBackend(user);
+
+      await _sendSocialUserToBackend(user);
+    } on SignInWithAppleAuthorizationException catch (e) {
+      LoaderService.hideLoader(context);
+      if (e.code == AuthorizationErrorCode.canceled) {
+        return;
+      }
+      showCustomAlert(
+        context: context,
+        isSuccess: false,
+        title: 'Error',
+        message: 'Apple sign in failed. Please try again.',
+      );
     } catch (e) {
       LoaderService.hideLoader(context);
       showCustomAlert(
         context: context,
         isSuccess: false,
         title: 'Error',
-        message: 'Google sign in cancelled',
+        message: 'Apple sign in failed. Please try again.',
       );
     }
   }
@@ -203,7 +242,7 @@ class _LoginScreenState extends State<Login> {
       final user = userCredential.user;
       if (user == null) throw Exception('Firebase auth failed');
 
-      await _sendGoogleUserToBackend(user);
+      await _sendSocialUserToBackend(user);
     }
 
     LoaderService.hideLoader(context);
@@ -220,10 +259,15 @@ class _LoginScreenState extends State<Login> {
     );
   }
 
-  Future<void> _sendGoogleUserToBackend(User user) async {
+  Future<void> _sendSocialUserToBackend(User user) async {
     try {
+      final email = user.email?.toLowerCase();
+      if (email == null || email.isEmpty) {
+        throw Exception('No email returned from sign in provider');
+      }
+
       final payload = {
-        "email": user.email?.toLowerCase(),
+        "email": email,
       };
 
       final response = await widget.dio.post(
@@ -236,7 +280,8 @@ class _LoginScreenState extends State<Login> {
 
       if (response.statusCode == 200) {
         final responseData = response.data;
-        await widget.storage.write(key: 'auth_token', value: responseData['token']);
+        await widget.storage
+            .write(key: 'auth_token', value: responseData['token']);
 
         if (responseData['user']['first_name'] != null) {
           Navigator.pushNamed(context, DashboardScreen.id);
@@ -247,7 +292,7 @@ class _LoginScreenState extends State<Login> {
     } on DioException catch (error) {
       LoaderService.hideLoader(context);
 
-      String errorMessage = "Google login failed";
+      String errorMessage = "Sign in failed";
 
       if (error.response != null && error.response!.data != null) {
         final responseData = error.response!.data;
@@ -271,8 +316,17 @@ class _LoginScreenState extends State<Login> {
         title: 'Error',
         message: errorMessage,
       );
+    } catch (error) {
+      LoaderService.hideLoader(context);
+      showCustomAlert(
+        context: context,
+        isSuccess: false,
+        title: 'Error',
+        message: 'Sign in failed. Please try again.',
+      );
     }
   }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(

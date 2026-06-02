@@ -69,6 +69,7 @@ dependencies:
   google_mlkit_commons: ^0.11.1
   flutter_native_splash: ^2.4.7
   sign_in_with_apple: ^8.0.0
+  crypto: ^3.0.6
   characters: ^1.4.0
   just_audio_background: ^0.0.1-beta.17
   pdf: ^3.12.0
