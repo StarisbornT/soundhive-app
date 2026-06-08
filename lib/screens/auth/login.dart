@@ -168,14 +168,94 @@ class _LoginScreenState extends State<Login> {
     return sha256.convert(bytes).toString();
   }
 
+  String? _emailFromAppleIdentityToken(String? identityToken) {
+    if (identityToken == null) return null;
+    try {
+      final parts = identityToken.split('.');
+      if (parts.length != 3) return null;
+      final payload = jsonDecode(
+        utf8.decode(base64Url.decode(base64Url.normalize(parts[1]))),
+      );
+      if (payload is Map && payload['email'] is String) {
+        return payload['email'] as String;
+      }
+    } catch (_) {}
+    return null;
+  }
+
+  String _appleEmailStorageKey(String userIdentifier) =>
+      'apple_email_$userIdentifier';
+
+  Future<String?> _resolveAppleEmail(
+    AuthorizationCredentialAppleID appleCredential,
+  ) async {
+    final tokenEmail =
+        _emailFromAppleIdentityToken(appleCredential.identityToken);
+    final credentialEmail = appleCredential.email ?? tokenEmail;
+
+    if (credentialEmail != null && credentialEmail.isNotEmpty) {
+      if (appleCredential.userIdentifier != null) {
+        await widget.storage.write(
+          key: _appleEmailStorageKey(appleCredential.userIdentifier!),
+          value: credentialEmail.toLowerCase(),
+        );
+      }
+      return credentialEmail.toLowerCase();
+    }
+
+    if (appleCredential.userIdentifier != null) {
+      final storedEmail = await widget.storage.read(
+        key: _appleEmailStorageKey(appleCredential.userIdentifier!),
+      );
+      if (storedEmail != null && storedEmail.isNotEmpty) {
+        return storedEmail.toLowerCase();
+      }
+    }
+
+    return null;
+  }
+
+  Future<String?> _emailFromFirebaseAppleAuth(
+    AuthorizationCredentialAppleID appleCredential,
+    String rawNonce,
+  ) async {
+    final oauthCredential = OAuthProvider('apple.com').credential(
+      idToken: appleCredential.identityToken,
+      rawNonce: rawNonce,
+      accessToken: appleCredential.authorizationCode,
+    );
+
+    final userCredential =
+        await FirebaseAuth.instance.signInWithCredential(oauthCredential);
+    final user = userCredential.user;
+    if (user == null) return null;
+
+    try {
+      await user.reload();
+    } catch (_) {}
+
+    return FirebaseAuth.instance.currentUser?.email ?? user.email;
+  }
+
   Future<void> _signUpWithApple() async {
     try {
+      final isAvailable = await SignInWithApple.isAvailable();
+      if (!isAvailable) {
+        showCustomAlert(
+          context: context,
+          isSuccess: false,
+          title: 'Error',
+          message: 'Sign in with Apple is not available on this device.',
+        );
+        return;
+      }
+
       LoaderService.showLoader(context);
 
       final rawNonce = _generateNonce();
       final nonce = _sha256OfString(rawNonce);
 
-      final credential = await SignInWithApple.getAppleIDCredential(
+      final appleCredential = await SignInWithApple.getAppleIDCredential(
         scopes: [
           AppleIDAuthorizationScopes.email,
           AppleIDAuthorizationScopes.fullName,
@@ -183,21 +263,28 @@ class _LoginScreenState extends State<Login> {
         nonce: nonce,
       );
 
-      if (credential.identityToken == null) {
+      if (appleCredential.identityToken == null) {
         throw Exception('Apple Sign In did not return an identity token');
       }
 
-      final oauthCredential = OAuthProvider('apple.com').credential(
-        idToken: credential.identityToken,
-        rawNonce: rawNonce,
-      );
+      var email = await _resolveAppleEmail(appleCredential);
 
-      final userCredential =
-          await FirebaseAuth.instance.signInWithCredential(oauthCredential);
-      final user = userCredential.user;
-      if (user == null) throw Exception('Firebase auth failed');
+      email ??= await _emailFromFirebaseAppleAuth(appleCredential, rawNonce);
 
-      await _sendSocialUserToBackend(user);
+      if (email != null &&
+          appleCredential.userIdentifier != null &&
+          email.isNotEmpty) {
+        await widget.storage.write(
+          key: _appleEmailStorageKey(appleCredential.userIdentifier!),
+          value: email.toLowerCase(),
+        );
+      }
+
+      if (email == null || email.isEmpty) {
+        throw Exception('No email returned from Apple Sign In');
+      }
+
+      await _completeSocialLogin(email);
     } on SignInWithAppleAuthorizationException catch (e) {
       LoaderService.hideLoader(context);
       if (e.code == AuthorizationErrorCode.canceled) {
@@ -209,15 +296,45 @@ class _LoginScreenState extends State<Login> {
         title: 'Error',
         message: 'Apple sign in failed. Please try again.',
       );
-    } catch (e) {
+    } on FirebaseAuthException catch (e) {
       LoaderService.hideLoader(context);
       showCustomAlert(
         context: context,
         isSuccess: false,
         title: 'Error',
-        message: 'Apple sign in failed. Please try again.',
+        message: _firebaseAuthErrorMessage(e),
+      );
+    } catch (e) {
+      LoaderService.hideLoader(context);
+      debugPrint('Apple sign in error: $e');
+      showCustomAlert(
+        context: context,
+        isSuccess: false,
+        title: 'Error',
+        message: e is DioException
+            ? _dioErrorMessage(e, fallback: 'Apple sign in failed.')
+            : 'Apple sign in failed. Please try again.',
       );
     }
+  }
+
+  String _firebaseAuthErrorMessage(FirebaseAuthException e) {
+    switch (e.code) {
+      case 'operation-not-allowed':
+        return 'Apple Sign In is not enabled in Firebase. Please contact support.';
+      case 'invalid-credential':
+        return 'Apple sign in credential was rejected. Please try again.';
+      default:
+        return e.message ?? 'Apple sign in failed. Please try again.';
+    }
+  }
+
+  String _dioErrorMessage(DioException error, {required String fallback}) {
+    if (error.response?.data is Map &&
+        (error.response!.data as Map).containsKey('message')) {
+      return (error.response!.data as Map)['message'] as String;
+    }
+    return fallback;
   }
 
   Future<void> _handleGoogleAuthEvent(event) async {
@@ -250,7 +367,7 @@ class _LoginScreenState extends State<Login> {
 
   void _handleGoogleAuthError(Object error) {
     LoaderService.hideLoader(context);
-    print("Google Error $error");
+    debugPrint('Google sign in error: $error');
     showCustomAlert(
       context: context,
       isSuccess: false,
@@ -261,13 +378,42 @@ class _LoginScreenState extends State<Login> {
 
   Future<void> _sendSocialUserToBackend(User user) async {
     try {
-      final email = user.email?.toLowerCase();
+      try {
+        await user.reload();
+      } catch (_) {}
+
+      final refreshedUser = FirebaseAuth.instance.currentUser ?? user;
+      final email = refreshedUser.email?.toLowerCase();
+
       if (email == null || email.isEmpty) {
         throw Exception('No email returned from sign in provider');
       }
 
+      await _completeSocialLogin(email);
+    } catch (error) {
+      LoaderService.hideLoader(context);
+      if (error is DioException) {
+        showCustomAlert(
+          context: context,
+          isSuccess: false,
+          title: 'Error',
+          message: _dioErrorMessage(error, fallback: 'Sign in failed.'),
+        );
+        return;
+      }
+      showCustomAlert(
+        context: context,
+        isSuccess: false,
+        title: 'Error',
+        message: 'Sign in failed. Please try again.',
+      );
+    }
+  }
+
+  Future<void> _completeSocialLogin(String email) async {
+    try {
       final payload = {
-        "email": email,
+        'email': email.toLowerCase(),
       };
 
       final response = await widget.dio.post(
@@ -292,38 +438,15 @@ class _LoginScreenState extends State<Login> {
     } on DioException catch (error) {
       LoaderService.hideLoader(context);
 
-      String errorMessage = "Sign in failed";
-
-      if (error.response != null && error.response!.data != null) {
-        final responseData = error.response!.data;
-        if (responseData.containsKey('message')) {
-          errorMessage = responseData['message'];
-        } else if (responseData.containsKey('errors')) {
-          Map<String, dynamic> errors = responseData['errors'];
-          List<String> messages = [];
-          errors.forEach((key, value) {
-            if (value is List && value.isNotEmpty) {
-              messages.addAll(value.map((e) => "$key: $e"));
-            }
-          });
-          errorMessage = messages.join("\n");
-        }
+      if (error.response?.statusCode == 403) {
+        final responseData = error.response?.data;
+        await widget.storage
+            .write(key: 'auth_token', value: responseData['token']);
+        Navigator.pushNamed(context, TermsAndCondition.id);
+        return;
       }
 
-      showCustomAlert(
-        context: context,
-        isSuccess: false,
-        title: 'Error',
-        message: errorMessage,
-      );
-    } catch (error) {
-      LoaderService.hideLoader(context);
-      showCustomAlert(
-        context: context,
-        isSuccess: false,
-        title: 'Error',
-        message: 'Sign in failed. Please try again.',
-      );
+      rethrow;
     }
   }
 
