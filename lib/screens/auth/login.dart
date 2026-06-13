@@ -281,7 +281,9 @@ class _LoginScreenState extends State<Login> {
       }
 
       if (email == null || email.isEmpty) {
-        throw Exception('No email returned from Apple Sign In');
+        LoaderService.hideLoader(context);
+        _showAppleEmailUnavailableAlert();
+        return;
       }
 
       await _completeSocialLogin(email);
@@ -335,6 +337,16 @@ class _LoginScreenState extends State<Login> {
       return (error.response!.data as Map)['message'] as String;
     }
     return fallback;
+  }
+
+  void _showAppleEmailUnavailableAlert() {
+    showCustomAlert(
+      context: context,
+      isSuccess: false,
+      title: 'Email required',
+      message:
+          'We could not retrieve an email from Apple. When prompted, choose Share My Email or Hide My Email — both work for sign-in. If you used Apple Sign In before, go to Settings → Apple Account → Sign in with Apple → Cre8Hive → Stop Using Apple ID, then try again.',
+    );
   }
 
   Future<void> _handleGoogleAuthEvent(event) async {

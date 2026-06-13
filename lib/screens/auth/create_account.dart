@@ -304,7 +304,9 @@ class _CreateAccountScreenState extends State<CreateAccount> {
       }
 
       if (email == null || email.isEmpty) {
-        throw Exception('No email returned from Apple Sign In');
+        setState(() => isLoading = false);
+        _showAppleEmailUnavailableAlert();
+        return;
       }
 
       await _completeSocialRegistration(
@@ -354,6 +356,16 @@ class _CreateAccountScreenState extends State<CreateAccount> {
       default:
         return e.message ?? 'Apple sign up failed. Please try again.';
     }
+  }
+
+  void _showAppleEmailUnavailableAlert() {
+    showCustomAlert(
+      context: context,
+      isSuccess: false,
+      title: 'Email required',
+      message:
+          'We could not retrieve an email from Apple. When prompted, choose Share My Email or Hide My Email — both work for sign-up. If you used Apple Sign In before, go to Settings → Apple Account → Sign in with Apple → Cre8Hive → Stop Using Apple ID, then try again.',
+    );
   }
 
   Future<void> _handleGoogleAuthEvent(event) async {
