@@ -46,13 +46,13 @@
     <key>NSLocalNetworkUsageDescription</key>
     <string>This app checks network connectivity.</string>
     
-    <key>UIBackgroundModes</key>
+    <!-- <key>UIBackgroundModes</key>
     <array>
         <string>audio</string>
         <string>fetch</string>
         <string>processing</string>
         <string>remote-notification</string>
-    </array>
+    </array> -->
     
     <key>CFBundleShortVersionString</key>
     <string>$(FLUTTER_BUILD_NAME)</string>
