@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:soundhive2/screens/auth/create_account.dart';
 import 'package:soundhive2/screens/auth/update_profile1.dart';
 import '../../../components/success.dart';
 import '../../../lib/dashboard_provider/apiresponseprovider.dart';
@@ -137,6 +138,130 @@ class _SettingsState extends ConsumerState<Settings> {
               },
               trailing: const Icon(Icons.arrow_forward_ios_rounded),
             ),
+            _tile(
+              context,
+              icon: Icons.delete,
+              title: 'Delete Account',
+              color: Colors.red,
+              onTap: () async {
+                final shouldDelete = await showModalBottomSheet<bool>(
+                  context: context,
+                  isScrollControlled: true,
+                  backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+                  shape: const RoundedRectangleBorder(
+                    borderRadius: BorderRadius.vertical(
+                      top: Radius.circular(24),
+                    ),
+                  ),
+                  builder: (context) {
+                    return Padding(
+                      padding: const EdgeInsets.all(24),
+                      child: SafeArea(
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Container(
+                              width: 50,
+                              height: 5,
+                              decoration: BoxDecoration(
+                                color: Colors.grey.shade400,
+                                borderRadius: BorderRadius.circular(10),
+                              ),
+                            ),
+                            const SizedBox(height: 24),
+
+                            const Icon(
+                              Icons.warning_amber_rounded,
+                              color: Colors.red,
+                              size: 60,
+                            ),
+
+                            const SizedBox(height: 16),
+
+                            const Text(
+                              'Delete Account?',
+                              style: TextStyle(
+                                fontSize: 20,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+
+                            const SizedBox(height: 12),
+
+                            Text(
+                              'This action is permanent and cannot be undone. All your account data will be deleted.',
+                              textAlign: TextAlign.center,
+                              style: TextStyle(
+                                color: Colors.grey.shade600,
+                              ),
+                            ),
+
+                            const SizedBox(height: 24),
+
+                            Row(
+                              children: [
+                                Expanded(
+                                  child: OutlinedButton(
+                                    onPressed: () {
+                                      Navigator.pop(context, false);
+                                    },
+                                    child: const Text('Cancel'),
+                                  ),
+                                ),
+
+                                const SizedBox(width: 12),
+
+                                Expanded(
+                                  child: ElevatedButton(
+                                    style: ElevatedButton.styleFrom(
+                                      backgroundColor: Colors.red,
+                                      foregroundColor: Colors.white,
+                                    ),
+                                    onPressed: () {
+                                      Navigator.pop(context, true);
+                                    },
+                                    child: const Text('Delete Account'),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ],
+                        ),
+                      ),
+                    );
+                  },
+                );
+
+                if (shouldDelete == true) {
+                  try {
+                    await ref
+                        .read(apiresponseProvider.notifier)
+                        .deleteAccount(context: context);
+
+                    if (mounted) {
+                      Navigator.pushNamedAndRemoveUntil(
+                        context,
+                        CreateAccount.id,
+                            (_) => false,
+                      );
+                    }
+                  } catch (error) {
+                    if (mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text('Failed to delete account: $error'),
+                          backgroundColor: Colors.red,
+                        ),
+                      );
+                    }
+                  }
+                }
+              },
+              trailing: const Icon(
+                Icons.arrow_forward_ios_rounded,
+                color: Colors.red,
+              ),
+            ),
           ],
         ),
       ),
@@ -149,13 +274,14 @@ class _SettingsState extends ConsumerState<Settings> {
         required String title,
         Widget? trailing,
         VoidCallback? onTap,
+        Color? color,  // 👈 add this
       }) {
     return ListTile(
       contentPadding: EdgeInsets.zero,
-      leading: Icon(icon),
-      title: Text(title),
+      leading: Icon(icon, color: color),           // 👈 apply color
+      title: Text(title, style: TextStyle(color: color)),  // 👈 apply color
       trailing: trailing,
-      onTap: onTap, // ← entire row is now tappable
+      onTap: onTap,
     );
   }
 }
