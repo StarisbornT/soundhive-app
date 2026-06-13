@@ -142,18 +142,125 @@ class _SettingsState extends ConsumerState<Settings> {
               context,
               icon: Icons.delete,
               title: 'Delete Account',
-              color: Colors.red,  // 👈 add this
+              color: Colors.red,
               onTap: () async {
-                await ref
-                    .read(apiresponseProvider.notifier)
-                    .deleteAccount(context: context);
-                Navigator.pushNamedAndRemoveUntil(
-                  context,
-                  CreateAccount.id,
-                      (_) => false,
+                final shouldDelete = await showModalBottomSheet<bool>(
+                  context: context,
+                  isScrollControlled: true,
+                  backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+                  shape: const RoundedRectangleBorder(
+                    borderRadius: BorderRadius.vertical(
+                      top: Radius.circular(24),
+                    ),
+                  ),
+                  builder: (context) {
+                    return Padding(
+                      padding: const EdgeInsets.all(24),
+                      child: SafeArea(
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Container(
+                              width: 50,
+                              height: 5,
+                              decoration: BoxDecoration(
+                                color: Colors.grey.shade400,
+                                borderRadius: BorderRadius.circular(10),
+                              ),
+                            ),
+                            const SizedBox(height: 24),
+
+                            const Icon(
+                              Icons.warning_amber_rounded,
+                              color: Colors.red,
+                              size: 60,
+                            ),
+
+                            const SizedBox(height: 16),
+
+                            const Text(
+                              'Delete Account?',
+                              style: TextStyle(
+                                fontSize: 20,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+
+                            const SizedBox(height: 12),
+
+                            Text(
+                              'This action is permanent and cannot be undone. All your account data will be deleted.',
+                              textAlign: TextAlign.center,
+                              style: TextStyle(
+                                color: Colors.grey.shade600,
+                              ),
+                            ),
+
+                            const SizedBox(height: 24),
+
+                            Row(
+                              children: [
+                                Expanded(
+                                  child: OutlinedButton(
+                                    onPressed: () {
+                                      Navigator.pop(context, false);
+                                    },
+                                    child: const Text('Cancel'),
+                                  ),
+                                ),
+
+                                const SizedBox(width: 12),
+
+                                Expanded(
+                                  child: ElevatedButton(
+                                    style: ElevatedButton.styleFrom(
+                                      backgroundColor: Colors.red,
+                                      foregroundColor: Colors.white,
+                                    ),
+                                    onPressed: () {
+                                      Navigator.pop(context, true);
+                                    },
+                                    child: const Text('Delete Account'),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ],
+                        ),
+                      ),
+                    );
+                  },
                 );
+
+                if (shouldDelete == true) {
+                  try {
+                    await ref
+                        .read(apiresponseProvider.notifier)
+                        .deleteAccount(context: context);
+
+                    if (mounted) {
+                      Navigator.pushNamedAndRemoveUntil(
+                        context,
+                        CreateAccount.id,
+                            (_) => false,
+                      );
+                    }
+                  } catch (error) {
+                    if (mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text('Failed to delete account: $error'),
+                          backgroundColor: Colors.red,
+                        ),
+                      );
+                    }
+                  }
+                }
               },
-              trailing: const Icon(Icons.arrow_forward_ios_rounded, color: Colors.red),  // 👈 add color here too
+              trailing: const Icon(
+                Icons.arrow_forward_ios_rounded,
+                color: Colors.red,
+              ),
             ),
           ],
         ),
