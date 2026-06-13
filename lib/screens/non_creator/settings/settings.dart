@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:soundhive2/screens/auth/create_account.dart';
 import 'package:soundhive2/screens/auth/update_profile1.dart';
 import '../../../components/success.dart';
 import '../../../lib/dashboard_provider/apiresponseprovider.dart';
@@ -137,6 +138,23 @@ class _SettingsState extends ConsumerState<Settings> {
               },
               trailing: const Icon(Icons.arrow_forward_ios_rounded),
             ),
+            _tile(
+              context,
+              icon: Icons.delete,
+              title: 'Delete Account',
+              color: Colors.red,  // 👈 add this
+              onTap: () async {
+                await ref
+                    .read(apiresponseProvider.notifier)
+                    .deleteAccount(context: context);
+                Navigator.pushNamedAndRemoveUntil(
+                  context,
+                  CreateAccount.id,
+                      (_) => false,
+                );
+              },
+              trailing: const Icon(Icons.arrow_forward_ios_rounded, color: Colors.red),  // 👈 add color here too
+            ),
           ],
         ),
       ),
@@ -149,13 +167,14 @@ class _SettingsState extends ConsumerState<Settings> {
         required String title,
         Widget? trailing,
         VoidCallback? onTap,
+        Color? color,  // 👈 add this
       }) {
     return ListTile(
       contentPadding: EdgeInsets.zero,
-      leading: Icon(icon),
-      title: Text(title),
+      leading: Icon(icon, color: color),           // 👈 apply color
+      title: Text(title, style: TextStyle(color: color)),  // 👈 apply color
       trailing: trailing,
-      onTap: onTap, // ← entire row is now tappable
+      onTap: onTap,
     );
   }
 }

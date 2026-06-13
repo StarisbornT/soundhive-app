@@ -207,22 +207,22 @@ class _VestDetailsScreenState extends ConsumerState<VestDetailsScreen>  {
             style: const TextStyle(color: Colors.white70, fontSize: 14)),
 
         const SizedBox(height: 10),
-        const Row(
-          children: [
-            Icon(Icons.star, color: Colors.yellow, size: 18),
-            Text(
-              '4.5 rating',
-              style: TextStyle(color: Colors.grey, fontSize: 12),
-            ),
-            SizedBox(width: 10),
-            Icon(Icons.download, color: Colors.grey, size: 18),
-            Text(
-              '20k downloads',
-              style: TextStyle(color: Colors.grey, fontSize: 12),
-            ),
-          ],
-        ),
-        const SizedBox(height: 16),
+        // const Row(
+        //   children: [
+        //     Icon(Icons.star, color: Colors.yellow, size: 18),
+        //     Text(
+        //       '4.5 rating',
+        //       style: TextStyle(color: Colors.grey, fontSize: 12),
+        //     ),
+        //     SizedBox(width: 10),
+        //     Icon(Icons.download, color: Colors.grey, size: 18),
+        //     Text(
+        //       '20k downloads',
+        //       style: TextStyle(color: Colors.grey, fontSize: 12),
+        //     ),
+        //   ],
+        // ),
+        // const SizedBox(height: 16),
         const Text(
           "About Artist",
           style: TextStyle(
@@ -239,7 +239,7 @@ class _VestDetailsScreenState extends ConsumerState<VestDetailsScreen>  {
           child: RoundedButton(
             title: widget.user.wallet == null ?
             "Activate your wallet"
-                :  'Invest',
+                :  'Buy',
             onPressed: () {
               if(widget.user.wallet == null) {
                 Navigator.pop(context);
@@ -256,28 +256,28 @@ class _VestDetailsScreenState extends ConsumerState<VestDetailsScreen>  {
           ),
         ),
         const SizedBox(height: 20),
-        const Text(
-          "Reviews (12,102)",
-          style: TextStyle(
-            color: Colors.white, fontSize: 16, fontWeight: FontWeight.w400,
-          ),
-        ),
-        const SizedBox(height: 10),
-        _buildReview("Susan Omotosho", "Good stuff, really makes sense"),
-        _buildReview("Susan Omotosho", "Good stuff, really makes sense"),
-        _buildReview("Susan Omotosho", "Good stuff, really makes sense"),
-        const SizedBox(height: 10),
-        Center(
-          child: TextButton(
-            onPressed: () {
-              // Implement view more comments
-            },
-            child: const Text(
-              "View more comments",
-              style: TextStyle(color: Colors.white),
-            ),
-          ),
-        ),
+        // const Text(
+        //   "Reviews (12,102)",
+        //   style: TextStyle(
+        //     color: Colors.white, fontSize: 16, fontWeight: FontWeight.w400,
+        //   ),
+        // ),
+        // const SizedBox(height: 10),
+        // _buildReview("Susan Omotosho", "Good stuff, really makes sense"),
+        // _buildReview("Susan Omotosho", "Good stuff, really makes sense"),
+        // _buildReview("Susan Omotosho", "Good stuff, really makes sense"),
+        // const SizedBox(height: 10),
+        // Center(
+        //   child: TextButton(
+        //     onPressed: () {
+        //       // Implement view more comments
+        //     },
+        //     child: const Text(
+        //       "View more comments",
+        //       style: TextStyle(color: Colors.white),
+        //     ),
+        //   ),
+        // ),
       ],
     );
   }

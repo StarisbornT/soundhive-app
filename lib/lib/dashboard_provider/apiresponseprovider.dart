@@ -1557,4 +1557,27 @@ class ApiResponseProvider extends StateNotifier<AsyncValue<void>> {
     }
   }
 
+  Future<void> deleteAccount({
+    required BuildContext context,
+  }) async {
+    state = const AsyncValue.loading();
+    try {
+      LoaderService.showLoader(context);
+      final _ = await _dio.delete(
+          '/account'
+      );
+      ref.invalidate(userProvider);
+      await _storage.deleteAll();
+      await Future.delayed(const Duration(milliseconds: 500));
+      Map<String, String> allData = await _storage.readAll();
+      print("Storage After Delete: $allData");
+
+    } catch (error, stackTrace) {
+      state = AsyncValue.error(error, stackTrace);
+      rethrow;
+    } finally {
+      LoaderService.hideLoader(context);
+    }
+  }
+
 }
