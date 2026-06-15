@@ -229,6 +229,10 @@ class _CreateAccountScreenState extends State<CreateAccount> {
         final fcmService = FcmTokenService(widget.dio);
         await fcmService.registerFcmToken(user.email ?? "");
         await widget.storage.write(key: 'auth_token', value: responseData['token']);
+        final firebaseToken = responseData['firebase_token'];
+        if (firebaseToken != null) {
+          await FirebaseAuth.instance.signInWithCustomToken(firebaseToken);
+        }
         Navigator.pushNamed(context, TermsAndCondition.id);
       }
     } on DioException catch (error) {

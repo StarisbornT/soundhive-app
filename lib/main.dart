@@ -1,4 +1,5 @@
 import 'package:dio/dio.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -74,6 +75,7 @@ void main() async {
     BaseUrlInterceptor(),
     TokenInterceptor(storage: storage),
   ]);
+  await _restoreFirebaseSession(storage, dio);
 
   final navigatorKey = GlobalKey<NavigatorState>();
   LoaderService.navigatorKey = navigatorKey;
@@ -89,6 +91,44 @@ void main() async {
       ),
     ),
   );
+}
+
+/// Checks if Firebase is already signed in. If not but a Laravel token
+/// exists, hits the backend for a fresh Firebase custom token and
+/// signs in silently — invisible to the user.
+Future<void> _restoreFirebaseSession(
+    FlutterSecureStorage storage, Dio dio) async {
+  try {
+    // Already signed in (e.g. normal app resume) — nothing to do
+    if (FirebaseAuth.instance.currentUser != null) return;
+
+    final laravelToken = await storage.read(key: 'auth_token');
+    if (laravelToken == null) return; // Not logged in at all
+
+    // Ask your Laravel backend for a fresh Firebase custom token
+    final response = await dio.get(
+      '/auth/firebase-token',
+      options: Options(
+        headers: {
+          'Accept': 'application/json',
+          'Authorization': 'Bearer $laravelToken',
+        },
+      ),
+    );
+
+    if (response.statusCode == 200) {
+      final firebaseToken = response.data['firebase_token'] as String?;
+      if (firebaseToken != null) {
+        await FirebaseAuth.instance.signInWithCustomToken(firebaseToken);
+        debugPrint('Firebase session restored silently');
+      }
+    }
+  } catch (e) {
+    // Non-fatal: user still gets to dashboard via Laravel token.
+    // Firebase rules will block DB access until they re-login,
+    // which is acceptable — just log it.
+    debugPrint('Could not restore Firebase session: $e');
+  }
 }
 
 final routeObserverProvider = Provider<RouteObserver<ModalRoute>>(
