@@ -67,6 +67,14 @@
           }
         },
         {
+          "client_id": "153492997340-92t16koskk828r0quel64bhqkecvs3d7.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.webedge.cre8hive",
+            "certificate_hash": "d040b28d8325962a84a828ea98a0bf7265031950"
+          }
+        },
+        {
           "client_id": "153492997340-eh1pmhco8djgvf8k55q1g18m5bv6tb1f.apps.googleusercontent.com",
           "client_type": 1,
           "android_info": {
