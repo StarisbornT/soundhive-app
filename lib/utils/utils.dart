@@ -206,7 +206,7 @@ class Utils {
     return Container(
       height: 150,
       color: Colors.grey[800],
-      child: Icon(Icons.broken_image, color: Colors.white54),
+      child: const Icon(Icons.broken_image, color: Colors.white54),
     );
   }
   static Widget buildCreativeCard(
@@ -404,7 +404,7 @@ class Utils {
     else {
       displayWidget = Text(
         value.toString(),
-        style: TextStyle(
+        style: const TextStyle(
           fontSize: 14,
           color: Colors.white,
           fontWeight: FontWeight.w500,
@@ -417,7 +417,7 @@ class Utils {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Text(title, style: TextStyle(fontSize: 14, color: Color(0xFFB0B0B6))),
+          Text(title, style: const TextStyle(fontSize: 14, color: Color(0xFFB0B0B6))),
           displayWidget,
         ],
       ),
@@ -427,7 +427,7 @@ class Utils {
     showModalBottomSheet(
       context: context,
       backgroundColor: Colors.black,
-      shape: RoundedRectangleBorder(
+      shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
       ),
       builder: (BuildContext context) {
@@ -441,7 +441,7 @@ class Utils {
                 'Add via Bank Transfer',
                 style: TextStyle(fontSize: 18, fontWeight: FontWeight.w400, color: Colors.white),
               ),
-              SizedBox(height: 8),
+              const SizedBox(height: 8),
 
               // Instructional text
               const Text(
@@ -449,14 +449,14 @@ class Utils {
                 textAlign: TextAlign.center,
                 style: TextStyle(fontSize: 14, color: Colors.grey),
               ),
-              SizedBox(height: 16),
+              const SizedBox(height: 16),
 
               // Bank Label
-              Align(
+              const Align(
                 alignment: Alignment.centerLeft,
                 child: Text('Bank', style: TextStyle(fontSize: 14, color: Colors.grey)),
               ),
-              SizedBox(height: 4),
+              const SizedBox(height: 4),
 
               // Bank Name
               Align(
@@ -466,14 +466,14 @@ class Utils {
                   style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w400, color: Colors.white),
                 ),
               ),
-              SizedBox(height: 16),
+              const SizedBox(height: 16),
 
               // Account Number Label
               const Align(
                 alignment: Alignment.centerLeft,
                 child: Text('Account number', style: TextStyle(fontSize: 14, color: Colors.grey)),
               ),
-              SizedBox(height: 4),
+              const SizedBox(height: 4),
 
               // Account Number with Copy Icon
               Row(
@@ -488,7 +488,7 @@ class Utils {
                     onPressed: () {
                       Clipboard.setData(ClipboardData(text: accountNumber ?? ''));
                       ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(content: Text('Account number copied!')),
+                        const SnackBar(content: Text('Account number copied!')),
                       );
                     },
                   ),
@@ -499,7 +499,7 @@ class Utils {
                 alignment: Alignment.centerLeft,
                 child: Text('Account Name', style: TextStyle(fontSize: 14, color: Colors.grey)),
               ),
-              SizedBox(height: 4),
+              const SizedBox(height: 4),
 
               // Bank Name
               Align(
@@ -510,7 +510,7 @@ class Utils {
                 ),
               ),
 
-              SizedBox(height: 24),
+              const SizedBox(height: 24),
 
               // Button
               SizedBox(
@@ -519,7 +519,7 @@ class Utils {
                   style: ElevatedButton.styleFrom(
                     backgroundColor: AppColors.BUTTONCOLOR,
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
-                    padding: EdgeInsets.symmetric(vertical: 12),
+                    padding: const EdgeInsets.symmetric(vertical: 12),
                   ),
                   onPressed: () => Navigator.pop(context),
                   child: const Text(

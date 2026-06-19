@@ -398,7 +398,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
         title: const Text('Incoming Audio Call',
             style: TextStyle(color: Colors.white)),
         content: Text('$callerName is calling you...',
-            style: TextStyle(color: Colors.white70)),
+            style: const TextStyle(color: Colors.white70)),
         actions: [
           TextButton(
             onPressed: () {
@@ -868,7 +868,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
     final shouldShowSystemMessage = _messages.isEmpty && !_isLoading;
 
     return Scaffold(
-      backgroundColor: theme.colorScheme.background,
+      backgroundColor: theme.colorScheme.surface,
       appBar: AppBar(
         backgroundColor:
             isDark ? const Color(0xFF1A191E) : theme.colorScheme.surface,

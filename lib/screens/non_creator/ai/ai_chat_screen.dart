@@ -17,11 +17,11 @@ import '../marketplace/creators_list.dart';
 // Constants
 // ─────────────────────────────────────────────────────────────────────────────
 
-const _kPurple     = Color(0xFFA26BFA);
+const _kPurple = Color(0xFFA26BFA);
 const _kPurpleLight = Color(0xFFC5AFFF);
-const _kPurpleDark  = Color(0xFF19172E);
-const _kSurface    = Color(0xFF1A191E);
-const _kBorder     = Color(0xFF2C2C2C);
+const _kPurpleDark = Color(0xFF19172E);
+const _kSurface = Color(0xFF1A191E);
+const _kBorder = Color(0xFF2C2C2C);
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Response type enum – mirrors what the backend now returns
@@ -41,19 +41,24 @@ AiResponseType _parseResponseType(Map<String, dynamic>? data) {
   if (data == null) return AiResponseType.unknown;
 
   // Backend sets these flags
-  if (data['is_off_topic'] == true)       return AiResponseType.offTopic;
-  if (data['is_conversational'] == true)  return AiResponseType.greeting;
+  if (data['is_off_topic'] == true) return AiResponseType.offTopic;
+  if (data['is_conversational'] == true) return AiResponseType.greeting;
   if (data['needs_clarification'] == true) return AiResponseType.clarification;
 
   final type = (data['type'] ?? '').toString().toLowerCase();
   switch (type) {
-    case 'project':      return AiResponseType.project;
-    case 'greeting':     return AiResponseType.greeting;
-    case 'small_talk':   return AiResponseType.smallTalk;
-    case 'off_topic':    return AiResponseType.offTopic;
-    case 'clarification':return AiResponseType.clarification;
+    case 'project':
+      return AiResponseType.project;
+    case 'greeting':
+      return AiResponseType.greeting;
+    case 'small_talk':
+      return AiResponseType.smallTalk;
+    case 'off_topic':
+      return AiResponseType.offTopic;
+    case 'clarification':
+      return AiResponseType.clarification;
     default:
-    // If workflow_plan has content → treat as project
+      // If workflow_plan has content → treat as project
       final plan = data['workflow_plan'];
       if (plan is Map && (plan['steps'] as List? ?? []).isNotEmpty) {
         return AiResponseType.project;
@@ -77,11 +82,11 @@ class AiChatScreen extends ConsumerStatefulWidget {
 }
 
 class _AiChatScreenState extends ConsumerState<AiChatScreen> {
-  final TextEditingController _controller      = TextEditingController();
-  final ScrollController       _scrollController = ScrollController();
+  final TextEditingController _controller = TextEditingController();
+  final ScrollController _scrollController = ScrollController();
 
-  bool    _isGeneratingResponse = false;
-  int?    _threadId;
+  bool _isGeneratingResponse = false;
+  int? _threadId;
   String? _conversationTitle;
 
   final List<ChatMessage> messages = [];
@@ -91,11 +96,12 @@ class _AiChatScreenState extends ConsumerState<AiChatScreen> {
   @override
   void initState() {
     super.initState();
-    _threadId           = widget.threadId;
-    _conversationTitle  = widget.initialTitle;
+    _threadId = widget.threadId;
+    _conversationTitle = widget.initialTitle;
 
     if (_threadId != null) {
-      WidgetsBinding.instance.addPostFrameCallback((_) => _loadConversationHistory());
+      WidgetsBinding.instance
+          .addPostFrameCallback((_) => _loadConversationHistory());
     }
   }
 
@@ -112,7 +118,9 @@ class _AiChatScreenState extends ConsumerState<AiChatScreen> {
     if (_threadId == null) return;
 
     try {
-      await ref.read(getThreadMessageProvider.notifier).getThreadMessage(id: _threadId!);
+      await ref
+          .read(getThreadMessageProvider.notifier)
+          .getThreadMessage(id: _threadId!);
       final threadState = ref.read(getThreadMessageProvider);
 
       threadState.when(
@@ -128,18 +136,18 @@ class _AiChatScreenState extends ConsumerState<AiChatScreen> {
 
             for (final conversation in conversations) {
               final userImageUrl = conversation.user?.image;
-              final userName     = conversation.user?.firstName;
-              final metadata     = _convertMetadataToMap(conversation.metadata);
+              final userName = conversation.user?.firstName;
+              final metadata = _convertMetadataToMap(conversation.metadata);
               final suggestedCreators = conversation.suggestedCreators;
 
               // User bubble
               messages.add(ChatMessage(
-                fromUser:  true,
-                text:      conversation.userMessage,
+                fromUser: true,
+                text: conversation.userMessage,
                 userImage: userImageUrl,
-                userName:  userName,
+                userName: userName,
                 timestamp: DateTime.parse(conversation.createdAt),
-                metadata:  metadata,
+                metadata: metadata,
                 suggestedCreators: suggestedCreators,
               ));
 
@@ -150,7 +158,8 @@ class _AiChatScreenState extends ConsumerState<AiChatScreen> {
               AiResponseType historyType;
               if (storedTitle == 'Off Topic') {
                 historyType = AiResponseType.offTopic;
-              } else if (storedTitle == 'Conversation' || storedTitle == 'Greeting') {
+              } else if (storedTitle == 'Conversation' ||
+                  storedTitle == 'Greeting') {
                 historyType = AiResponseType.greeting;
               } else if (storedTitle == 'Getting Started') {
                 historyType = AiResponseType.clarification;
@@ -175,15 +184,16 @@ class _AiChatScreenState extends ConsumerState<AiChatScreen> {
               }
 
               messages.add(ChatMessage(
-                fromUser:         false,
-                text:             aiText,
-                fullText:         aiText,
-                timestamp:        DateTime.parse(conversation.updatedAt),
-                options:          _buildOptions(historyType, workflowPlan, suggestedCreators),
-                metadata:         workflowPlan ?? metadata,
+                fromUser: false,
+                text: aiText,
+                fullText: aiText,
+                timestamp: DateTime.parse(conversation.updatedAt),
+                options:
+                    _buildOptions(historyType, workflowPlan, suggestedCreators),
+                metadata: workflowPlan ?? metadata,
                 suggestedCreators: suggestedCreators,
-                responseType:     historyType,
-                shouldAnimate:    false,
+                responseType: historyType,
+                shouldAnimate: false,
               ));
             }
           });
@@ -193,12 +203,14 @@ class _AiChatScreenState extends ConsumerState<AiChatScreen> {
         loading: () {},
         error: (error, _) {
           debugPrint('Error loading conversation: $error');
-          _addErrorMessage('I had trouble loading the conversation history. Let\'s start fresh!');
+          _addErrorMessage(
+              'I had trouble loading the conversation history. Let\'s start fresh!');
         },
       );
     } catch (e) {
       debugPrint('Error loading conversation: $e');
-      _addErrorMessage('I had trouble loading the conversation history. Let\'s start fresh!');
+      _addErrorMessage(
+          'I had trouble loading the conversation history. Let\'s start fresh!');
     }
   }
 
@@ -212,33 +224,35 @@ class _AiChatScreenState extends ConsumerState<AiChatScreen> {
     _addThinkingMessage();
 
     try {
-      final response = await ref.read(apiresponseProvider.notifier).generateWorkFlow(
-        context:              context,
-        description:          userMessage,
-        parentConversationId: _threadId,
-      );
+      final response =
+          await ref.read(apiresponseProvider.notifier).generateWorkFlow(
+                context: context,
+                description: userMessage,
+                parentConversationId: _threadId,
+              );
 
       if (response.status && response.data != null) {
         final apiData = response.data!;
 
         if (_threadId == null && apiData['thread_starter_id'] != null) {
           setState(() {
-            _threadId          = apiData['thread_starter_id'];
+            _threadId = apiData['thread_starter_id'];
             _conversationTitle = apiData['title'] ?? _conversationTitle;
           });
         }
 
-        final responseType      = _parseResponseType(apiData);
-        final workflowPlan      = Map<String, dynamic>.from(apiData['workflow_plan'] ?? {});
+        final responseType = _parseResponseType(apiData);
+        final workflowPlan =
+            Map<String, dynamic>.from(apiData['workflow_plan'] ?? {});
         final suggestedCreators = apiData['suggested_creators'] ?? [];
-        final aiText            = (apiData['ai_response'] as String?) ??
+        final aiText = (apiData['ai_response'] as String?) ??
             _formatWorkflowText(workflowPlan);
 
         _replaceThinkingWithResponse(
-          aiText:           aiText,
-          workflowPlan:     workflowPlan,
+          aiText: aiText,
+          workflowPlan: workflowPlan,
           suggestedCreators: suggestedCreators,
-          responseType:     responseType,
+          responseType: responseType,
         );
 
         await ref.read(getConversationProvider.notifier).getConversations();
@@ -264,10 +278,10 @@ class _AiChatScreenState extends ConsumerState<AiChatScreen> {
     final user = ref.read(userProvider);
     setState(() {
       messages.add(ChatMessage(
-        fromUser:  true,
-        text:      text,
+        fromUser: true,
+        text: text,
         userImage: user.value?.user?.image,
-        userName:  user.value?.user?.firstName,
+        userName: user.value?.user?.firstName,
         timestamp: DateTime.now(),
       ));
       _isGeneratingResponse = false;
@@ -279,8 +293,8 @@ class _AiChatScreenState extends ConsumerState<AiChatScreen> {
   void _addThinkingMessage() {
     setState(() {
       messages.add(ChatMessage(
-        fromUser:  false,
-        text:      '',
+        fromUser: false,
+        text: '',
         isThinking: true,
         timestamp: DateTime.now(),
       ));
@@ -292,8 +306,8 @@ class _AiChatScreenState extends ConsumerState<AiChatScreen> {
   void _addErrorMessage(String text) {
     setState(() {
       messages.add(ChatMessage(
-        fromUser:  false,
-        text:      text,
+        fromUser: false,
+        text: text,
         timestamp: DateTime.now(),
         responseType: AiResponseType.error,
       ));
@@ -309,15 +323,15 @@ class _AiChatScreenState extends ConsumerState<AiChatScreen> {
     setState(() {
       messages.removeWhere((m) => m.isThinking == true);
       messages.add(ChatMessage(
-        fromUser:          false,
-        text:              '',
-        fullText:          aiText,
-        timestamp:         DateTime.now(),
-        options:           _buildOptions(responseType, workflowPlan, suggestedCreators),
-        metadata:          workflowPlan,
+        fromUser: false,
+        text: '',
+        fullText: aiText,
+        timestamp: DateTime.now(),
+        options: _buildOptions(responseType, workflowPlan, suggestedCreators),
+        metadata: workflowPlan,
         suggestedCreators: suggestedCreators,
-        responseType:      responseType,
-        shouldAnimate:     true,
+        responseType: responseType,
+        shouldAnimate: true,
       ));
       _isGeneratingResponse = false;
     });
@@ -328,9 +342,9 @@ class _AiChatScreenState extends ConsumerState<AiChatScreen> {
     setState(() {
       messages.removeWhere((m) => m.isThinking == true);
       messages.add(ChatMessage(
-        fromUser:    false,
-        text:        'Sorry, I ran into an issue: $errorMessage\n\nPlease try again.',
-        timestamp:   DateTime.now(),
+        fromUser: false,
+        text: 'Sorry, I ran into an issue: $errorMessage\n\nPlease try again.',
+        timestamp: DateTime.now(),
         responseType: AiResponseType.error,
       ));
       _isGeneratingResponse = false;
@@ -340,10 +354,10 @@ class _AiChatScreenState extends ConsumerState<AiChatScreen> {
   // ── Options builder ────────────────────────────────────────────────────────
 
   List<String> _buildOptions(
-      AiResponseType type,
-      Map<String, dynamic>? plan,
-      dynamic suggestedCreators,
-      ) {
+    AiResponseType type,
+    Map<String, dynamic>? plan,
+    dynamic suggestedCreators,
+  ) {
     // Off-topic: redirect shortcuts only
     if (type == AiResponseType.offTopic) {
       return [
@@ -356,7 +370,8 @@ class _AiChatScreenState extends ConsumerState<AiChatScreen> {
     }
 
     // Greeting / clarification: just a nudge
-    if (type == AiResponseType.greeting || type == AiResponseType.clarification) {
+    if (type == AiResponseType.greeting ||
+        type == AiResponseType.clarification) {
       return ['Start a project'];
     }
 
@@ -369,16 +384,18 @@ class _AiChatScreenState extends ConsumerState<AiChatScreen> {
       if (s.isNotEmpty) options.add('Browse ${s}s');
     }
 
-    final timeline  = plan?['timeline']?.toString()   ?? '';
-    final costRange = plan?['cost_range']?.toString()  ?? '';
+    final timeline = plan?['timeline']?.toString() ?? '';
+    final costRange = plan?['cost_range']?.toString() ?? '';
 
-    if (timeline.isNotEmpty   && !_isNonApplicable(timeline))   options.add('View timeline');
-    if (costRange.isNotEmpty  && !_isNonApplicable(costRange))  options.add('See cost range');
+    if (timeline.isNotEmpty && !_isNonApplicable(timeline))
+      options.add('View timeline');
+    if (costRange.isNotEmpty && !_isNonApplicable(costRange))
+      options.add('See cost range');
 
     bool hasCreators = false;
     if (suggestedCreators is Map) {
-      hasCreators = suggestedCreators.values
-          .any((v) => v is List && v.isNotEmpty);
+      hasCreators =
+          suggestedCreators.values.any((v) => v is List && v.isNotEmpty);
     } else if (suggestedCreators is List) {
       hasCreators = suggestedCreators.isNotEmpty;
     }
@@ -393,10 +410,10 @@ class _AiChatScreenState extends ConsumerState<AiChatScreen> {
     if (plan == null || plan.isEmpty) return '';
     final sb = StringBuffer();
 
-    final creators  = plan['required_creators'] as List? ?? [];
-    final timeline  = plan['timeline']?.toString()   ?? '';
-    final costRange = plan['cost_range']?.toString()  ?? '';
-    final steps     = plan['steps'] as List? ?? [];
+    final creators = plan['required_creators'] as List? ?? [];
+    final timeline = plan['timeline']?.toString() ?? '';
+    final costRange = plan['cost_range']?.toString() ?? '';
+    final steps = plan['steps'] as List? ?? [];
 
     if (creators.isNotEmpty) {
       sb.writeln('Required Creators:');
@@ -432,7 +449,11 @@ class _AiChatScreenState extends ConsumerState<AiChatScreen> {
 
   Map<String, dynamic> _convertMetadataToMap(Metadata? m) {
     if (m == null) return {};
-    return {'timeline': m.timeline, 'cost_range': m.costRange, 'steps': m.steps};
+    return {
+      'timeline': m.timeline,
+      'cost_range': m.costRange,
+      'steps': m.steps
+    };
   }
 
   String _stripJsonFences(String raw) {
@@ -477,14 +498,19 @@ class _AiChatScreenState extends ConsumerState<AiChatScreen> {
     }
 
     if (option.startsWith('Browse')) {
-      final creatorType = option.replaceAll('Browse ', '').replaceAll(RegExp(r's$'), '');
-      Navigator.push(context, MaterialPageRoute(
-        builder: (_) => CreatorsList(initialJobTitleFilter: creatorType),
-      ));
+      final creatorType =
+          option.replaceAll('Browse ', '').replaceAll(RegExp(r's$'), '');
+      Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (_) => CreatorsList(initialJobTitleFilter: creatorType),
+          ));
     } else if (option == 'View timeline') {
-      _showInfoDialog('Work Plan Timeline', message.metadata?['timeline']?.toString());
+      _showInfoDialog(
+          'Work Plan Timeline', message.metadata?['timeline']?.toString());
     } else if (option == 'See cost range') {
-      _showInfoDialog('Estimated Cost Range', message.metadata?['cost_range']?.toString());
+      _showInfoDialog(
+          'Estimated Cost Range', message.metadata?['cost_range']?.toString());
     } else if (option == 'Book creators now') {
       String? filter;
       final sc = message.suggestedCreators;
@@ -494,9 +520,11 @@ class _AiChatScreenState extends ConsumerState<AiChatScreen> {
           filter = (first.first as Map?)?['job_title']?.toString();
         }
       }
-      Navigator.push(context, MaterialPageRoute(
-        builder: (_) => CreatorsList(initialJobTitleFilter: filter),
-      ));
+      Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (_) => CreatorsList(initialJobTitleFilter: filter),
+          ));
     } else if (option == 'Start a project') {
       _controller.text = '';
       FocusScope.of(context).requestFocus(FocusNode());
@@ -560,17 +588,22 @@ class _AiChatScreenState extends ConsumerState<AiChatScreen> {
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
           Container(
-            width: 80, height: 80,
+            width: 80,
+            height: 80,
             decoration: BoxDecoration(
               color: _kPurple.withOpacity(0.15),
               shape: BoxShape.circle,
             ),
-            child: const Icon(Icons.smart_toy_rounded, color: _kPurple, size: 40),
+            child:
+                const Icon(Icons.smart_toy_rounded, color: _kPurple, size: 40),
           ),
           const SizedBox(height: 20),
           Text(
-            _threadId != null ? 'Continue your conversation' : 'What do you want to create?',
-            style: const TextStyle(color: Colors.white, fontSize: 22, fontWeight: FontWeight.w600),
+            _threadId != null
+                ? 'Continue your conversation'
+                : 'What do you want to create?',
+            style: const TextStyle(
+                color: Colors.white, fontSize: 22, fontWeight: FontWeight.w600),
           ),
           const SizedBox(height: 8),
           Padding(
@@ -580,7 +613,8 @@ class _AiChatScreenState extends ConsumerState<AiChatScreen> {
                   ? 'I\'m ready to continue helping you'
                   : 'Describe your event or project and I\'ll build your plan',
               textAlign: TextAlign.center,
-              style: TextStyle(color: Colors.white.withOpacity(0.5), fontSize: 14),
+              style:
+                  TextStyle(color: Colors.white.withOpacity(0.5), fontSize: 14),
             ),
           ),
         ],
@@ -597,7 +631,7 @@ class _AiChatScreenState extends ConsumerState<AiChatScreen> {
         final msg = messages[index];
         if (msg.isThinking == true) return _buildThinkingIndicator();
         return _OptimizedMessageBubble(
-          message:     msg,
+          message: msg,
           onOptionTap: _handleOptionTap,
         );
       },
@@ -702,11 +736,14 @@ class _AiChatScreenState extends ConsumerState<AiChatScreen> {
               duration: const Duration(milliseconds: 200),
               padding: const EdgeInsets.all(14),
               decoration: BoxDecoration(
-                color: _isGeneratingResponse ? _kPurple.withOpacity(0.4) : _kPurple,
+                color: _isGeneratingResponse
+                    ? _kPurple.withOpacity(0.4)
+                    : _kPurple,
                 shape: BoxShape.circle,
               ),
               child: _isGeneratingResponse
-                  ? LoadingAnimationWidget.threeArchedCircle(color: Colors.white, size: 20)
+                  ? LoadingAnimationWidget.threeArchedCircle(
+                      color: Colors.white, size: 20)
                   : const Icon(Icons.send, color: Colors.white, size: 20),
             ),
           ),
@@ -725,7 +762,8 @@ class _AiAvatar extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       margin: const EdgeInsets.only(right: 4, top: 5),
-      width: 35, height: 35,
+      width: 35,
+      height: 35,
       decoration: const BoxDecoration(color: _kPurple, shape: BoxShape.circle),
       child: const Icon(Icons.smart_toy_rounded, color: Colors.white, size: 18),
     );
@@ -740,7 +778,8 @@ class _OptimizedMessageBubble extends StatelessWidget {
   final ChatMessage message;
   final void Function(String, ChatMessage) onOptionTap;
 
-  const _OptimizedMessageBubble({required this.message, required this.onOptionTap});
+  const _OptimizedMessageBubble(
+      {required this.message, required this.onOptionTap});
 
   @override
   Widget build(BuildContext context) {
@@ -748,7 +787,8 @@ class _OptimizedMessageBubble extends StatelessWidget {
 
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
-      mainAxisAlignment: isUser ? MainAxisAlignment.end : MainAxisAlignment.start,
+      mainAxisAlignment:
+          isUser ? MainAxisAlignment.end : MainAxisAlignment.start,
       children: [
         if (!isUser) _AiAvatar(),
         if (isUser) _UserAvatar(message: message),
@@ -762,11 +802,11 @@ class _OptimizedMessageBubble extends StatelessWidget {
               padding: const EdgeInsets.all(14),
               margin: const EdgeInsets.symmetric(vertical: 8),
               decoration: BoxDecoration(
-                color:        message.responseType == AiResponseType.offTopic
+                color: message.responseType == AiResponseType.offTopic
                     ? const Color(0xFF1F1A2E)
                     : _kSurface,
                 borderRadius: BorderRadius.circular(4),
-                border:       Border.all(
+                border: Border.all(
                   color: message.responseType == AiResponseType.offTopic
                       ? _kPurple.withOpacity(0.4)
                       : _kBorder,
@@ -783,7 +823,8 @@ class _OptimizedMessageBubble extends StatelessWidget {
                   // Message text
                   _MessageText(message: message),
                   // Options
-                  if (message.options != null && message.options!.isNotEmpty) ...[
+                  if (message.options != null &&
+                      message.options!.isNotEmpty) ...[
                     const SizedBox(height: 12),
                     // Off-topic options have a different heading
                     if (message.responseType == AiResponseType.offTopic)
@@ -800,10 +841,11 @@ class _OptimizedMessageBubble extends StatelessWidget {
                         ),
                       ),
                     ...message.options!.map((opt) => _OptionChip(
-                      label: opt,
-                      onTap: () => onOptionTap(opt, message),
-                      isRedirect: message.responseType == AiResponseType.offTopic,
-                    )),
+                          label: opt,
+                          onTap: () => onOptionTap(opt, message),
+                          isRedirect:
+                              message.responseType == AiResponseType.offTopic,
+                        )),
                   ],
                 ],
               ),
@@ -866,10 +908,12 @@ class _MessageText extends StatelessWidget {
         message.shouldAnimate &&
         !message.animationComplete) {
       return TypingAnimatedText(
-        fullText:      message.fullText!,
-        style:         style,
+        fullText: message.fullText!,
+        style: style,
         shouldAnimate: true,
-        onComplete:    () { message.animationComplete = true; },
+        onComplete: () {
+          message.animationComplete = true;
+        },
       );
     }
     return Text(displayText, style: style);
@@ -881,11 +925,12 @@ class _MessageText extends StatelessWidget {
 // ─────────────────────────────────────────────────────────────────────────────
 
 class _OptionChip extends StatelessWidget {
-  final String   label;
+  final String label;
   final VoidCallback onTap;
-  final bool     isRedirect;
+  final bool isRedirect;
 
-  const _OptionChip({required this.label, required this.onTap, this.isRedirect = false});
+  const _OptionChip(
+      {required this.label, required this.onTap, this.isRedirect = false});
 
   @override
   Widget build(BuildContext context) {
@@ -895,9 +940,9 @@ class _OptionChip extends StatelessWidget {
         margin: const EdgeInsets.only(top: 6),
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
         decoration: BoxDecoration(
-          color:        isRedirect ? _kPurple.withOpacity(0.1) : _kPurpleDark,
+          color: isRedirect ? _kPurple.withOpacity(0.1) : _kPurpleDark,
           borderRadius: BorderRadius.circular(4),
-          border:       Border.all(
+          border: Border.all(
             color: isRedirect ? _kPurple.withOpacity(0.5) : Colors.white24,
           ),
         ),
@@ -907,8 +952,8 @@ class _OptionChip extends StatelessWidget {
               child: Text(
                 label,
                 style: TextStyle(
-                  color:      isRedirect ? _kPurpleLight : _kPurpleLight,
-                  fontSize:   13,
+                  color: isRedirect ? _kPurpleLight : _kPurpleLight,
+                  fontSize: 13,
                   fontWeight: isRedirect ? FontWeight.w500 : FontWeight.normal,
                 ),
               ),
@@ -916,7 +961,7 @@ class _OptionChip extends StatelessWidget {
             Icon(
               isRedirect ? Icons.auto_awesome : Icons.arrow_forward_ios,
               color: _kPurpleLight,
-              size:  13,
+              size: 13,
             ),
           ],
         ),
@@ -938,7 +983,8 @@ class _UserAvatar extends StatelessWidget {
     if (message.userImage != null && message.userImage!.isNotEmpty) {
       return Container(
         margin: const EdgeInsets.only(left: 8, top: 5),
-        width: 35, height: 35,
+        width: 35,
+        height: 35,
         decoration: BoxDecoration(
           shape: BoxShape.circle,
           image: DecorationImage(
@@ -964,11 +1010,15 @@ class _UserAvatar extends StatelessWidget {
 
     return Container(
       margin: const EdgeInsets.only(left: 8, top: 5),
-      width: 35, height: 35,
+      width: 35,
+      height: 35,
       decoration: BoxDecoration(color: color, shape: BoxShape.circle),
       child: Center(
         child: Text(initial,
-            style: const TextStyle(color: Colors.white, fontSize: 15, fontWeight: FontWeight.bold)),
+            style: const TextStyle(
+                color: Colors.white,
+                fontSize: 15,
+                fontWeight: FontWeight.bold)),
       ),
     );
   }
@@ -979,9 +1029,9 @@ class _UserAvatar extends StatelessWidget {
 // ─────────────────────────────────────────────────────────────────────────────
 
 class TypingAnimatedText extends StatefulWidget {
-  final String       fullText;
-  final TextStyle?   style;
-  final bool         shouldAnimate;
+  final String fullText;
+  final TextStyle? style;
+  final bool shouldAnimate;
   final VoidCallback? onComplete;
 
   const TypingAnimatedText({
@@ -997,10 +1047,10 @@ class TypingAnimatedText extends StatefulWidget {
 }
 
 class _TypingAnimatedTextState extends State<TypingAnimatedText> {
-  final ValueNotifier<String> _display    = ValueNotifier('');
-  final ValueNotifier<bool>   _isComplete = ValueNotifier(false);
+  final ValueNotifier<String> _display = ValueNotifier('');
+  final ValueNotifier<bool> _isComplete = ValueNotifier(false);
   Timer? _timer;
-  int    _currentIndex = 0;
+  int _currentIndex = 0;
 
   @override
   void initState() {
@@ -1008,7 +1058,7 @@ class _TypingAnimatedTextState extends State<TypingAnimatedText> {
     if (widget.shouldAnimate && widget.fullText.isNotEmpty) {
       _startAnimation();
     } else {
-      _display.value    = widget.fullText;
+      _display.value = widget.fullText;
       _isComplete.value = true;
     }
   }
@@ -1016,7 +1066,10 @@ class _TypingAnimatedTextState extends State<TypingAnimatedText> {
   void _startAnimation() {
     final chars = widget.fullText.characters.toList();
     _timer = Timer.periodic(const Duration(milliseconds: 18), (t) {
-      if (!mounted) { t.cancel(); return; }
+      if (!mounted) {
+        t.cancel();
+        return;
+      }
       if (_currentIndex >= chars.length) {
         t.cancel();
         _isComplete.value = true;
@@ -1049,7 +1102,10 @@ class _TypingAnimatedTextState extends State<TypingAnimatedText> {
             builder: (_, done, __) => done
                 ? const SizedBox.shrink()
                 : const Text('▋',
-                style: TextStyle(color: _kPurple, fontSize: 14, fontWeight: FontWeight.bold)),
+                    style: TextStyle(
+                        color: _kPurple,
+                        fontSize: 14,
+                        fontWeight: FontWeight.bold)),
           ),
         ],
       ),
@@ -1062,19 +1118,19 @@ class _TypingAnimatedTextState extends State<TypingAnimatedText> {
 // ─────────────────────────────────────────────────────────────────────────────
 
 class ChatMessage {
-  final bool              fromUser;
-  final String            text;
-  final String?           fullText;
-  final String?           userImage;
-  final String?           userName;
-  final DateTime          timestamp;
-  final bool?             isThinking;
-  final List<String>?     options;
+  final bool fromUser;
+  final String text;
+  final String? fullText;
+  final String? userImage;
+  final String? userName;
+  final DateTime timestamp;
+  final bool? isThinking;
+  final List<String>? options;
   final Map<String, dynamic>? metadata;
-  final dynamic           suggestedCreators;
-  final bool              shouldAnimate;
-  final AiResponseType    responseType;
-  bool                    animationComplete;
+  final dynamic suggestedCreators;
+  final bool shouldAnimate;
+  final AiResponseType responseType;
+  bool animationComplete;
 
   ChatMessage({
     required this.fromUser,
@@ -1087,30 +1143,39 @@ class ChatMessage {
     this.options,
     this.metadata,
     this.suggestedCreators,
-    this.shouldAnimate     = false,
-    this.responseType      = AiResponseType.unknown,
+    this.shouldAnimate = false,
+    this.responseType = AiResponseType.unknown,
     this.animationComplete = false,
   });
 
   ChatMessage copyWith({
-    bool? fromUser, String? text, String? fullText, String? userImage,
-    String? userName, DateTime? timestamp, bool? isThinking,
-    List<String>? options, Map<String, dynamic>? metadata,
-    dynamic suggestedCreators, bool? shouldAnimate,
-    AiResponseType? responseType, bool? animationComplete,
-  }) => ChatMessage(
-    fromUser:          fromUser          ?? this.fromUser,
-    text:              text              ?? this.text,
-    fullText:          fullText          ?? this.fullText,
-    userImage:         userImage         ?? this.userImage,
-    userName:          userName          ?? this.userName,
-    timestamp:         timestamp         ?? this.timestamp,
-    isThinking:        isThinking        ?? this.isThinking,
-    options:           options           ?? this.options,
-    metadata:          metadata          ?? this.metadata,
-    suggestedCreators: suggestedCreators ?? this.suggestedCreators,
-    shouldAnimate:     shouldAnimate     ?? this.shouldAnimate,
-    responseType:      responseType      ?? this.responseType,
-    animationComplete: animationComplete ?? this.animationComplete,
-  );
+    bool? fromUser,
+    String? text,
+    String? fullText,
+    String? userImage,
+    String? userName,
+    DateTime? timestamp,
+    bool? isThinking,
+    List<String>? options,
+    Map<String, dynamic>? metadata,
+    dynamic suggestedCreators,
+    bool? shouldAnimate,
+    AiResponseType? responseType,
+    bool? animationComplete,
+  }) =>
+      ChatMessage(
+        fromUser: fromUser ?? this.fromUser,
+        text: text ?? this.text,
+        fullText: fullText ?? this.fullText,
+        userImage: userImage ?? this.userImage,
+        userName: userName ?? this.userName,
+        timestamp: timestamp ?? this.timestamp,
+        isThinking: isThinking ?? this.isThinking,
+        options: options ?? this.options,
+        metadata: metadata ?? this.metadata,
+        suggestedCreators: suggestedCreators ?? this.suggestedCreators,
+        shouldAnimate: shouldAnimate ?? this.shouldAnimate,
+        responseType: responseType ?? this.responseType,
+        animationComplete: animationComplete ?? this.animationComplete,
+      );
 }

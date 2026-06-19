@@ -176,4 +176,25 @@ class GetMyOrdersAssetNotifier extends StateNotifier<AsyncValue<MarketOrdersPagi
     _minRate = null;
     _maxRate = null;
   }
+
+  void removeByUserId(String reportedUserId) async {
+    state = const AsyncValue.loading();
+    try {
+      // LoaderService.showLoader(context);
+      final response = await _dio.delete(
+        '/users/block/$reportedUserId',
+      );
+
+      if (response.statusCode == 200) {
+
+      } else {
+        throw Exception(response.data['message'] ?? 'Something went wrong');
+      }
+    } catch (error, stackTrace) {
+      state = AsyncValue.error(error, stackTrace);
+      rethrow;
+    } finally {
+      // LoaderService.hideLoader(context);
+    }
+  }
 } // Closing brace for the class

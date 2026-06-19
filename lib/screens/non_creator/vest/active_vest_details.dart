@@ -5,7 +5,7 @@ import 'package:soundhive2/model/get_active_vest_model.dart';
 import 'package:soundhive2/utils/alert_helper.dart';
 import 'package:soundhive2/utils/utils.dart';
 import '../../../components/rounded_button.dart';
-import '../../../lib/dashboard_provider/get_investment_statistics.dart';
+import 'package:soundhive2/lib/dashboard_provider/get_investment_statistics.dart';
 import '../../../model/active_investment_model.dart';
 import 'package:intl/intl.dart';
 
@@ -357,7 +357,6 @@ class _VestChart extends StatelessWidget {
   final double initialAmount;
 
   const _VestChart({
-    super.key,
     required this.investmentData,
     required this.initialAmount,
   });

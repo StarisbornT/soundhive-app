@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:soundhive2/model/asset_model.dart';
 
-import '../../../lib/dashboard_provider/getMarketPlaceProvider.dart';
+import 'package:soundhive2/lib/dashboard_provider/getMarketPlaceProvider.dart';
 import '../../../model/service_model.dart';
 import '../../../model/user_model.dart';
 import '../../../utils/utils.dart';
@@ -13,7 +13,7 @@ class AssetListScreen extends ConsumerStatefulWidget {
   final String category;
   final User user;
 
-  const AssetListScreen({
+  const AssetListScreen({super.key, 
     required this.category,
     required this.user,
   });
@@ -39,7 +39,7 @@ class _ServicesListScreenState extends ConsumerState<AssetListScreen> {
     return Scaffold(
       appBar: AppBar(
         backgroundColor: Colors.transparent,
-        title: Text(widget.category, style: TextStyle(color: Colors.white),),
+        title: Text(widget.category, style: const TextStyle(color: Colors.white),),
         elevation: 0,
         leading: IconButton(
           icon: const Icon(Icons.arrow_back_ios, color: Colors.white),
@@ -97,7 +97,7 @@ class ServiceItemWidget extends StatelessWidget {
   final Asset service;
   final User user;
 
-  const ServiceItemWidget({
+  const ServiceItemWidget({super.key, 
     required this.service,
     required this.user,
   });
@@ -175,7 +175,7 @@ class ServiceItemWidget extends StatelessWidget {
                         const SizedBox(width: 8),
                         Text(
                           "${service.seller!.firstName} ${service.seller!.lastName}",
-                          style: TextStyle(
+                          style: const TextStyle(
                             color: Colors.white,
                             fontSize: 10,
                           ),
