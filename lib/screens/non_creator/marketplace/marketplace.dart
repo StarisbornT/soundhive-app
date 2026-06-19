@@ -17,9 +17,9 @@ import 'package:soundhive2/lib/dashboard_provider/categoryProvider.dart';
 import 'package:soundhive2/lib/dashboard_provider/creatorProvider.dart';
 import 'package:soundhive2/lib/dashboard_provider/getActiveInvestmentProvider.dart';
 import 'package:soundhive2/lib/dashboard_provider/getMarketPlaceService.dart';
-import '../../../lib/dashboard_provider/eventMarketPlaceProvider.dart';
-import '../../../lib/dashboard_provider/getMyTicketProvider.dart';
-import '../../../lib/dashboard_provider/getUserOfferProvider.dart';
+import 'package:soundhive2/lib/dashboard_provider/eventMarketPlaceProvider.dart';
+import 'package:soundhive2/lib/dashboard_provider/getMyTicketProvider.dart';
+import 'package:soundhive2/lib/dashboard_provider/getUserOfferProvider.dart';
 import '../../../main.dart';
 import '../../../model/creator_model.dart';
 import '../../../model/market_orders_service_model.dart';
@@ -283,17 +283,20 @@ class _MarketplaceState extends ConsumerState<Marketplace>
       return dateString;
     }
   }
+  Future<void> _refreshMarketplace() async {
+    await ref.read(getMarketplaceServiceProvider.notifier).resetMarketplaceState();
+    await ref.read(creatorProvider.notifier).getCreators();
+  }
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
 
-    ref.listenManual<AsyncValue<void>>(getMarketplaceServiceProvider,
-            (_, state) {
-          if (!mounted) return;
-          state.whenOrNull(error: (error, _) => debugPrint('Error: $error'));
-        });
+    ref.listenManual<AsyncValue<void>>(getMarketplaceServiceProvider, (_, state) {
+      if (!mounted) return;
+      state.whenOrNull(error: (error, _) => debugPrint('Error: $error'));
+    });
 
     ref.listen<AsyncValue<void>>(creatorProvider, (_, state) {
       state.whenOrNull(
@@ -301,88 +304,273 @@ class _MarketplaceState extends ConsumerState<Marketplace>
       );
     });
 
+    final marketplaceState = ref.watch(getMarketplaceServiceProvider);
+    final creatorState = ref.watch(creatorProvider);
+    final services = ref.read(getMarketplaceServiceProvider.notifier).allServices;
+
     return PopScope(
       canPop: false,
       child: Scaffold(
         body: SafeArea(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // Fixed header section (banner + tabs)
-              Column(
-                children: [
-                  if (widget.user.user?.creator == null) ...[
-                    GestureDetector(
-                      onTap: () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (context) =>
-                                SetupScreen(user: widget.user),
+          child: RefreshIndicator(
+            onRefresh: _refreshMarketplace,
+            color: AppColors.BUTTONCOLOR,
+            child: CustomScrollView(
+              physics: const AlwaysScrollableScrollPhysics(),
+              slivers: [
+                // ── Banner + Tab buttons (fixed header as sliver) ──
+                SliverToBoxAdapter(
+                  child: Column(
+                    children: [
+                      if (widget.user.user?.creator == null ||
+                          !(widget.user.user?.creator!.active ?? false))
+                        GestureDetector(
+                          onTap: () => Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                  builder: (context) =>
+                                      SetupScreen(user: widget.user))),
+                          child: Image.asset('images/banner.png'),
+                        ),
+                      const SizedBox(height: 20),
+                      SingleChildScrollView(
+                        scrollDirection: Axis.horizontal,
+                        padding: const EdgeInsets.symmetric(horizontal: 10),
+                        child: Row(
+                          children: [
+                            _buildTabButton("Marketplace", selectedTabIndex == 0,
+                                onTap: () => _tabController.animateTo(0)),
+                            const SizedBox(width: 10),
+                            _buildTabButton("My Bookings", selectedTabIndex == 1,
+                                onTap: () => _tabController.animateTo(1)),
+                            const SizedBox(width: 10),
+                            _buildTabButton("My Events", selectedTabIndex == 2,
+                                onTap: () => _tabController.animateTo(2)),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(height: 10),
+                    ],
+                  ),
+                ),
+
+                // ── Tab content ──
+                if (selectedTabIndex == 0) ...[
+                  // Search bar
+                  SliverToBoxAdapter(
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 10.0, vertical: 8.0),
+                      child: Row(
+                        children: [
+                          Expanded(
+                            child: Container(
+                              decoration: BoxDecoration(
+                                color: theme.cardColor,
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              child: _selectedFilters.isEmpty
+                                  ? TextFormField(
+                                controller: _searchController,
+                                style: TextStyle(
+                                    color: theme.colorScheme.onSurface),
+                                onChanged: _onSearchChanged,
+                                decoration: InputDecoration(
+                                  border: OutlineInputBorder(
+                                    borderRadius: BorderRadius.circular(8),
+                                    borderSide: BorderSide(
+                                        color: theme.dividerColor
+                                            .withOpacity(0.5)),
+                                  ),
+                                  hintText: 'Search services...',
+                                  hintStyle: TextStyle(
+                                      color: theme.colorScheme.onSurface
+                                          .withOpacity(0.5)),
+                                  prefixIcon: Icon(Icons.search,
+                                      color: theme.colorScheme.onSurface
+                                          .withOpacity(0.5)),
+                                  contentPadding:
+                                  const EdgeInsets.symmetric(
+                                      vertical: 14.0),
+                                  suffixIcon:
+                                  _searchController.text.isNotEmpty
+                                      ? IconButton(
+                                    icon: Icon(Icons.clear,
+                                        color: theme
+                                            .colorScheme.onSurface
+                                            .withOpacity(0.5)),
+                                    onPressed: () {
+                                      _searchController.clear();
+                                      ref
+                                          .read(
+                                          getMarketplaceServiceProvider
+                                              .notifier)
+                                          .resetMarketplaceState();
+                                    },
+                                  )
+                                      : null,
+                                ),
+                              )
+                                  : _buildFilterChips(theme),
+                            ),
                           ),
-                        );
-                      },
-                      child: Image.asset('images/banner.png'),
-                    )
-                  ] else if (!(widget.user.user?.creator!.active ?? false)) ...[
-                    GestureDetector(
-                      onTap: () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (context) =>
-                                SetupScreen(user: widget.user),
-                          ),
-                        );
-                      },
-                      child: Image.asset('images/banner.png'),
-                    )
-                  ],
-                  const SizedBox(height: 20),
-                  SingleChildScrollView(
-                    scrollDirection: Axis.horizontal,
-                    padding: const EdgeInsets.symmetric(horizontal: 10),
-                    child: Row(
-                      children: [
-                        _buildTabButton("Marketplace", selectedTabIndex == 0,
-                            onTap: () => _tabController.animateTo(0)),
-                        const SizedBox(width: 10),
-                        _buildTabButton("My Bookings", selectedTabIndex == 1,
-                            onTap: () => _tabController.animateTo(1)),
-                        const SizedBox(width: 10),
-                        _buildTabButton("My Events", selectedTabIndex == 2,
-                            onTap: () => _tabController.animateTo(2)),
-                      ],
+                          if (_showFilters) _buildFilterButton(theme, isDark),
+                        ],
+                      ),
                     ),
                   ),
-                  const SizedBox(height: 10),
-                ],
-              ),
 
-              // Tab content with different scrolling behaviors
-              Expanded(  // <-- SINGLE Expanded widget at the top level
-                child: _buildTabContent(theme, isDark),
-              ),
-            ],
+                  // Marketplace content
+                  if (marketplaceState is AsyncLoading)
+                    SliverToBoxAdapter(
+                        child: _buildShimmerServicesGrid(isDark))
+                  else if (marketplaceState is AsyncError)
+                    SliverToBoxAdapter(
+                      child: Center(
+                        child: Text("Error: ${marketplaceState.error}",
+                            style:
+                            TextStyle(color: theme.colorScheme.error)),
+                      ),
+                    )
+                  else ...[
+                      if (services.isEmpty)
+                        SliverFillRemaining(
+                          child: Center(
+                            child: Text('No services found',
+                                style: TextStyle(
+                                    color: theme.colorScheme.onSurface)),
+                          ),
+                        )
+                      else ...[
+                        SliverToBoxAdapter(
+                          child: Padding(
+                            padding: const EdgeInsets.all(16.0),
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                Text('Services picked for you',
+                                    style: TextStyle(
+                                        color: theme.colorScheme.onSurface,
+                                        fontSize: 16,
+                                        fontWeight: FontWeight.w600)),
+                                OutlinedButton(
+                                  onPressed: () => Navigator.push(
+                                      context,
+                                      MaterialPageRoute(
+                                          builder: (context) =>
+                                          const Categories())),
+                                  style: OutlinedButton.styleFrom(
+                                    side: BorderSide(color: theme.dividerColor),
+                                    shape: RoundedRectangleBorder(
+                                        borderRadius:
+                                        BorderRadius.circular(100)),
+                                  ),
+                                  child: Text('Explore Hives',
+                                      style: TextStyle(
+                                          color: theme.colorScheme.onSurface
+                                              .withOpacity(0.6),
+                                          fontSize: 12)),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                        SliverToBoxAdapter(
+                            child:
+                            _buildServicesGrid(services, theme, isDark, ref)),
+                        SliverToBoxAdapter(
+                          child: Padding(
+                            padding: const EdgeInsets.all(8.0),
+                            child: GestureDetector(
+                              onTap: () => Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                      builder: (context) => const Streaming())),
+                              child: Image.asset('images/discover.png'),
+                            ),
+                          ),
+                        ),
+                        SliverToBoxAdapter(
+                          child: creatorState.when(
+                            loading: () =>
+                                _buildShimmerCreativesSection(theme, isDark),
+                            error: (e, _) => Center(
+                                child: Text("Error loading creators: $e",
+                                    style: TextStyle(
+                                        color: theme.colorScheme.error))),
+                            data: (creatorListResponse) {
+                              final creators =
+                              (creatorListResponse.user?.data ?? [])
+                                  .where((c) => c.user != null)
+                                  .toList();
+                              return CreativesSection(
+                                creators: creators,
+                                notifier: ref.read(creatorProvider.notifier),
+                              );
+                            },
+                          ),
+                        ),
+                        SliverToBoxAdapter(
+                          child: Padding(
+                            padding: const EdgeInsets.all(16.0),
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                Text('More services for you',
+                                    style: TextStyle(
+                                        color: theme.colorScheme.onSurface,
+                                        fontSize: 16,
+                                        fontWeight: FontWeight.w400)),
+                                OutlinedButton(
+                                  onPressed: () => Navigator.push(
+                                      context,
+                                      MaterialPageRoute(
+                                          builder: (context) =>
+                                          const Categories())),
+                                  style: OutlinedButton.styleFrom(
+                                    side: BorderSide(color: theme.dividerColor),
+                                    shape: RoundedRectangleBorder(
+                                        borderRadius:
+                                        BorderRadius.circular(100)),
+                                  ),
+                                  child: Text('Explore Hives',
+                                      style: TextStyle(
+                                          color: theme.colorScheme.onSurface
+                                              .withOpacity(0.6),
+                                          fontSize: 12)),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                        SliverToBoxAdapter(
+                            child:
+                            _buildMoreServicesList(services, theme, isDark)),
+                        const SliverToBoxAdapter(child: SizedBox(height: 20)),
+                      ],
+                    ],
+                ] else ...[
+                  // Bookings & Events tabs — non-refreshable, fixed height
+                  SliverFillRemaining(
+                    hasScrollBody: true,
+                    child: _buildTabContent(theme, isDark),
+                  ),
+                ],
+              ],
+            ),
           ),
         ),
         floatingActionButton: SizedBox(
           width: 70,
           height: 70,
           child: RawMaterialButton(
-            onPressed: () {
-              Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                      builder: (_) => const AiChatConversationScreen()));
-            },
+            onPressed: () => Navigator.push(context,
+                MaterialPageRoute(
+                    builder: (_) => const AiChatConversationScreen())),
             fillColor: AppColors.BUTTONCOLOR,
             shape: const CircleBorder(),
             elevation: 6,
-            child: Image.asset(
-              "images/ai_chat.png",
-              color: Colors.white,
-            ),
+            child: Image.asset("images/ai_chat.png", color: Colors.white),
           ),
         ),
       ),
@@ -1373,7 +1561,7 @@ class _MarketplaceState extends ConsumerState<Marketplace>
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
                         Text(
-                          'Services around you',
+                          'Services picked for you',
                           style: TextStyle(
                             color: theme.colorScheme.onSurface,
                             fontSize: 16,
@@ -1486,222 +1674,7 @@ class _MarketplaceState extends ConsumerState<Marketplace>
     );
   }
 
-  Widget buildMarketPlaceUI(ThemeData theme, bool isDark) {
-    final marketplaceState = ref.watch(getMarketplaceServiceProvider);
-    final creatorState = ref.watch(creatorProvider);
-    final servicesNotifier = ref.read(getMarketplaceServiceProvider.notifier);
-    final services = servicesNotifier.allServices;
 
-    return Column(
-      children: [
-        // Search Bar with debounce
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 10.0, vertical: 8.0),
-          child: Row(
-            children: [
-              Expanded(
-                child: Container(
-                  decoration: BoxDecoration(
-                    color: theme.cardColor,
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: _selectedFilters.isEmpty
-                      ? TextFormField(
-                          controller: _searchController,
-                          style: TextStyle(color: theme.colorScheme.onSurface),
-                          onChanged: _onSearchChanged,
-                          decoration: InputDecoration(
-                            border: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(8),
-                              borderSide: BorderSide(
-                                  color: theme.dividerColor.withOpacity(0.5)),
-                            ),
-                            hintText: 'Search',
-                            hintStyle: TextStyle(
-                                color: theme.colorScheme.onSurface
-                                    .withOpacity(0.5)),
-                            prefixIcon: Icon(Icons.search,
-                                color: theme.colorScheme.onSurface
-                                    .withOpacity(0.5)),
-                            contentPadding:
-                                const EdgeInsets.symmetric(vertical: 14.0),
-                            suffixIcon: _searchController.text.isNotEmpty
-                                ? IconButton(
-                                    icon: Icon(Icons.clear,
-                                        color: theme.colorScheme.onSurface
-                                            .withOpacity(0.5)),
-                                    onPressed: () {
-                                      _searchController.clear();
-                                      ref
-                                          .read(getMarketplaceServiceProvider
-                                              .notifier)
-                                          .resetMarketplaceState();
-                                    },
-                                  )
-                                : null,
-                          ),
-                        )
-                      : _buildFilterChips(theme),
-                ),
-              ),
-              if (_showFilters) _buildFilterButton(theme, isDark),
-            ],
-          ),
-        ),
-
-        // Services Around You Section
-        Padding(
-          padding: const EdgeInsets.all(16.0),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text(
-                'Services around you',
-                style: TextStyle(
-                  color: theme.colorScheme.onSurface,
-                  fontSize: 16,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-              OutlinedButton(
-                onPressed: () => Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => const Categories(),
-                  ),
-                ),
-                style: OutlinedButton.styleFrom(
-                  side: BorderSide(color: theme.dividerColor),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(100),
-                  ),
-                ),
-                child: Text(
-                  'Explore Hives',
-                  style: TextStyle(
-                      color: theme.colorScheme.onSurface.withOpacity(0.6),
-                      fontSize: 12),
-                ),
-              ),
-            ],
-          ),
-        ),
-
-        // Marketplace Services Grid
-        marketplaceState.when(
-          loading: () => _buildShimmerServicesGrid(isDark),
-          error: (e, _) => Center(
-              child: Text("Error: $e",
-                  style: TextStyle(color: theme.colorScheme.error))),
-          data: (_) {
-            final displayedServices = services;
-
-            if (displayedServices.isEmpty) {
-              return Center(
-                child: Text(
-                  _selectedFilters.isEmpty
-                      ? "No services found"
-                      : "No services match your filters",
-                  style: TextStyle(color: theme.colorScheme.onSurface),
-                ),
-              );
-            }
-
-            return _buildServicesGrid(displayedServices, theme, isDark, ref);
-          },
-        ),
-
-        // Banner
-        Padding(
-          padding: const EdgeInsets.all(8.0),
-          child: GestureDetector(
-            onTap: () => Navigator.push(
-              context,
-              MaterialPageRoute(builder: (context) => const Streaming()),
-            ),
-            child: Image.asset('images/discover.png'),
-          ),
-        ),
-
-        // Creatives Section
-        creatorState.when(
-          loading: () => _buildShimmerCreativesSection(theme, isDark),
-          error: (e, _) => Center(
-              child: Text("Error loading creators: $e",
-                  style: TextStyle(color: theme.colorScheme.error))),
-          data: (creatorListResponse) {
-            final creators = (creatorListResponse.user?.data ?? [])
-                .where((c) => c.user != null)
-                .toList();
-
-            final notifier = ref.read(creatorProvider.notifier);
-
-            return CreativesSection(
-              creators: creators,
-              notifier: notifier,
-            );
-          },
-        ),
-
-        // More Services Section
-        Padding(
-          padding: const EdgeInsets.all(16.0),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text(
-                'More services for you',
-                style: TextStyle(
-                  color: theme.colorScheme.onSurface,
-                  fontSize: 16,
-                  fontWeight: FontWeight.w400,
-                ),
-              ),
-              OutlinedButton(
-                onPressed: () => Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => const Categories(),
-                  ),
-                ),
-                style: OutlinedButton.styleFrom(
-                  side: BorderSide(color: theme.dividerColor),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(100),
-                  ),
-                ),
-                child: Text(
-                  'Explore Hives',
-                  style: TextStyle(
-                      color: theme.colorScheme.onSurface.withOpacity(0.6),
-                      fontSize: 12),
-                ),
-              ),
-            ],
-          ),
-        ),
-
-        // More Services List
-        marketplaceState.when(
-          loading: () => _buildShimmerMoreServicesList(isDark),
-          error: (e, _) => Center(
-              child: Text("Error: $e",
-                  style: TextStyle(color: theme.colorScheme.error))),
-          data: (_) {
-            if (services.isEmpty) {
-              return Center(
-                child: Text("No services found",
-                    style: TextStyle(color: theme.colorScheme.onSurface)),
-              );
-            }
-            return _buildMoreServicesList(services, theme, isDark);
-          },
-        ),
-
-        const SizedBox(height: 20),
-      ],
-    );
-  }
 
   Widget _buildShimmerServicesGrid(bool isDark) {
     return SizedBox(
@@ -2132,7 +2105,7 @@ class _MarketplaceState extends ConsumerState<Marketplace>
     final isLoadingMore = servicesNotifier.isLoadingMore;
 
     // API returns 4 items per page - use that
-    final itemsPerPage = 4;
+    const itemsPerPage = 4;
     final totalItems = services.length;
     final totalPages = (totalItems / itemsPerPage).ceil();
 
@@ -2508,7 +2481,7 @@ class _MarketplaceState extends ConsumerState<Marketplace>
                 const SizedBox(height: 4),
                 Text(
                   price,
-                  style: TextStyle(
+                  style: const TextStyle(
                     color: AppColors.BUTTONCOLOR,
                     fontSize: 12,
                     fontWeight: FontWeight.w500,

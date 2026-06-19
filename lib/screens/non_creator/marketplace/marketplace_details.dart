@@ -375,20 +375,8 @@ class _MarketplaceDetailsScreenState extends ConsumerState<MarketplaceDetails> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Center(
-          child: ClipRRect(
-            borderRadius: BorderRadius.circular(10),
-            child: widget.service.coverImage.isNotEmpty
-                ? Image.network(
-              widget.service.coverImage,
-              height: 200,
-              width: double.infinity,
-              fit: BoxFit.cover,
-              errorBuilder: (context, error, stackTrace) =>
-                  Utils.buildImagePlaceholder(),
-            )
-                : Utils.buildImagePlaceholder(),
-          ),
+        NetworkImageWithLoader(
+          imageUrl: widget.service.coverImage,
         ),
 
         const SizedBox(height: 16),
@@ -780,16 +768,16 @@ class _MarketplaceDetailsScreenState extends ConsumerState<MarketplaceDetails> {
                         borderRadius: BorderRadius.circular(6),
                         border: Border.all(color: const Color(0xFF4CAF50)),
                       ),
-                      child: Row(
+                      child: const Row(
                         children: [
                           Icon(Icons.info_outline,
-                              color: const Color(0xFF4CAF50), size: 16),
-                          const SizedBox(width: 8),
+                              color: Color(0xFF4CAF50), size: 16),
+                          SizedBox(width: 8),
                           Expanded(
                             child: Text(
                               'Booking at your accepted offer price',
                               style: TextStyle(
-                                color: const Color(0xFF4CAF50),
+                                color: Color(0xFF4CAF50),
                                 fontSize: 12,
                               ),
                             ),

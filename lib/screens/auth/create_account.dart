@@ -1,11 +1,14 @@
 import 'dart:convert';
+import 'dart:math';
 
+import 'package:crypto/crypto.dart';
 import 'package:dio/dio.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:google_sign_in/google_sign_in.dart';
+import 'package:sign_in_with_apple/sign_in_with_apple.dart';
 import 'package:soundhive2/screens/auth/otp_screen.dart';
 import 'package:soundhive2/screens/auth/terms_and_condition.dart';
 import '../../services/fcm_service.dart';
@@ -37,6 +40,7 @@ class _CreateAccountScreenState extends State<CreateAccount> {
     emailController.dispose();
     super.dispose();
   }
+
   late final GoogleSignIn _googleSignIn;
 
   @override
@@ -46,22 +50,21 @@ class _CreateAccountScreenState extends State<CreateAccount> {
     _googleSignIn = GoogleSignIn.instance;
 
     // Initialize with serverClientId
-    _googleSignIn.initialize(
+    _googleSignIn
+        .initialize(
       serverClientId: dotenv.env["CLIENT_SERVER_ID"],
-    ).then((_) {
+    )
+        .then((_) {
       // Listen to auth events
       _googleSignIn.authenticationEvents.listen(
         _handleGoogleAuthEvent,
         onError: _handleGoogleAuthError,
       );
-
     });
 
     passwordController.addListener(_validatePassword);
     loadData();
   }
-
-
 
   String? identity;
   String? creatorIdentity;
@@ -88,11 +91,8 @@ class _CreateAccountScreenState extends State<CreateAccount> {
         'creator_role': creatorIdentity?.toUpperCase() ?? ""
       };
       final options = Options(headers: {'Accept': 'application/json'});
-      final response = await widget.dio.post(
-          '/auth/register',
-          data: jsonEncode(payload),
-          options: options
-      );
+      final response = await widget.dio
+          .post('/auth/register', data: jsonEncode(payload), options: options);
       print(response);
       if (response.statusCode == 200) {
         setState(() {
@@ -101,8 +101,7 @@ class _CreateAccountScreenState extends State<CreateAccount> {
         await widget.storage.write(key: 'identity', value: identity);
         await widget.storage.write(key: 'email', value: emailController.text);
         Navigator.pushNamed(context, OtpScreen.id);
-      }
-      else {
+      } else {
         setState(() {
           isLoading = false;
         });
@@ -113,8 +112,7 @@ class _CreateAccountScreenState extends State<CreateAccount> {
           message: 'Account not Created',
         );
       }
-    }
-    catch(error) {
+    } catch (error) {
       setState(() {
         isLoading = false;
       });
@@ -151,8 +149,7 @@ class _CreateAccountScreenState extends State<CreateAccount> {
     try {
       setState(() => isLoading = true);
 
-      await _googleSignIn.authenticate(); // 👈 THIS starts the flow
-
+      await _googleSignIn.authenticate();
     } catch (e) {
       setState(() => isLoading = false);
       showCustomAlert(
@@ -163,24 +160,230 @@ class _CreateAccountScreenState extends State<CreateAccount> {
       );
     }
   }
+
+  String _generateNonce([int length = 32]) {
+    const charset =
+        '0123456789ABCDEFGHIJKLMNOPQRSTUVXYZabcdefghijklmnopqrstuvwxyz-._';
+    final random = Random.secure();
+    return List.generate(length, (_) => charset[random.nextInt(charset.length)])
+        .join();
+  }
+
+  String _sha256OfString(String input) {
+    final bytes = utf8.encode(input);
+    return sha256.convert(bytes).toString();
+  }
+
+  String? _emailFromAppleIdentityToken(String? identityToken) {
+    if (identityToken == null) return null;
+    try {
+      final parts = identityToken.split('.');
+      if (parts.length != 3) return null;
+      final payload = jsonDecode(
+        utf8.decode(base64Url.decode(base64Url.normalize(parts[1]))),
+      );
+      if (payload is Map && payload['email'] is String) {
+        return payload['email'] as String;
+      }
+    } catch (_) {}
+    return null;
+  }
+
+  String _appleEmailStorageKey(String userIdentifier) =>
+      'apple_email_$userIdentifier';
+
+  String? _appleDisplayName(AuthorizationCredentialAppleID credential) {
+    final parts = <String>[
+      if (credential.givenName != null) credential.givenName!,
+      if (credential.familyName != null) credential.familyName!,
+    ];
+    final name = parts.join(' ').trim();
+    return name.isEmpty ? null : name;
+  }
+
+  Future<String?> _resolveAppleEmail(
+    AuthorizationCredentialAppleID appleCredential,
+  ) async {
+    final tokenEmail =
+        _emailFromAppleIdentityToken(appleCredential.identityToken);
+    final credentialEmail = appleCredential.email ?? tokenEmail;
+
+    if (credentialEmail != null && credentialEmail.isNotEmpty) {
+      if (appleCredential.userIdentifier != null) {
+        await widget.storage.write(
+          key: _appleEmailStorageKey(appleCredential.userIdentifier!),
+          value: credentialEmail.toLowerCase(),
+        );
+      }
+      return credentialEmail.toLowerCase();
+    }
+
+    if (appleCredential.userIdentifier != null) {
+      final storedEmail = await widget.storage.read(
+        key: _appleEmailStorageKey(appleCredential.userIdentifier!),
+      );
+      if (storedEmail != null && storedEmail.isNotEmpty) {
+        return storedEmail.toLowerCase();
+      }
+    }
+
+    return null;
+  }
+
+  Future<User?> _firebaseUserFromAppleAuth(
+    AuthorizationCredentialAppleID appleCredential,
+    String rawNonce,
+  ) async {
+    final oauthCredential = OAuthProvider('apple.com').credential(
+      idToken: appleCredential.identityToken,
+      rawNonce: rawNonce,
+      accessToken: appleCredential.authorizationCode,
+    );
+
+    final userCredential =
+        await FirebaseAuth.instance.signInWithCredential(oauthCredential);
+    final user = userCredential.user;
+    if (user == null) return null;
+
+    try {
+      await user.reload();
+    } catch (_) {}
+
+    return FirebaseAuth.instance.currentUser ?? user;
+  }
+
+  Future<void> _signUpWithApple() async {
+    try {
+      final isAvailable = await SignInWithApple.isAvailable();
+      if (!isAvailable) {
+        showCustomAlert(
+          context: context,
+          isSuccess: false,
+          title: 'Error',
+          message: 'Sign in with Apple is not available on this device.',
+        );
+        return;
+      }
+
+      setState(() => isLoading = true);
+
+      final rawNonce = _generateNonce();
+      final nonce = _sha256OfString(rawNonce);
+
+      final appleCredential = await SignInWithApple.getAppleIDCredential(
+        scopes: [
+          AppleIDAuthorizationScopes.email,
+          AppleIDAuthorizationScopes.fullName,
+        ],
+        nonce: nonce,
+      );
+
+      if (appleCredential.identityToken == null) {
+        throw Exception('Apple Sign In did not return an identity token');
+      }
+
+      var email = await _resolveAppleEmail(appleCredential);
+      var name = _appleDisplayName(appleCredential);
+      var userId = appleCredential.userIdentifier;
+
+      if (email == null) {
+        final firebaseUser =
+            await _firebaseUserFromAppleAuth(appleCredential, rawNonce);
+        email = firebaseUser?.email?.toLowerCase();
+        userId ??= firebaseUser?.uid;
+        name ??= firebaseUser?.displayName;
+      }
+
+      if (email != null &&
+          appleCredential.userIdentifier != null &&
+          email.isNotEmpty) {
+        await widget.storage.write(
+          key: _appleEmailStorageKey(appleCredential.userIdentifier!),
+          value: email.toLowerCase(),
+        );
+      }
+
+      if (email == null || email.isEmpty) {
+        setState(() => isLoading = false);
+        _showAppleEmailUnavailableAlert();
+        return;
+      }
+
+      await _completeSocialRegistration(
+        email: email,
+        name: name,
+        userId: userId ?? email,
+      );
+    } on SignInWithAppleAuthorizationException catch (e) {
+      setState(() => isLoading = false);
+      if (e.code == AuthorizationErrorCode.canceled) {
+        return;
+      }
+      showCustomAlert(
+        context: context,
+        isSuccess: false,
+        title: 'Error',
+        message: 'Apple sign up failed. Please try again.',
+      );
+    } on FirebaseAuthException catch (e) {
+      setState(() => isLoading = false);
+      showCustomAlert(
+        context: context,
+        isSuccess: false,
+        title: 'Error',
+        message: _firebaseAuthErrorMessage(e),
+      );
+    } catch (e) {
+      setState(() => isLoading = false);
+      debugPrint('Apple sign up error: $e');
+      if (e is! DioException) {
+        showCustomAlert(
+          context: context,
+          isSuccess: false,
+          title: 'Error',
+          message: 'Apple sign up failed. Please try again.',
+        );
+      }
+    }
+  }
+
+  String _firebaseAuthErrorMessage(FirebaseAuthException e) {
+    switch (e.code) {
+      case 'operation-not-allowed':
+        return 'Apple Sign In is not enabled in Firebase. Please contact support.';
+      case 'invalid-credential':
+        return 'Apple sign up credential was rejected. Please try again.';
+      default:
+        return e.message ?? 'Apple sign up failed. Please try again.';
+    }
+  }
+
+  void _showAppleEmailUnavailableAlert() {
+    showCustomAlert(
+      context: context,
+      isSuccess: false,
+      title: 'Email required',
+      message:
+          'We could not retrieve an email from Apple. When prompted, choose Share My Email or Hide My Email — both work for sign-up. If you used Apple Sign In before, go to Settings → Apple Account → Sign in with Apple → Cre8Hive → Stop Using Apple ID, then try again.',
+    );
+  }
+
   Future<void> _handleGoogleAuthEvent(event) async {
     if (event is GoogleSignInAuthenticationEventSignIn) {
       final googleAuth = event.user;
 
-      // ✅ ID TOKEN (this is what Firebase needs)
       final idToken = googleAuth.authentication.idToken;
 
       if (idToken == null) {
         throw Exception('No ID token');
       }
 
-      // 🔥 Firebase credential (NO accessToken needed)
       final credential = GoogleAuthProvider.credential(
         idToken: idToken,
       );
 
       final userCredential =
-      await FirebaseAuth.instance.signInWithCredential(credential);
+          await FirebaseAuth.instance.signInWithCredential(credential);
 
       final user = userCredential.user;
       if (user == null) throw Exception('Firebase auth failed');
@@ -190,9 +393,10 @@ class _CreateAccountScreenState extends State<CreateAccount> {
 
     setState(() => isLoading = false);
   }
+
   void _handleGoogleAuthError(Object error) {
     setState(() => isLoading = false);
-    print("Google Error $error");
+    debugPrint('Google sign up error: $error');
     showCustomAlert(
       context: context,
       isSuccess: false,
@@ -201,20 +405,21 @@ class _CreateAccountScreenState extends State<CreateAccount> {
     );
   }
 
-
-
-  Future<void> _sendGoogleUserToBackend(User user) async {
+  Future<void> _completeSocialRegistration({
+    required String email,
+    String? name,
+    required String userId,
+    String? avatar,
+  }) async {
     try {
       final payload = {
-        "email": user.email?.toLowerCase(),
-        "name": user.displayName,
-        "google_id": user.uid,
-        "avatar": user.photoURL,
-        "role": identity == "creator" ? "CREATOR" : "USER",
-        "creator_role": creatorIdentity?.toUpperCase() ?? ""
+        'email': email.toLowerCase(),
+        'name': name,
+        'google_id': userId,
+        'avatar': avatar,
+        'role': identity == 'creator' ? 'CREATOR' : 'USER',
+        'creator_role': creatorIdentity?.toUpperCase() ?? '',
       };
-
-      print("Sending to backend: $payload");
 
       final response = await widget.dio.post(
         '/auth/register/google',
@@ -227,28 +432,29 @@ class _CreateAccountScreenState extends State<CreateAccount> {
       if (response.statusCode == 200) {
         final responseData = response.data;
         final fcmService = FcmTokenService(widget.dio);
-        await fcmService.registerFcmToken(user.email ?? "");
-        await widget.storage.write(key: 'auth_token', value: responseData['token']);
+        await fcmService.registerFcmToken(email);
+        await widget.storage
+            .write(key: 'auth_token', value: responseData['token']);
         Navigator.pushNamed(context, TermsAndCondition.id);
       }
     } on DioException catch (error) {
       setState(() => isLoading = false);
 
-      String errorMessage = "Google registration failed";
+      String errorMessage = 'Registration failed';
 
       if (error.response != null && error.response!.data != null) {
         final responseData = error.response!.data;
-        if (responseData.containsKey('message')) {
+        if (responseData is Map && responseData.containsKey('message')) {
           errorMessage = responseData['message'];
-        } else if (responseData.containsKey('errors')) {
-          Map<String, dynamic> errors = responseData['errors'];
-          List<String> messages = [];
+        } else if (responseData is Map && responseData.containsKey('errors')) {
+          final errors = responseData['errors'] as Map<String, dynamic>;
+          final messages = <String>[];
           errors.forEach((key, value) {
             if (value is List && value.isNotEmpty) {
-              messages.addAll(value.map((e) => "$key: $e"));
+              messages.addAll(value.map((e) => '$key: $e'));
             }
           });
-          errorMessage = messages.join("\n");
+          errorMessage = messages.join('\n');
         }
       }
 
@@ -269,6 +475,36 @@ class _CreateAccountScreenState extends State<CreateAccount> {
     }
   }
 
+  Future<void> _sendGoogleUserToBackend(User user) async {
+    try {
+      try {
+        await user.reload();
+      } catch (_) {}
+
+      final refreshedUser = FirebaseAuth.instance.currentUser ?? user;
+      if (refreshedUser.email == null || refreshedUser.email!.isEmpty) {
+        throw Exception('No email returned from Google Sign In');
+      }
+
+      await _completeSocialRegistration(
+        email: refreshedUser.email!.toLowerCase(),
+        name: refreshedUser.displayName,
+        userId: refreshedUser.uid,
+        avatar: refreshedUser.photoURL,
+      );
+    } catch (e) {
+      if (e is! DioException) {
+        setState(() => isLoading = false);
+        showCustomAlert(
+          context: context,
+          isSuccess: false,
+          title: 'Error',
+          message: 'Google registration failed. Please try again.',
+        );
+      }
+    }
+  }
+
   void _validatePassword() {
     final password = passwordController.text;
     final hasLowerCase = RegExp(r"[a-z]").hasMatch(password);
@@ -278,9 +514,14 @@ class _CreateAccountScreenState extends State<CreateAccount> {
     final hasMinLength = password.length >= 8;
 
     setState(() {
-      _isPasswordValid = hasLowerCase && hasUpperCase && hasNumber && hasSpecialChar && hasMinLength;
+      _isPasswordValid = hasLowerCase &&
+          hasUpperCase &&
+          hasNumber &&
+          hasSpecialChar &&
+          hasMinLength;
     });
   }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -306,16 +547,19 @@ class _CreateAccountScreenState extends State<CreateAccount> {
               ),
               const SizedBox(height: 32),
               // Email Field
-              _buildTextField('Email address', 'Enter your email address', false, emailController),
+              _buildTextField('Email address', 'Enter your email address',
+                  false, emailController),
               const SizedBox(height: 16),
               // Password Field
-              _buildTextField('Password', 'Enter your password', true, passwordController),
+              _buildTextField(
+                  'Password', 'Enter your password', true, passwordController),
               const SizedBox(height: 16),
               // Password strength indicators
               _buildPasswordIndicators(),
               const SizedBox(height: 32),
               // Continue Button
-              _buildButton(isLoading ? 'Loading' : 'Continue', AppColors.PRIMARYCOLOR),
+              _buildButton(
+                  isLoading ? 'Loading' : 'Continue', AppColors.PRIMARYCOLOR),
               const SizedBox(height: 24),
               // OR Divider
               const Row(
@@ -335,10 +579,12 @@ class _CreateAccountScreenState extends State<CreateAccount> {
                 'images/google.png',
                 onTap: _signUpWithGoogle,
               ),
-              // const SizedBox(height: 12),
-              // _buildSocialButton('Sign up with Facebook', 'images/facebook.png'),
-              // const SizedBox(height: 12),
-              // _buildSocialButton('Sign up with Apple ID', 'images/apple.png'),
+              const SizedBox(height: 12),
+              _buildSocialButton(
+                'Sign up with Apple',
+                'images/apple.png',
+                onTap: _signUpWithApple,
+              ),
             ],
           ),
         ),
@@ -346,7 +592,8 @@ class _CreateAccountScreenState extends State<CreateAccount> {
     );
   }
 
-  Widget _buildTextField(String label, String hint, bool isPassword, TextEditingController controller) {
+  Widget _buildTextField(String label, String hint, bool isPassword,
+      TextEditingController controller) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -363,16 +610,16 @@ class _CreateAccountScreenState extends State<CreateAccount> {
             border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
             suffixIcon: isPassword
                 ? IconButton(
-              icon: Icon(
-                _isObscured ? Icons.visibility_off : Icons.visibility,
-                color: Colors.white54,
-              ),
-              onPressed: () {
-                setState(() {
-                  _isObscured = !_isObscured; // Toggle state
-                });
-              },
-            )
+                    icon: Icon(
+                      _isObscured ? Icons.visibility_off : Icons.visibility,
+                      color: Colors.white54,
+                    ),
+                    onPressed: () {
+                      setState(() {
+                        _isObscured = !_isObscured; // Toggle state
+                      });
+                    },
+                  )
                 : null,
           ),
           style: const TextStyle(color: Colors.white),
@@ -391,14 +638,16 @@ class _CreateAccountScreenState extends State<CreateAccount> {
             _buildIndicator('Lower case', RegExp(r"[a-z]").hasMatch(password)),
             _buildIndicator('Upper case', RegExp(r"[A-Z]").hasMatch(password)),
             _buildIndicator('Number', RegExp(r"\d").hasMatch(password)),
-
           ],
         ),
-        const SizedBox(height: 10,),
+        const SizedBox(
+          height: 10,
+        ),
         Row(
           mainAxisAlignment: MainAxisAlignment.start,
           children: [
-            _buildIndicator('Special character', RegExp(r'[!@#$%^&*(),.?":{}|<>]').hasMatch(password)),
+            _buildIndicator('Special character',
+                RegExp(r'[!@#$%^&*(),.?":{}|<>]').hasMatch(password)),
             _buildIndicator('8 characters in length', password.length >= 8),
           ],
         )
@@ -409,9 +658,11 @@ class _CreateAccountScreenState extends State<CreateAccount> {
   Widget _buildIndicator(String label, bool isValid) {
     return Row(
       children: [
-        Icon(isValid ? Icons.check_circle : Icons.circle_outlined, color: isValid ? Colors.green : Colors.grey, size: 16),
+        Icon(isValid ? Icons.check_circle : Icons.circle_outlined,
+            color: isValid ? Colors.green : Colors.grey, size: 16),
         const SizedBox(width: 4),
-        Text(label, style: const TextStyle(color: Colors.white70, fontSize: 12)),
+        Text(label,
+            style: const TextStyle(color: Colors.white70, fontSize: 12)),
       ],
     );
   }
@@ -426,7 +677,7 @@ class _CreateAccountScreenState extends State<CreateAccount> {
           color: color,
           borderRadius: BorderRadius.circular(30),
         ),
-        child:  Center(
+        child: Center(
           child: Text(
             text,
             style: const TextStyle(
@@ -438,10 +689,10 @@ class _CreateAccountScreenState extends State<CreateAccount> {
   }
 
   Widget _buildSocialButton(
-      String text,
-      String asset, {
-        required VoidCallback onTap,
-      }) {
+    String text,
+    String asset, {
+    required VoidCallback onTap,
+  }) {
     return GestureDetector(
       onTap: isLoading ? null : onTap,
       child: Container(
@@ -469,5 +720,4 @@ class _CreateAccountScreenState extends State<CreateAccount> {
       ),
     );
   }
-
 }

@@ -3,8 +3,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
 import '../../model/ai_conversation_thread_model.dart';
-import '../../model/category_model.dart';
-import '../../model/creator_model.dart';
 import '../provider.dart';
 final getConversationProvider = StateNotifierProvider<GetConversationsNotifier, AsyncValue<ConversationThreadResponse>>((ref) {
   final dio = ref.watch(dioProvider);

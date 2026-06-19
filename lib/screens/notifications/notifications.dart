@@ -8,8 +8,8 @@ import 'package:soundhive2/screens/creator/creator_dashboard.dart';
 import 'package:soundhive2/screens/creator/services/services.dart';
 import 'package:soundhive2/screens/non_creator/marketplace/marketplace_details.dart';
 import 'package:soundhive2/screens/non_creator/non_creator.dart';
-import '../../lib/dashboard_provider/user_provider.dart';
-import '../../lib/navigator_provider.dart';
+import 'package:soundhive2/lib/dashboard_provider/user_provider.dart';
+import 'package:soundhive2/lib/navigator_provider.dart';
 import '../../model/active_investment_model.dart';
 import '../../model/market_orders_service_model.dart';
 import '../../model/notification_model.dart';
@@ -299,10 +299,9 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
     // Handle navigation based on notification type
     switch (notification.type) {
       case 'fund_wallet':
+      case 'wallet':
         Navigator.pushNamed(context, NonCreatorDashboard.id);
-        ref
-            .read(bottomNavigationProvider.notifier)
-            .state = 1;
+        ref.read(bottomNavigationProvider.notifier).state = 1;
         break;
       case 'book':
         final data = ActiveInvestment.fromMap(notification.data['booking']);

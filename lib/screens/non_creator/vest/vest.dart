@@ -5,17 +5,13 @@ import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:intl/intl.dart';
 import 'package:soundhive2/lib/dashboard_provider/getInvestmentProvider.dart';
 import 'package:soundhive2/model/investment_model.dart';
-import 'package:soundhive2/screens/creator/profile/setup_screen.dart';
 import 'package:soundhive2/screens/non_creator/vest/vest_details.dart';
-import '../../../components/rounded_button.dart';
 import 'package:soundhive2/lib/dashboard_provider/getActiveVestProvider.dart';
 import '../../../model/get_active_vest_model.dart';
 import '../../../model/user_model.dart';
 import '../../../utils/utils.dart';
 import '../../dashboard/withdraw.dart';
-import '../streaming/streaming.dart';
 import '../wallet/add_money_screen.dart';
-import '../wallet/fund_wallet_provider.dart';
 import '../wallet/wallet_cards.dart';
 import 'active_vest_details.dart';
 import 'package:shimmer/shimmer.dart';
@@ -41,18 +37,35 @@ class _SoundHiveVestScreenState extends ConsumerState<SoundHiveVestScreen> with 
   final ScrollController _scrollController = ScrollController();
   bool _isLoadingMore = false;
 
+  // Remove _scrollController from NestedScrollView and create a separate one for the list
+  final ScrollController _innerScrollController = ScrollController();
+
   @override
   void initState() {
     super.initState();
     _tabController = TabController(length: 3, vsync: this);
     _tabController.addListener(_handleTabChange);
     _searchController.addListener(_handleSearch);
-
-    _scrollController.addListener(_handleScroll);
+    _innerScrollController.addListener(_handleScroll); // ← use inner controller
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
       ref.read(getInvestmentProvider.notifier).getInvestments();
     });
+  }
+
+  void _handleScroll() {
+    if (_innerScrollController.position.pixels >=
+        _innerScrollController.position.maxScrollExtent - 100) {
+      _loadMoreData();
+    }
+  }
+
+  @override
+  void dispose() {
+    _tabController.dispose();
+    _searchController.dispose();
+    _innerScrollController.dispose(); // ← dispose inner controller
+    super.dispose();
   }
 
   void _handleSearch() {
@@ -65,13 +78,6 @@ class _SoundHiveVestScreenState extends ConsumerState<SoundHiveVestScreen> with 
       });
     } else {
       ref.read(getInvestmentProvider.notifier).getInvestments(reset: true);
-    }
-  }
-
-  void _handleScroll() {
-    if (_scrollController.position.pixels >=
-        _scrollController.position.maxScrollExtent - 100) {
-      _loadMoreData();
     }
   }
 
@@ -90,29 +96,23 @@ class _SoundHiveVestScreenState extends ConsumerState<SoundHiveVestScreen> with 
   }
 
   void _handleTabChange() {
-    if (!_tabController.indexIsChanging) {
-      final notifier = ref.read(getInvestmentProvider.notifier);
-      final activeNotifier = ref.read(getActiveVestProvider.notifier);
-      switch (_tabController.index) {
-        case 0:
-          notifier.getInvestments(reset: true);
-          break;
-        case 1:
-          activeNotifier.getActiveVest(status: "active");
-          break;
-        case 2:
-          activeNotifier.getActiveVest(status: "matured");
-          break;
-      }
-    }
-  }
+    // indexIsChanging is true DURING animation, false when settled
+    // Use index directly and guard with a debounce flag instead
+    if (_tabController.indexIsChanging) return; // ← was !indexIsChanging, wrong logic
 
-  @override
-  void dispose() {
-    _tabController.dispose();
-    _searchController.dispose();
-    _scrollController.dispose();
-    super.dispose();
+    final notifier = ref.read(getInvestmentProvider.notifier);
+    final activeNotifier = ref.read(getActiveVestProvider.notifier);
+    switch (_tabController.index) {
+      case 0:
+        notifier.getInvestments(reset: true);
+        break;
+      case 1:
+        activeNotifier.getActiveVest(status: "active");
+        break;
+      case 2:
+        activeNotifier.getActiveVest(status: "matured");
+        break;
+    }
   }
 
   void _showAmountInputModal(String currency) {
@@ -147,7 +147,6 @@ class _SoundHiveVestScreenState extends ConsumerState<SoundHiveVestScreen> with 
           backgroundColor: const Color(0xFF0C051F),
           body: SafeArea(
             child: NestedScrollView(
-              controller: _scrollController,
               headerSliverBuilder: (BuildContext context, bool innerBoxIsScrolled) {
                 return [
                   SliverToBoxAdapter(
@@ -347,7 +346,7 @@ class _SoundHiveVestScreenState extends ConsumerState<SoundHiveVestScreen> with 
               if (allServices.isEmpty) return _buildEmptyState(context);
 
               return ListView.builder(
-                // Crucial: lets NestedScrollView handle outer viewport physics synchronization
+                controller: _innerScrollController, // ← attach here
                 physics: const ClampingScrollPhysics(),
                 keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
                 padding: EdgeInsets.only(

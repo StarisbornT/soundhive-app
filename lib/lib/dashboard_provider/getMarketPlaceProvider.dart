@@ -3,7 +3,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
 import '../../model/asset_market_response.dart';
-import '../../model/asset_model.dart';
 import '../provider.dart';
 final getMarketPlaceProvider = StateNotifierProvider<GetMarketPlaceNotifier, AsyncValue<AssetMarketResponse>>((ref) {
   final dio = ref.watch(dioProvider);
