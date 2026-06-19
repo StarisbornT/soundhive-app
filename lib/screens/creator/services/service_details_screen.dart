@@ -155,20 +155,8 @@ class _ServiceScreenState extends ConsumerState<ServiceDetailsScreen>
         body: Column(
           children: [
             // Top Image
-            GestureDetector(
-              onTap: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (_) => FullScreenImage(imageUrl: widget.services.coverImage),
-                  ),
-                );
-              },
-              child: NetworkImageWithLoader(
-                imageUrl: widget.services.coverImage,
-                width: double.infinity,
-                height: 200,
-              ),
+            NetworkImageWithLoader(
+              imageUrl: widget.services.coverImage,
             ),
             const SizedBox(height: 16),
 
@@ -531,34 +519,4 @@ class _ServiceScreenState extends ConsumerState<ServiceDetailsScreen>
   }
 }
 
-class FullScreenImage extends StatelessWidget {
-  final String imageUrl;
 
-  const FullScreenImage({super.key, required this.imageUrl});
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: Colors.black,
-      appBar: AppBar(
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-        leading: IconButton(
-          icon: const Icon(Icons.close, color: Colors.white),
-          onPressed: () => Navigator.pop(context),
-        ),
-      ),
-      body: Center(
-        child: InteractiveViewer(
-          minScale: 0.5,
-          maxScale: 4.0,
-          child: Image.network(
-            imageUrl,
-            fit: BoxFit.contain,
-            width: double.infinity,
-          ),
-        ),
-      ),
-    );
-  }
-}

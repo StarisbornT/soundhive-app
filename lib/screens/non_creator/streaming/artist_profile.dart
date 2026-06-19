@@ -242,7 +242,7 @@ class _ArtistProfileScreenState extends ConsumerState<ArtistProfile> {
                         _StatsItem(
                             title: '${stats.totalSongs}', subtitle: 'songs'),
                         _StatsItem(
-                            title: '${stats.totalFollowers}',
+                            title: stats.totalFollowers,
                             subtitle: 'followers'),
                       ],
                     ),

@@ -43,17 +43,13 @@ class _ElectricityScreenState extends ConsumerState<ElectricityScreen> {
   String formatVariationName(String? raw) {
     if (raw == null || raw.isEmpty) return "";
 
-    return raw
-        .replaceAll('-', ' ')
-        .split(' ')
-        .map((word) {
+    return raw.replaceAll('-', ' ').split(' ').map((word) {
       if (word.toLowerCase().contains('mb') ||
           word.toLowerCase().contains('gb')) {
         return word.toUpperCase();
       }
       return word[0].toUpperCase() + word.substring(1);
-    })
-        .join(' ');
+    }).join(' ');
   }
 
   final List<int> quickAmounts = [100, 200, 500, 1000, 2000, 5000];
@@ -86,20 +82,24 @@ class _ElectricityScreenState extends ConsumerState<ElectricityScreen> {
         "variation_code": selectedNetwork
       };
 
-      final response = await ref.read(apiresponseProvider.notifier).buyElectricity(
-        context: context,
-        payload: payload,
-      );
+      final response =
+          await ref.read(apiresponseProvider.notifier).buyElectricity(
+                context: context,
+                payload: payload,
+              );
 
       if (response.status) {
         await ref.read(userProvider.notifier).loadUserProfile();
-        ref.read(getTransactionHistoryPlaceProvider.notifier).getTransactionHistory();
+        ref
+            .read(getTransactionHistoryPlaceProvider.notifier)
+            .getTransactionHistory();
         Navigator.pushReplacement(
           context,
           MaterialPageRoute(
             builder: (context) => Success(
               title: 'Transaction Successful',
-              subtitle: "You have successfully bought electricity token worth ₦${amountController.text}",
+              subtitle:
+                  "You have successfully bought electricity token worth ₦${amountController.text}",
               token: response.data['token'] ?? "", // Pass the token here
               onButtonPressed: () {
                 Navigator.pop(context);
@@ -142,6 +142,7 @@ class _ElectricityScreenState extends ConsumerState<ElectricityScreen> {
       message: errorMessage,
     );
   }
+
   String customerName = "";
   String arrears = "";
   void _triggerVerifyMerchant() {
@@ -151,27 +152,29 @@ class _ElectricityScreenState extends ConsumerState<ElectricityScreen> {
       verifyMerchant();
     }
   }
+
   void verifyMerchant() async {
     try {
-      final response = await ref.read(verifyMerchantProvider.notifier).verifyMerchant(
-          serviceId: selectedVariation ?? "",
-          billersCode: meterController.text,
-          type: selectedNetwork?.toLowerCase()
-      );
-      if(response.success) {
+      final response = await ref
+          .read(verifyMerchantProvider.notifier)
+          .verifyMerchant(
+              serviceId: selectedVariation ?? "",
+              billersCode: meterController.text,
+              type: selectedNetwork?.toLowerCase());
+      if (response.success) {
         setState(() {
           customerName = response.data.customerName;
           arrears = response.data.customerArrears;
         });
       }
-
     } catch (error) {
       String errorMessage = 'An unexpected error occurred';
 
       if (error is DioException) {
         if (error.response?.data != null) {
           try {
-            final apiResponse = VerifyMerchantResponse.fromJson(error.response?.data);
+            final apiResponse =
+                VerifyMerchantResponse.fromJson(error.response?.data);
             errorMessage = apiResponse.message;
           } catch (e) {
             errorMessage = 'Failed to parse error message';
@@ -191,7 +194,6 @@ class _ElectricityScreenState extends ConsumerState<ElectricityScreen> {
       );
     }
   }
-
 
   @override
   Widget build(BuildContext context) {
@@ -213,10 +215,7 @@ class _ElectricityScreenState extends ConsumerState<ElectricityScreen> {
                 builder: (context, constraints) {
                   return SingleChildScrollView(
                       padding: EdgeInsets.only(
-                        bottom: MediaQuery
-                            .of(context)
-                            .viewInsets
-                            .bottom + 20,
+                        bottom: MediaQuery.of(context).viewInsets.bottom + 20,
                       ),
                       child: ConstrainedBox(
                           constraints: BoxConstraints(
@@ -228,10 +227,8 @@ class _ElectricityScreenState extends ConsumerState<ElectricityScreen> {
                               children: [
                                 _header(context),
                                 const SizedBox(height: 32),
-
                                 _label("Service Provider"),
                                 _dropdownPackageField(),
-
                                 const SizedBox(height: 24),
                                 _label("Meter Number"),
                                 _inputField(
@@ -243,37 +240,37 @@ class _ElectricityScreenState extends ConsumerState<ElectricityScreen> {
                                   children: [
                                     Text(
                                       customerName,
-                                      style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                                          fontWeight: FontWeight.w600,
-                                          fontSize: 13,
-                                          color: Colors.green
-                                      ),
+                                      style: Theme.of(context)
+                                          .textTheme
+                                          .bodyLarge
+                                          ?.copyWith(
+                                              fontWeight: FontWeight.w600,
+                                              fontSize: 13,
+                                              color: Colors.green),
                                     ),
-
                                     Text(
                                       arrears,
-                                      style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                                          fontWeight: FontWeight.w600,
-                                          fontSize: 13,
-                                          color: Colors.green
-                                      ),
+                                      style: Theme.of(context)
+                                          .textTheme
+                                          .bodyLarge
+                                          ?.copyWith(
+                                              fontWeight: FontWeight.w600,
+                                              fontSize: 13,
+                                              color: Colors.green),
                                     ),
                                   ],
                                 ),
                                 const SizedBox(height: 24),
                                 _label("Package"),
                                 _dropdownField(),
-
                                 const SizedBox(height: 24),
-
                                 Row(
-                                  mainAxisAlignment: MainAxisAlignment
-                                      .spaceBetween,
+                                  mainAxisAlignment:
+                                      MainAxisAlignment.spaceBetween,
                                   children: [
                                     _label("Amount"),
                                     Text(
-                                      "Balance: ${ref.formatUserCurrency(
-                                          widget.user.wallet?.balance)}",
+                                      "Balance: ${ref.formatUserCurrency(widget.user.wallet?.balance)}",
                                       style: const TextStyle(
                                         color: Colors.white54,
                                         fontSize: 12,
@@ -282,11 +279,10 @@ class _ElectricityScreenState extends ConsumerState<ElectricityScreen> {
                                   ],
                                 ),
                                 const SizedBox(height: 8),
-
                                 _inputField(
-                                    controller: amountController,
-                                    hint: "Enter amount",
-                                    keyboardType: TextInputType.number,
+                                  controller: amountController,
+                                  hint: "Enter amount",
+                                  keyboardType: TextInputType.number,
                                 ),
                                 const Spacer(),
                                 RoundedButton(
@@ -295,12 +291,13 @@ class _ElectricityScreenState extends ConsumerState<ElectricityScreen> {
                                       if (meterController.text.isEmpty ||
                                           selectedNetwork!.isEmpty ||
                                           amountController.text.isEmpty) {
-                                        return showCustomAlert(context: context,
+                                        return showCustomAlert(
+                                            context: context,
                                             isSuccess: false,
                                             title: "Error",
-                                            message: "Please complete all fields");
+                                            message:
+                                                "Please complete all fields");
                                       }
-
 
                                       Navigator.push(
                                         context,
@@ -311,17 +308,23 @@ class _ElectricityScreenState extends ConsumerState<ElectricityScreen> {
                                                   amount: amountController.text,
                                                   items: [
                                                     ConfirmationItem(
-                                                        label: "Service Provider:",
-                                                        value: formatVariationName(selectedVariation ?? "")),
+                                                        label:
+                                                            "Service Provider:",
+                                                        value: formatVariationName(
+                                                            selectedVariation ??
+                                                                "")),
                                                     ConfirmationItem(
                                                         label: "Meter number:",
                                                         value: meterController
                                                             .text),
                                                     ConfirmationItem(
                                                         label: "Package",
-                                                        value: selectedNetwork ?? ""),
+                                                        value:
+                                                            selectedNetwork ??
+                                                                ""),
                                                     ConfirmationItem(
-                                                        label: "Transaction fee:",
+                                                        label:
+                                                            "Transaction fee:",
                                                         value: "₦0.00"),
                                                     ConfirmationItem(
                                                         label: "Description:",
@@ -340,22 +343,16 @@ class _ElectricityScreenState extends ConsumerState<ElectricityScreen> {
                                                   onBiometricTap: () {
                                                     // trigger fingerprint auth
                                                   },
-                                                )
-                                        ),
+                                                )),
                                       );
-                                    }
-                                ),
+                                    }),
                                 const SizedBox(height: 16),
                               ],
                             ),
-                          )
-                      )
-                  );
+                          )));
                 },
               ),
-            )
-        )
-    );
+            )));
   }
 
   // ---------------- WIDGETS ----------------
@@ -448,10 +445,10 @@ class _ElectricityScreenState extends ConsumerState<ElectricityScreen> {
           items: ["Prepaid", "Postpaid"]
               .map(
                 (e) => DropdownMenuItem(
-              value: e,
-              child: Text(e),
-            ),
-          )
+                  value: e,
+                  child: Text(e),
+                ),
+              )
               .toList(),
           onChanged: (value) {
             setState(() => selectedNetwork = value);
@@ -461,6 +458,7 @@ class _ElectricityScreenState extends ConsumerState<ElectricityScreen> {
       ),
     );
   }
+
   Widget _dropdownPackageField() {
     final identifiers = ref.watch(identifierProvider);
 
@@ -515,12 +513,10 @@ class _ElectricityScreenState extends ConsumerState<ElectricityScreen> {
                   _triggerVerifyMerchant();
                 });
               },
-
             ),
           );
         },
       ),
     );
   }
-
 }

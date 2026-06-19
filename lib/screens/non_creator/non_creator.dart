@@ -78,7 +78,7 @@ class NonCreatorDashboard extends ConsumerWidget {
               children: [
                 Icon(
                   Icons.notifications_sharp,
-                  color: colors.onBackground,
+                  color: colors.onSurface,
                 ),
                 if (unreadCount > 0)
                   Positioned(
@@ -260,7 +260,7 @@ class NonCreatorDashboard extends ConsumerWidget {
                       _drawerItem(
                         context,
                         icon: 'images/wallet.png',
-                        text: 'Cre8pay - Wallet',
+                        text: 'Cre8Pay - Wallet',
                         onTap: () {
                           Navigator.pop(context);
                           ref

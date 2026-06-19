@@ -16,7 +16,7 @@ final withdrawStateProvider = StateProvider<bool>((ref) => false);
 class MarketPlaceServiceDetailsScreen extends ConsumerStatefulWidget {
   final dynamic services;
   final User user;
-  const MarketPlaceServiceDetailsScreen({Key? key, required this.services, required this.user}) : super(key: key);
+  const MarketPlaceServiceDetailsScreen({super.key, required this.services, required this.user});
 
   @override
   _MarketPlaceDetailsScreenState createState() => _MarketPlaceDetailsScreenState();
@@ -26,7 +26,7 @@ class _MarketPlaceDetailsScreenState extends ConsumerState<MarketPlaceServiceDet
   final _formKey = GlobalKey<FormState>();
   final TextEditingController _amountController = TextEditingController();
   int _currentStep = 0;
-  int _selectedPaymentOption = 0;
+  final int _selectedPaymentOption = 0;
   double? _investmentAmount;
 
   @override
@@ -117,9 +117,9 @@ class _MarketPlaceDetailsScreenState extends ConsumerState<MarketPlaceServiceDet
             ),
             const SizedBox(width: 10),
             const Icon(Icons.star, color: Colors.yellow, size: 18),
-            Text(
+            const Text(
               '4.5 rating',
-              style: const TextStyle(color: Colors.grey, fontSize: 12),
+              style: TextStyle(color: Colors.grey, fontSize: 12),
             ),
 
 
@@ -134,7 +134,7 @@ class _MarketPlaceDetailsScreenState extends ConsumerState<MarketPlaceServiceDet
         const SizedBox(height: 16),
          Text(
           "About ${widget.services.seller!.firstName}",
-          style: TextStyle(
+          style: const TextStyle(
             color: Colors.white, fontSize: 16, fontWeight: FontWeight.w400,
           ),
         ),
@@ -197,7 +197,7 @@ class _MarketPlaceDetailsScreenState extends ConsumerState<MarketPlaceServiceDet
             controller: _amountController,
             keyboardType: TextInputType.number,
             style: const TextStyle(color: Colors.white),
-            decoration: InputDecoration(
+            decoration: const InputDecoration(
               hintText: 'Enter amount',
               hintStyle: TextStyle(color: Colors.white54),
               border: OutlineInputBorder(),
@@ -210,7 +210,7 @@ class _MarketPlaceDetailsScreenState extends ConsumerState<MarketPlaceServiceDet
               return null;
             },
           ),
-          SizedBox(height: 50,),
+          const SizedBox(height: 50,),
           RoundedButton(
             title: 'Continue',
             color: const Color(0xFF4D3490),
@@ -234,7 +234,7 @@ class _MarketPlaceDetailsScreenState extends ConsumerState<MarketPlaceServiceDet
     showModalBottomSheet(
       context: context,
       backgroundColor: Colors.black,
-      shape: RoundedRectangleBorder(
+      shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
       ),
       builder: (BuildContext context) {
@@ -246,18 +246,18 @@ class _MarketPlaceDetailsScreenState extends ConsumerState<MarketPlaceServiceDet
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   // Title
-                  Text(
+                  const Text(
                     'How do you want to pay?',
                     style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.white),
                   ),
-                  SizedBox(height: 8),
+                  const SizedBox(height: 8),
                   // Instructional text
-                  Text(
+                  const Text(
                     'Select from the options how you want to pay.',
                     textAlign: TextAlign.center,
                     style: TextStyle(fontSize: 14, color: Colors.grey),
                   ),
-                  SizedBox(height: 16),
+                  const SizedBox(height: 16),
 
                   // Payment Options
                   Column(
@@ -266,11 +266,11 @@ class _MarketPlaceDetailsScreenState extends ConsumerState<MarketPlaceServiceDet
                       GestureDetector(
                         onTap: () => setState(() => selectedOption = 0),
                         child: Container(
-                          padding: EdgeInsets.all(12),
+                          padding: const EdgeInsets.all(12),
                           decoration: BoxDecoration(
                             borderRadius: BorderRadius.circular(8),
                             border: Border.all(
-                              color: selectedOption == 0 ? Color(0xFF4D3490) : Colors.grey,
+                              color: selectedOption == 0 ? const Color(0xFF4D3490) : Colors.grey,
                             ),
                             color: Colors.black,
                           ),
@@ -280,12 +280,12 @@ class _MarketPlaceDetailsScreenState extends ConsumerState<MarketPlaceServiceDet
                               Expanded(
                                 child: Row(
                                   children: [
-                                    Icon(Icons.account_balance_wallet, color: Colors.white),
-                                    SizedBox(width: 8),
+                                    const Icon(Icons.account_balance_wallet, color: Colors.white),
+                                    const SizedBox(width: 8),
                                     Expanded(
                                       child: Text(
                                         'Soundhive Vest - ${Utils.formatCurrency('0')}',
-                                        style: TextStyle(color: Colors.white),
+                                        style: const TextStyle(color: Colors.white),
                                         overflow: TextOverflow.ellipsis,
                                       ),
                                     ),
@@ -296,31 +296,31 @@ class _MarketPlaceDetailsScreenState extends ConsumerState<MarketPlaceServiceDet
                                 value: 0,
                                 groupValue: selectedOption,
                                 onChanged: (int? value) => setState(() => selectedOption = value!),
-                                activeColor: Color(0xFF4D3490),
+                                activeColor: const Color(0xFF4D3490),
                               ),
                             ],
                           ),
 
                         ),
                       ),
-                      SizedBox(height: 12),
+                      const SizedBox(height: 12),
 
                       // Option 2: Paystack Checkout
                       GestureDetector(
                         onTap: () => setState(() => selectedOption = 1),
                         child: Container(
-                          padding: EdgeInsets.all(12),
+                          padding: const EdgeInsets.all(12),
                           decoration: BoxDecoration(
                             borderRadius: BorderRadius.circular(8),
                             border: Border.all(
-                              color: selectedOption == 1 ? Color(0xFF4D3490) : Colors.grey,
+                              color: selectedOption == 1 ? const Color(0xFF4D3490) : Colors.grey,
                             ),
                             color: Colors.black,
                           ),
                           child: Row(
                             mainAxisAlignment: MainAxisAlignment.spaceBetween,
                             children: [
-                              Expanded(
+                              const Expanded(
                                 child: Row(
                                   children: [
                                     Icon(Icons.payment, color: Colors.white),
@@ -339,7 +339,7 @@ class _MarketPlaceDetailsScreenState extends ConsumerState<MarketPlaceServiceDet
                                 value: 1,
                                 groupValue: selectedOption,
                                 onChanged: (int? value) => setState(() => selectedOption = value!),
-                                activeColor: Color(0xFF4D3490),
+                                activeColor: const Color(0xFF4D3490),
                               ),
                             ],
                           ),
@@ -349,7 +349,7 @@ class _MarketPlaceDetailsScreenState extends ConsumerState<MarketPlaceServiceDet
                     ],
                   ),
 
-                  SizedBox(height: 24),
+                  const SizedBox(height: 24),
 
                   // Proceed Button
                   RoundedButton(
@@ -381,7 +381,7 @@ class _MarketPlaceDetailsScreenState extends ConsumerState<MarketPlaceServiceDet
         const SizedBox(height: 20),
         Container(
           width: double.infinity,
-          padding: EdgeInsets.all(16),
+          padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
             color: Colors.black54,
             borderRadius: BorderRadius.circular(10),

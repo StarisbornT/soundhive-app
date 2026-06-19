@@ -372,76 +372,184 @@ class _WalletScreenState extends ConsumerState<WalletScreen> {
     final serviceState = ref.watch(getTransactionHistoryPlaceProvider);
     final user = widget.user;
 
-    return RefreshIndicator(
-      onRefresh: () async {
-        await ref.read(userProvider.notifier).loadUserProfile();
-        await ref.read(getTransactionHistoryPlaceProvider.notifier).getTransactionHistory();
-      },
-      child: Scaffold(
-        body: SafeArea(  // ← ADD SafeArea to avoid status bar overflow
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16),
-            child: Column(           // ← This Column must be the direct flex parent
-              crossAxisAlignment: CrossAxisAlignment.start,
+    return Scaffold(
+      body: SafeArea(
+        child: RefreshIndicator(
+          onRefresh: _onRefresh,
+          color: AppColors.BUTTONCOLOR,
+          child: _buildScrollableBody(user, serviceState, theme, isDark),
+        ),
+      ),
+    );
+  }
+
+  Future<void> _onRefresh() async {
+    await ref.read(userProvider.notifier).loadUserProfile();
+    await ref
+        .read(getTransactionHistoryPlaceProvider.notifier)
+        .getTransactionHistory();
+  }
+
+  Widget _buildScrollableBody(
+      User user,
+      AsyncValue<TransactionHistoryResponse> serviceState,
+      ThemeData theme,
+      bool isDark) {
+
+    // Build the transaction items list first
+    final List<Widget> transactionItems = serviceState.when(
+      data: (serviceResponse) {
+        final allServices = serviceResponse.data.data;
+        if (allServices.isEmpty) {
+          return [
+            const SizedBox(
+              height: 150,
+              child: Center(child: Text('No Transaction History')),
+            )
+          ];
+        }
+        return [
+          Container(
+            margin: const EdgeInsets.symmetric(horizontal: 16),
+            decoration: BoxDecoration(
+              color: isDark ? const Color(0xFF1A191E) : Colors.grey[100],
+              borderRadius: BorderRadius.circular(20),
+            ),
+            child: Column(
               children: [
-                Text(
-                  'Cre8Pay',
-                  style: TextStyle(
-                    fontSize: 24,
-                    fontWeight: FontWeight.w400,
-                    color: theme.colorScheme.onSurface,
-                  ),
-                ),
-                const SizedBox(height: 20),
-                _buildHeader("Wallet", theme),
-                _buildWalletBalanceCards(user, theme, isDark),
-                Center(
-                  child: Text(
-                    'Powered by Bank78',
-                    style: TextStyle(
-                      fontSize: 10,
-                      fontWeight: FontWeight.w400,
-                      color: theme.colorScheme.onSurface,
-                      fontStyle: FontStyle.italic
+                ...allServices.map((tx) => TransactionCard(
+                  transaction: tx,
+                  theme: theme,
+                  isDark: isDark,
+                )),
+                if (_isLoadingMore)
+                  Padding(
+                    padding: const EdgeInsets.all(16.0),
+                    child: Center(
+                      child: CircularProgressIndicator(
+                          color: theme.colorScheme.primary),
                     ),
                   ),
-                ),
-                const SizedBox(height: 16),
-                _buildHeader("Quick Actions", theme),
-                const SizedBox(height: 12),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    _quickActionItem(icon: Icons.call, label: "Airtime",
-                        onTap: () => Navigator.push(context, MaterialPageRoute(
-                            builder: (context) => AirtimeScreen(user: widget.user))),
-                        theme: theme, isDark: isDark),
-                    _quickActionItem(icon: Icons.swap_vert, label: "Data",
-                        onTap: () => Navigator.push(context, MaterialPageRoute(
-                            builder: (context) => DataScreen(user: widget.user))),
-                        theme: theme, isDark: isDark),
-                    _quickActionItem(icon: Icons.lightbulb_outline, label: "Electricity",
-                        onTap: () => Navigator.push(context, MaterialPageRoute(
-                            builder: (context) => ElectricityScreen(user: widget.user))),
-                        theme: theme, isDark: isDark),
-                    _quickActionItem(icon: Icons.tv, label: "Cable TV",
-                        onTap: () => Navigator.push(context, MaterialPageRoute(
-                            builder: (context) => CableTvScreen(user: widget.user))),
-                        theme: theme, isDark: isDark),
-                  ],
-                ),
-                const SizedBox(height: 16),
-                _buildHeader("Recent Transactions", theme),
+              ],
+            ),
+          ),
+        ];
+      },
+      loading: () => [
+        SizedBox(
+          height: 150,
+          child: Center(
+              child:
+              CircularProgressIndicator(color: theme.colorScheme.primary)),
+        )
+      ],
+      error: (error, _) => [
+        SizedBox(
+          height: 150,
+          child: Center(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Text('Error loading transactions',
+                    style: TextStyle(color: theme.colorScheme.error)),
                 const SizedBox(height: 10),
-                // ↓ This Expanded must be a direct child of the Column above
-                Expanded(
-                  child: _buildTransactionsList(serviceState, theme, isDark),
+                ElevatedButton(
+                  onPressed: () => ref
+                      .read(getTransactionHistoryPlaceProvider.notifier)
+                      .refresh(),
+                  child: const Text('Retry'),
                 ),
               ],
             ),
           ),
+        )
+      ],
+    );
+
+    return ListView(
+      controller: _scrollController,
+      physics: const AlwaysScrollableScrollPhysics(),
+      padding: const EdgeInsets.symmetric(horizontal: 16),
+      children: [
+        // ── Header ──
+        Text(
+          'Cre8Pay',
+          style: TextStyle(
+            fontSize: 24,
+            fontWeight: FontWeight.w400,
+            color: theme.colorScheme.onSurface,
+          ),
         ),
-      ),
+        const SizedBox(height: 20),
+        _buildHeader("Wallet", theme),
+        _buildWalletBalanceCards(user, theme, isDark),
+        Center(
+          child: Text(
+            'Powered by Bank78',
+            style: TextStyle(
+              fontSize: 10,
+              fontWeight: FontWeight.w400,
+              color: theme.colorScheme.onSurface,
+              fontStyle: FontStyle.italic,
+            ),
+          ),
+        ),
+        const SizedBox(height: 16),
+        _buildHeader("Quick Actions", theme),
+        const SizedBox(height: 12),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            _quickActionItem(
+                icon: Icons.call,
+                label: "Airtime",
+                onTap: () => Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                        builder: (context) =>
+                            AirtimeScreen(user: widget.user))),
+                theme: theme,
+                isDark: isDark),
+            _quickActionItem(
+                icon: Icons.swap_vert,
+                label: "Data",
+                onTap: () => Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                        builder: (context) => DataScreen(user: widget.user))),
+                theme: theme,
+                isDark: isDark),
+            _quickActionItem(
+                icon: Icons.lightbulb_outline,
+                label: "Electricity",
+                onTap: () => Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                        builder: (context) =>
+                            ElectricityScreen(user: widget.user))),
+                theme: theme,
+                isDark: isDark),
+            _quickActionItem(
+                icon: Icons.tv,
+                label: "Cable TV",
+                onTap: () => Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                        builder: (context) =>
+                            CableTvScreen(user: widget.user))),
+                theme: theme,
+                isDark: isDark),
+          ],
+        ),
+        const SizedBox(height: 16),
+        _buildHeader("Recent Transactions", theme),
+        const SizedBox(height: 10),
+
+        // ── Transactions ──
+        ...transactionItems,
+
+        const SizedBox(height: 20),
+      ],
     );
   }
 
@@ -780,66 +888,4 @@ class _WalletScreenState extends ConsumerState<WalletScreen> {
     );
   }
 
-// Replace _buildTransactionsList — remove all the Expanded wrappers inside
-
-  Widget _buildTransactionsList(
-      AsyncValue<TransactionHistoryResponse> serviceState,
-      ThemeData theme,
-      bool isDark) {
-    return serviceState.when(
-      data: (serviceResponse) {
-        final allServices = serviceResponse.data.data;
-
-        if (allServices.isEmpty) {
-          return const Center(child: Text('No Transaction History'));
-        }
-
-        return Container(
-          decoration: BoxDecoration(
-            color: isDark ? const Color(0xFF1A191E) : Colors.grey[100],
-            borderRadius: BorderRadius.circular(20),
-          ),
-          child: ListView.builder(
-            controller: _scrollController,
-            padding: const EdgeInsets.all(8),
-            itemCount: allServices.length + (_isLoadingMore ? 1 : 0),
-            itemBuilder: (context, index) {
-              if (index >= allServices.length) {
-                return Padding(
-                  padding: const EdgeInsets.all(16.0),
-                  child: Center(
-                    child: CircularProgressIndicator(
-                        color: theme.colorScheme.primary),
-                  ),
-                );
-              }
-              return TransactionCard(
-                transaction: allServices[index],
-                theme: theme,
-                isDark: isDark,
-              );
-            },
-          ),
-        );
-      },
-      loading: () =>
-          Center(child: CircularProgressIndicator(color: theme.colorScheme.primary)),
-      error: (error, _) => Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Text('Error loading transactions',
-                style: TextStyle(color: theme.colorScheme.error)),
-            const SizedBox(height: 10),
-            ElevatedButton(
-              onPressed: () => ref
-                  .read(getTransactionHistoryPlaceProvider.notifier)
-                  .refresh(),
-              child: const Text('Retry'),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
 }

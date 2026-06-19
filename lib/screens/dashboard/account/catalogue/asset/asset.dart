@@ -8,7 +8,7 @@ import 'add_assets.dart';
 
 class AssetCatalogueScreen extends ConsumerStatefulWidget {
   final List<Asset> assets;
-  const AssetCatalogueScreen({Key? key, required this.assets}) : super(key: key);
+  const AssetCatalogueScreen({super.key, required this.assets});
   @override
   _AssetCatalogoueScreenState createState() => _AssetCatalogoueScreenState();
 }
@@ -158,12 +158,12 @@ class _AssetCatalogoueScreenState extends ConsumerState<AssetCatalogueScreen> wi
         // Header
         Container(
           alignment: Alignment.topLeft,
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 16),
+          child: const Padding(
+            padding: EdgeInsets.symmetric(horizontal: 16.0, vertical: 16),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text(
+                Text(
                   'Asset Catalogue',
                   style: TextStyle(
                     color: Colors.white,
@@ -226,15 +226,15 @@ class _AssetCatalogoueScreenState extends ConsumerState<AssetCatalogueScreen> wi
             ),);
           },
           child: Container(
-            padding: EdgeInsets.all(12),
+            padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
-              color: Color(0xFF1A102F),
+              color: const Color(0xFF1A102F),
               borderRadius: BorderRadius.circular(12),
             ),
             child: Row(
               children: [
                 // Image section with proper error handling
-                Container(
+                SizedBox(
                   width: 100, // Fixed width for image container
                   height: 100,
                   child: (item.imageUrl?.isNotEmpty ?? false)
@@ -245,14 +245,14 @@ class _AssetCatalogoueScreenState extends ConsumerState<AssetCatalogueScreen> wi
                   )
                       : Utils.buildImagePlaceholder(),
                 ),
-                SizedBox(width: 10),
+                const SizedBox(width: 10),
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
                         item.assetName,
-                        style: TextStyle(
+                        style: const TextStyle(
                             color: Colors.white,
                             fontSize: 16,
                             fontWeight: FontWeight.bold
@@ -260,15 +260,15 @@ class _AssetCatalogoueScreenState extends ConsumerState<AssetCatalogueScreen> wi
                         maxLines: 2,
                         overflow: TextOverflow.ellipsis,
                       ),
-                      SizedBox(height: 5),
+                      const SizedBox(height: 5),
                       Text(
-                        '${Utils.formatCurrency(item.price)}',
-                        style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.w500),
+                        Utils.formatCurrency(item.price),
+                        style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.w500),
                       ),
-                      SizedBox(height: 5),
+                      const SizedBox(height: 5),
                       Text(
-                        '${item.status == "UNDER_REVIEW" ? 'Submitted ${DateFormat('dd/MM/yyyy').format(DateTime.parse(item.createdAt))}' : ''}',
-                        style: TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.w500),
+                        item.status == "UNDER_REVIEW" ? 'Submitted ${DateFormat('dd/MM/yyyy').format(DateTime.parse(item.createdAt))}' : '',
+                        style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.w500),
                       ),
 
                     ],
