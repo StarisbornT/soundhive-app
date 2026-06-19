@@ -80,6 +80,11 @@ class _LoginScreenState extends State<Login> {
         await widget.storage
             .write(key: 'auth_token', value: responseData['token']);
 
+        final firebaseToken = responseData['firebase_token'];
+        if (firebaseToken != null) {
+          await FirebaseAuth.instance.signInWithCustomToken(firebaseToken);
+        }
+
         print("FULL RESPONSE: ${response.data}");
 
         if (responseData['user']['first_name'] != null) {
@@ -440,6 +445,12 @@ class _LoginScreenState extends State<Login> {
         final responseData = response.data;
         await widget.storage
             .write(key: 'auth_token', value: responseData['token']);
+
+        // ADD THIS: sign into Firebase with custom token
+        final firebaseToken = responseData['firebase_token'];
+        if (firebaseToken != null) {
+          await FirebaseAuth.instance.signInWithCustomToken(firebaseToken);
+        }
 
         if (responseData['user']['first_name'] != null) {
           Navigator.pushNamed(context, DashboardScreen.id);

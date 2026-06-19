@@ -283,7 +283,8 @@ class _CreateAccountScreenState extends State<CreateAccount> {
       }
 
       var email = await _resolveAppleEmail(appleCredential);
-      var name = _appleDisplayName(appleCredential);
+      await _storeAppleName(appleCredential);  // persist before anything can go wrong
+      var name = await _resolveAppleName(appleCredential);
       var userId = appleCredential.userIdentifier;
 
       if (email == null) {
@@ -292,6 +293,12 @@ class _CreateAccountScreenState extends State<CreateAccount> {
         email = firebaseUser?.email?.toLowerCase();
         userId ??= firebaseUser?.uid;
         name ??= firebaseUser?.displayName;
+        if (name != null && appleCredential.userIdentifier != null) {
+          await widget.storage.write(
+            key: _appleNameStorageKey(appleCredential.userIdentifier!),
+            value: name,
+          );
+        }
       }
 
       if (email != null &&
@@ -405,6 +412,35 @@ class _CreateAccountScreenState extends State<CreateAccount> {
     );
   }
 
+  String _appleNameStorageKey(String userIdentifier) =>
+      'apple_name_$userIdentifier';
+
+  Future<void> _storeAppleName(
+      AuthorizationCredentialAppleID appleCredential,
+      ) async {
+    final name = _appleDisplayName(appleCredential);
+    if (name != null && appleCredential.userIdentifier != null) {
+      await widget.storage.write(
+        key: _appleNameStorageKey(appleCredential.userIdentifier!),
+        value: name,
+      );
+    }
+  }
+
+  Future<String?> _resolveAppleName(
+      AuthorizationCredentialAppleID appleCredential,
+      ) async {
+    final name = _appleDisplayName(appleCredential);
+    if (name != null) return name;
+
+    if (appleCredential.userIdentifier != null) {
+      return widget.storage.read(
+        key: _appleNameStorageKey(appleCredential.userIdentifier!),
+      );
+    }
+    return null;
+  }
+
   Future<void> _completeSocialRegistration({
     required String email,
     String? name,
@@ -435,6 +471,9 @@ class _CreateAccountScreenState extends State<CreateAccount> {
         await fcmService.registerFcmToken(email);
         await widget.storage
             .write(key: 'auth_token', value: responseData['token']);
+        if (name != null) {
+          await widget.storage.write(key: 'social_name', value: name);
+        }
         Navigator.pushNamed(context, TermsAndCondition.id);
       }
     } on DioException catch (error) {

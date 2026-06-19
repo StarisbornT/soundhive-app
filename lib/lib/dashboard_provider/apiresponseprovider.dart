@@ -102,6 +102,30 @@ class ApiResponseProvider extends StateNotifier<AsyncValue<void>> {
       LoaderService.hideLoader(context);
     }
   }
+  Future<ApiResponseModel> removeByUserId({
+    required BuildContext context,
+    required String reportedUserId
+  }) async {
+    state = const AsyncValue.loading();
+    try {
+      // LoaderService.showLoader(context);
+      final response = await _dio.post(
+        '/service/payment',
+      );
+
+      if (response.statusCode == 200) {
+        state = const AsyncValue.data(null);
+        return ApiResponseModel.fromJson(response.data);
+      } else {
+        throw Exception(response.data['message'] ?? 'Something went wrong');
+      }
+    } catch (error, stackTrace) {
+      state = AsyncValue.error(error, stackTrace);
+      rethrow;
+    } finally {
+      // LoaderService.hideLoader(context);
+    }
+  }
   Future<ApiResponseModel> buyTicket({
     required BuildContext context,
     required Map<dynamic, dynamic> payload

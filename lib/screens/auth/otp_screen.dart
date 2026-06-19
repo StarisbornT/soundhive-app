@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:convert';
 import 'package:dio/dio.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:pin_code_fields/pin_code_fields.dart';
@@ -222,6 +223,10 @@ class _OtpScreenState extends ConsumerState<OtpScreen> with WidgetsBindingObserv
         await fcmService.registerFcmToken(email!);
 
         await widget.storage.write(key: 'auth_token', value: responseData['token']);
+        final firebaseToken = responseData['firebase_token'];
+        if (firebaseToken != null) {
+          await FirebaseAuth.instance.signInWithCustomToken(firebaseToken);
+        }
         Navigator.pushNamed(context, TermsAndCondition.id);
       }
       else {

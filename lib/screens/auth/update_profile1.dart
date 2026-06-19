@@ -39,10 +39,22 @@ class _UpdateProfileState extends State<UpdateProfile1> {
 
   Future<void> loadData() async {
     String? storedIdentity = await widget.storage.read(key: 'role');
+    String? socialName = await widget.storage.read(key: 'social_name');
 
     setState(() {
       identity = storedIdentity;
     });
+
+    // Pre-fill name fields if we have them from a social sign-in
+    if (socialName != null && socialName.isNotEmpty) {
+      final parts = socialName.trim().split(RegExp(r'\s+'));
+      firstNameController.text = parts.first;
+      if (parts.length > 1) {
+        lastNameController.text = parts.skip(1).join(' ');
+      }
+      // Clean up so re-opening the screen doesn't re-apply stale data
+      await widget.storage.delete(key: 'social_name');
+    }
   }
 
   List<Map<String, String>> countries = [];
