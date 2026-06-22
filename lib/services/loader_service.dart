@@ -23,12 +23,19 @@ class LoaderService {
     });
   }
 
-  static void hideLoader(BuildContext context) {
+  static void hideLoader([BuildContext? context]) {
     if (!_isLoaderVisible) return;
 
-    if (Navigator.of(context, rootNavigator: true).canPop()) {
-      Navigator.of(context, rootNavigator: true).pop();
-      _isLoaderVisible = false;
+    final navigator = navigatorKey.currentState;
+    if (navigator != null && navigator.canPop()) {
+      navigator.pop();
+    } else if (context != null && context.mounted) {
+      final rootNav = Navigator.of(context, rootNavigator: true);
+      if (rootNav.canPop()) {
+        rootNav.pop();
+      }
     }
+
+    _isLoaderVisible = false;
   }
 }

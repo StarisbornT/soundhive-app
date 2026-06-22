@@ -11,6 +11,7 @@ import 'package:google_sign_in/google_sign_in.dart';
 import 'package:sign_in_with_apple/sign_in_with_apple.dart';
 import 'package:soundhive2/screens/auth/otp_screen.dart';
 import 'package:soundhive2/screens/auth/terms_and_condition.dart';
+import '../../components/terms_agreement_checkbox.dart';
 import '../../services/fcm_service.dart';
 import '../../utils/alert_helper.dart';
 import '../../utils/app_colors.dart';
@@ -32,6 +33,7 @@ class _CreateAccountScreenState extends State<CreateAccount> {
   late Dio dio;
   bool _isPasswordValid = false;
   bool isLoading = false;
+  bool _acceptedTerms = false;
 
   @override
   void dispose() {
@@ -80,6 +82,7 @@ class _CreateAccountScreenState extends State<CreateAccount> {
   }
 
   Future<void> _saveFormData() async {
+    if (!_requireTermsAccepted()) return;
     try {
       setState(() {
         isLoading = true;
@@ -146,6 +149,7 @@ class _CreateAccountScreenState extends State<CreateAccount> {
   }
 
   Future<void> _signUpWithGoogle() async {
+    if (!_requireTermsAccepted()) return;
     try {
       setState(() => isLoading = true);
 
@@ -253,6 +257,7 @@ class _CreateAccountScreenState extends State<CreateAccount> {
   }
 
   Future<void> _signUpWithApple() async {
+    if (!_requireTermsAccepted()) return;
     try {
       final isAvailable = await SignInWithApple.isAvailable();
       if (!isAvailable) {
@@ -283,7 +288,8 @@ class _CreateAccountScreenState extends State<CreateAccount> {
       }
 
       var email = await _resolveAppleEmail(appleCredential);
-      await _storeAppleName(appleCredential);  // persist before anything can go wrong
+      await _storeAppleName(
+          appleCredential); // persist before anything can go wrong
       var name = await _resolveAppleName(appleCredential);
       var userId = appleCredential.userIdentifier;
 
@@ -319,7 +325,10 @@ class _CreateAccountScreenState extends State<CreateAccount> {
       await _completeSocialRegistration(
         email: email,
         name: name,
+        firstName: appleCredential.givenName,
+        lastName: appleCredential.familyName,
         userId: userId ?? email,
+        isAppleSignup: true,
       );
     } on SignInWithAppleAuthorizationException catch (e) {
       setState(() => isLoading = false);
@@ -416,8 +425,8 @@ class _CreateAccountScreenState extends State<CreateAccount> {
       'apple_name_$userIdentifier';
 
   Future<void> _storeAppleName(
-      AuthorizationCredentialAppleID appleCredential,
-      ) async {
+    AuthorizationCredentialAppleID appleCredential,
+  ) async {
     final name = _appleDisplayName(appleCredential);
     if (name != null && appleCredential.userIdentifier != null) {
       await widget.storage.write(
@@ -428,8 +437,8 @@ class _CreateAccountScreenState extends State<CreateAccount> {
   }
 
   Future<String?> _resolveAppleName(
-      AuthorizationCredentialAppleID appleCredential,
-      ) async {
+    AuthorizationCredentialAppleID appleCredential,
+  ) async {
     final name = _appleDisplayName(appleCredential);
     if (name != null) return name;
 
@@ -444,11 +453,14 @@ class _CreateAccountScreenState extends State<CreateAccount> {
   Future<void> _completeSocialRegistration({
     required String email,
     String? name,
+    String? firstName,
+    String? lastName,
     required String userId,
     String? avatar,
+    bool isAppleSignup = false,
   }) async {
     try {
-      final payload = {
+      final payload = <String, dynamic>{
         'email': email.toLowerCase(),
         'name': name,
         'google_id': userId,
@@ -456,6 +468,12 @@ class _CreateAccountScreenState extends State<CreateAccount> {
         'role': identity == 'creator' ? 'CREATOR' : 'USER',
         'creator_role': creatorIdentity?.toUpperCase() ?? '',
       };
+      if (firstName != null && firstName.isNotEmpty) {
+        payload['first_name'] = firstName;
+      }
+      if (lastName != null && lastName.isNotEmpty) {
+        payload['last_name'] = lastName;
+      }
 
       final response = await widget.dio.post(
         '/auth/register/google',
@@ -471,9 +489,28 @@ class _CreateAccountScreenState extends State<CreateAccount> {
         await fcmService.registerFcmToken(email);
         await widget.storage
             .write(key: 'auth_token', value: responseData['token']);
-        if (name != null) {
-          await widget.storage.write(key: 'social_name', value: name);
+
+        if (isAppleSignup) {
+          await widget.storage.write(key: 'social_provider', value: 'apple');
+          if (firstName != null && firstName.isNotEmpty) {
+            await widget.storage
+                .write(key: 'apple_first_name', value: firstName);
+          }
+          if (lastName != null && lastName.isNotEmpty) {
+            await widget.storage.write(key: 'apple_last_name', value: lastName);
+          }
+          final user = responseData['user'];
+          final hasProfileName = user != null &&
+              user['first_name'] != null &&
+              user['first_name'].toString().isNotEmpty;
+          final hasAppleName = (firstName != null && firstName.isNotEmpty) ||
+              (name != null && name.isNotEmpty);
+          if (hasProfileName || hasAppleName) {
+            await widget.storage
+                .write(key: 'profile_name_complete', value: 'true');
+          }
         }
+
         Navigator.pushNamed(context, TermsAndCondition.id);
       }
     } on DioException catch (error) {
@@ -544,6 +581,18 @@ class _CreateAccountScreenState extends State<CreateAccount> {
     }
   }
 
+  bool _requireTermsAccepted() {
+    if (_acceptedTerms) return true;
+    showCustomAlert(
+      context: context,
+      isSuccess: false,
+      title: 'Terms required',
+      message:
+          'Please agree to the Terms & Conditions and Privacy Policy to continue.',
+    );
+    return false;
+  }
+
   void _validatePassword() {
     final password = passwordController.text;
     final hasLowerCase = RegExp(r"[a-z]").hasMatch(password);
@@ -595,7 +644,12 @@ class _CreateAccountScreenState extends State<CreateAccount> {
               const SizedBox(height: 16),
               // Password strength indicators
               _buildPasswordIndicators(),
-              const SizedBox(height: 32),
+              const SizedBox(height: 24),
+              TermsAgreementCheckbox(
+                value: _acceptedTerms,
+                onChanged: (value) => setState(() => _acceptedTerms = value),
+              ),
+              const SizedBox(height: 24),
               // Continue Button
               _buildButton(
                   isLoading ? 'Loading' : 'Continue', AppColors.PRIMARYCOLOR),
@@ -708,12 +762,16 @@ class _CreateAccountScreenState extends State<CreateAccount> {
 
   Widget _buildButton(String text, Color color) {
     return GestureDetector(
-      onTap: (!isLoading && _isPasswordValid) ? _saveFormData : null,
+      onTap: (!isLoading && _isPasswordValid && _acceptedTerms)
+          ? _saveFormData
+          : null,
       child: Container(
         width: double.infinity,
         padding: const EdgeInsets.symmetric(vertical: 16),
         decoration: BoxDecoration(
-          color: color,
+          color: (!isLoading && _isPasswordValid && _acceptedTerms)
+              ? color
+              : color.withValues(alpha: 0.5),
           borderRadius: BorderRadius.circular(30),
         ),
         child: Center(

@@ -12,6 +12,7 @@ import 'package:sign_in_with_apple/sign_in_with_apple.dart';
 import 'package:soundhive2/screens/auth/terms_and_condition.dart';
 import 'package:soundhive2/screens/auth/update_profile1.dart';
 import 'package:soundhive2/utils/utils.dart';
+import '../../components/terms_agreement_checkbox.dart';
 import '../../services/loader_service.dart';
 import '../../utils/alert_helper.dart';
 import '../../utils/app_colors.dart';
@@ -34,6 +35,7 @@ class _LoginScreenState extends State<Login> {
   late Dio dio;
   TextEditingController emailController = TextEditingController();
   TextEditingController passwordController = TextEditingController();
+  bool _acceptedTerms = false;
 
   @override
   void initState() {
@@ -63,6 +65,7 @@ class _LoginScreenState extends State<Login> {
 
   late final GoogleSignIn _googleSignIn;
   Future<void> _saveFormData() async {
+    if (!_requireTermsAccepted()) return;
     try {
       LoaderService.showLoader(context);
       Map<String, String> payload = {
@@ -145,6 +148,7 @@ class _LoginScreenState extends State<Login> {
   }
 
   Future<void> _signUpWithGoogle() async {
+    if (!_requireTermsAccepted()) return;
     try {
       LoaderService.showLoader(context);
 
@@ -243,6 +247,7 @@ class _LoginScreenState extends State<Login> {
   }
 
   Future<void> _signUpWithApple() async {
+    if (!_requireTermsAccepted()) return;
     try {
       final isAvailable = await SignInWithApple.isAvailable();
       if (!isAvailable) {
@@ -254,8 +259,6 @@ class _LoginScreenState extends State<Login> {
         );
         return;
       }
-
-      LoaderService.showLoader(context);
 
       final rawNonce = _generateNonce();
       final nonce = _sha256OfString(rawNonce);
@@ -271,6 +274,8 @@ class _LoginScreenState extends State<Login> {
       if (appleCredential.identityToken == null) {
         throw Exception('Apple Sign In did not return an identity token');
       }
+
+      LoaderService.showLoader(context);
 
       var email = await _resolveAppleEmail(appleCredential);
 
@@ -289,6 +294,22 @@ class _LoginScreenState extends State<Login> {
         LoaderService.hideLoader(context);
         _showAppleEmailUnavailableAlert();
         return;
+      }
+
+      await widget.storage.write(key: 'social_provider', value: 'apple');
+      if (appleCredential.givenName != null &&
+          appleCredential.givenName!.isNotEmpty) {
+        await widget.storage.write(
+          key: 'apple_first_name',
+          value: appleCredential.givenName!,
+        );
+      }
+      if (appleCredential.familyName != null &&
+          appleCredential.familyName!.isNotEmpty) {
+        await widget.storage.write(
+          key: 'apple_last_name',
+          value: appleCredential.familyName!,
+        );
       }
 
       await _completeSocialLogin(email);
@@ -439,38 +460,63 @@ class _LoginScreenState extends State<Login> {
         options: Options(headers: {'Accept': 'application/json'}),
       );
 
-      LoaderService.hideLoader(context);
-
       if (response.statusCode == 200) {
         final responseData = response.data;
-        await widget.storage
-            .write(key: 'auth_token', value: responseData['token']);
+        final token = responseData['token'];
+        if (token != null) {
+          await widget.storage.write(key: 'auth_token', value: token);
+        }
 
-        // ADD THIS: sign into Firebase with custom token
         final firebaseToken = responseData['firebase_token'];
         if (firebaseToken != null) {
-          await FirebaseAuth.instance.signInWithCustomToken(firebaseToken);
+          try {
+            if (FirebaseAuth.instance.currentUser != null) {
+              await FirebaseAuth.instance.signOut();
+            }
+            await FirebaseAuth.instance.signInWithCustomToken(firebaseToken);
+          } catch (e) {
+            debugPrint('Firebase custom token sign-in failed: $e');
+          }
         }
 
-        if (responseData['user']['first_name'] != null) {
-          Navigator.pushNamed(context, DashboardScreen.id);
-        } else {
-          Navigator.pushNamed(context, UpdateProfile1.id);
-        }
+        final firstName = responseData['user']?['first_name'];
+        final route =
+            firstName != null ? DashboardScreen.id : UpdateProfile1.id;
+
+        LoaderService.hideLoader(context);
+        LoaderService.navigatorKey.currentState?.pushNamedAndRemoveUntil(
+          route,
+          (route) => false,
+        );
       }
     } on DioException catch (error) {
-      LoaderService.hideLoader(context);
-
       if (error.response?.statusCode == 403) {
         final responseData = error.response?.data;
         await widget.storage
             .write(key: 'auth_token', value: responseData['token']);
-        Navigator.pushNamed(context, TermsAndCondition.id);
+        LoaderService.hideLoader(context);
+        LoaderService.navigatorKey.currentState?.pushNamed(
+          TermsAndCondition.id,
+        );
         return;
       }
 
       rethrow;
+    } finally {
+      LoaderService.hideLoader(context);
     }
+  }
+
+  bool _requireTermsAccepted() {
+    if (_acceptedTerms) return true;
+    showCustomAlert(
+      context: context,
+      isSuccess: false,
+      title: 'Terms required',
+      message:
+          'Please agree to the Terms & Conditions and Privacy Policy to continue.',
+    );
+    return false;
   }
 
   @override
@@ -517,6 +563,11 @@ class _LoginScreenState extends State<Login> {
                     style: TextStyle(color: Colors.white, fontSize: 13),
                   ),
                 ),
+              ),
+              const SizedBox(height: 16),
+              TermsAgreementCheckbox(
+                value: _acceptedTerms,
+                onChanged: (value) => setState(() => _acceptedTerms = value),
               ),
               const SizedBox(height: 16),
 
@@ -593,14 +644,14 @@ class _LoginScreenState extends State<Login> {
 
   Widget _buildButton(String text, Color color) {
     return GestureDetector(
-      onTap: () {
-        _saveFormData();
-      },
+      onTap: _acceptedTerms
+          ? () => _saveFormData()
+          : () => _requireTermsAccepted(),
       child: Container(
         width: double.infinity,
         padding: const EdgeInsets.symmetric(vertical: 16),
         decoration: BoxDecoration(
-          color: color,
+          color: _acceptedTerms ? color : color.withValues(alpha: 0.5),
           borderRadius: BorderRadius.circular(30),
         ),
         child: Center(

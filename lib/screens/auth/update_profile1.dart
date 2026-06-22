@@ -19,7 +19,6 @@ class UpdateProfile1 extends StatefulWidget {
   final Dio dio;
   const UpdateProfile1({super.key, required this.storage, required this.dio});
 
-
   @override
   State<UpdateProfile1> createState() => _UpdateProfileState();
 }
@@ -29,36 +28,46 @@ class _UpdateProfileState extends State<UpdateProfile1> {
   int _currentPage = 0;
   final TextEditingController firstNameController = TextEditingController();
   final TextEditingController lastNameController = TextEditingController();
-  final TextEditingController dobController = TextEditingController(); // Date of Birth Controller
+  final TextEditingController dobController =
+      TextEditingController(); // Date of Birth Controller
   final TextEditingController phoneController = TextEditingController();
   final TextEditingController addressController = TextEditingController();
   final TextEditingController countryController = TextEditingController();
   List<String> selectedInterests = []; // Added to track interests
   String pin = '';
   String? identity;
+  bool _hideNameFields = false;
 
   Future<void> loadData() async {
     String? storedIdentity = await widget.storage.read(key: 'role');
     String? socialName = await widget.storage.read(key: 'social_name');
+    final socialProvider = await widget.storage.read(key: 'social_provider');
+    final appleFirst = await widget.storage.read(key: 'apple_first_name');
+    final appleLast = await widget.storage.read(key: 'apple_last_name');
 
     setState(() {
       identity = storedIdentity;
+      _hideNameFields = socialProvider == 'apple';
     });
 
-    // Pre-fill name fields if we have them from a social sign-in
-    if (socialName != null && socialName.isNotEmpty) {
+    if (socialProvider == 'apple') {
+      if (appleFirst != null && appleFirst.isNotEmpty) {
+        firstNameController.text = appleFirst;
+      }
+      if (appleLast != null && appleLast.isNotEmpty) {
+        lastNameController.text = appleLast;
+      }
+    } else if (socialName != null && socialName.isNotEmpty) {
       final parts = socialName.trim().split(RegExp(r'\s+'));
       firstNameController.text = parts.first;
       if (parts.length > 1) {
         lastNameController.text = parts.skip(1).join(' ');
       }
-      // Clean up so re-opening the screen doesn't re-apply stale data
       await widget.storage.delete(key: 'social_name');
     }
   }
 
   List<Map<String, String>> countries = [];
-
 
   @override
   void initState() {
@@ -66,8 +75,8 @@ class _UpdateProfileState extends State<UpdateProfile1> {
     loadData();
     getCountries();
   }
-  String? selectedCountry;
 
+  String? selectedCountry;
 
   Future<void> getCountries() async {
     try {
@@ -81,11 +90,10 @@ class _UpdateProfileState extends State<UpdateProfile1> {
         setState(() {
           countries.clear();
           countries.addAll(responseData.map<Map<String, String>>((e) => {
-            "name": e['name'].toString(),
-            "code": e['code'].toString(),
-          }));
+                "name": e['name'].toString(),
+                "code": e['code'].toString(),
+              }));
         });
-
       } else {
         showCustomAlert(
           context: context,
@@ -139,8 +147,6 @@ class _UpdateProfileState extends State<UpdateProfile1> {
     }
   }
 
-
-
   Future<void> createProfile() async {
     try {
       LoaderService.showLoader(context);
@@ -152,27 +158,22 @@ class _UpdateProfileState extends State<UpdateProfile1> {
         "location": addressController.text,
       };
       final options = Options(headers: {'Accept': 'application/json'});
-      final response = await widget.dio.post(
-          '/update/profile',
-          data: jsonEncode(payload),
-          options: options
-      );
+      final response = await widget.dio
+          .post('/update/profile', data: jsonEncode(payload), options: options);
       if (response.statusCode == 200) {
         LoaderService.hideLoader(context);
-          Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder: (context) => const Success(
-                image: 'images/success_profile.png',
-                title: 'Account created successfully',
-                subtitle: '',
-              ),
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => const Success(
+              image: 'images/success_profile.png',
+              title: 'Account created successfully',
+              subtitle: '',
             ),
-          );
-          _nextPage();
-
-      }
-      else {
+          ),
+        );
+        _nextPage();
+      } else {
         showCustomAlert(
           context: context,
           isSuccess: false,
@@ -180,8 +181,7 @@ class _UpdateProfileState extends State<UpdateProfile1> {
           message: 'Email OTP not verified',
         );
       }
-    }
-    catch(error) {
+    } catch (error) {
       LoaderService.hideLoader(context);
       if (error is DioException) {
         String errorMessage = "Login Failed, Please check input";
@@ -219,22 +219,17 @@ class _UpdateProfileState extends State<UpdateProfile1> {
         "pin": pin,
       };
       final options = Options(headers: {'Accept': 'application/json'});
-      final response = await widget.dio.post(
-          '/create/pin',
-          data: jsonEncode(payload),
-          options: options
-      );
+      final response = await widget.dio
+          .post('/create/pin', data: jsonEncode(payload), options: options);
       print(response);
       if (response.statusCode == 200) {
         LoaderService.hideLoader(context);
-        if(identity?.toLowerCase() == "creator") {
+        if (identity?.toLowerCase() == "creator") {
           Navigator.pushNamed(context, CreatorDashboard.id);
-
-        }else {
+        } else {
           Navigator.pushNamed(context, JustCurious.id);
         }
-      }
-      else {
+      } else {
         showCustomAlert(
           context: context,
           isSuccess: false,
@@ -242,8 +237,7 @@ class _UpdateProfileState extends State<UpdateProfile1> {
           message: 'Email OTP not verified',
         );
       }
-    }
-    catch(error) {
+    } catch (error) {
       LoaderService.hideLoader(context);
       if (error is DioException) {
         String errorMessage = "Login Failed, Please check input";
@@ -298,12 +292,14 @@ class _UpdateProfileState extends State<UpdateProfile1> {
             child: Column(
               children: [
                 Image.asset('images/logo.png', width: 200),
-                const Divider(color: Color(0xFF2C2C2C),),
-
+                const Divider(
+                  color: Color(0xFF2C2C2C),
+                ),
               ],
             ),
           ),
-          Expanded( // Ensures PageView takes the remaining space
+          Expanded(
+            // Ensures PageView takes the remaining space
             child: PageView(
               controller: _pageController,
               onPageChanged: (index) {
@@ -316,6 +312,7 @@ class _UpdateProfileState extends State<UpdateProfile1> {
                   onNext: () {
                     createProfile();
                   },
+                  hideNameFields: _hideNameFields,
                   firstNameController: firstNameController,
                   lastNameController: lastNameController,
                   dobController: dobController,
@@ -336,7 +333,7 @@ class _UpdateProfileState extends State<UpdateProfile1> {
                 //   onInterestsUpdated: (interests) => setState(() => selectedInterests = interests),
                 // ),
                 PinSetupStep(
-                    onBack: _previousPage,
+                  onBack: _previousPage,
                   onPinUpdated: (newPin) => setState(() => pin = newPin),
                   onSubmit: createPin,
                 ),
@@ -347,12 +344,12 @@ class _UpdateProfileState extends State<UpdateProfile1> {
       ),
     );
   }
-
 }
 
 // Step 1: User Details Form
 class UserDetailsStep extends StatelessWidget {
   final VoidCallback onNext;
+  final bool hideNameFields;
   final TextEditingController firstNameController;
   final TextEditingController lastNameController;
   final TextEditingController addressController;
@@ -366,6 +363,7 @@ class UserDetailsStep extends StatelessWidget {
   const UserDetailsStep({
     super.key,
     required this.onNext,
+    this.hideNameFields = false,
     required this.firstNameController,
     required this.lastNameController,
     required this.dobController,
@@ -390,25 +388,34 @@ class UserDetailsStep extends StatelessWidget {
               style: TextStyle(color: Colors.white, fontSize: 20),
             ),
             const SizedBox(height: 20),
-            _buildTextField('First Name', 'Enter your First Name', firstNameController, context),
-            const SizedBox(height: 10),
-            _buildTextField('Last Name', 'Enter your Last Name', lastNameController, context),
-            const SizedBox(height: 10),
-            _buildTextField('Date Of Birth', 'Enter your Date of Birth', dobController, context, isDate: true),
+            if (!hideNameFields) ...[
+              _buildTextField('First Name', 'Enter your First Name',
+                  firstNameController, context),
+              const SizedBox(height: 10),
+              _buildTextField('Last Name', 'Enter your Last Name',
+                  lastNameController, context),
+              const SizedBox(height: 10),
+            ],
+            _buildTextField('Date Of Birth', 'Enter your Date of Birth',
+                dobController, context,
+                isDate: true),
             const SizedBox(height: 10),
             PhoneNumberField(controller: phoneController),
             const SizedBox(height: 10),
-            _buildTextField('Address', 'Enter Address', addressController, context),
+            _buildTextField(
+                'Address', 'Enter Address', addressController, context),
             const SizedBox(height: 10),
 
             // ✅ Dropdown for Countries
             LabeledSelectField(
               label: "Country",
               controller: countryController,
-              items: countries.map((c) => {
-                'label': c['name']!,
-                'value': c['code']!,
-              }).toList(),
+              items: countries
+                  .map((c) => {
+                        'label': c['name']!,
+                        'value': c['code']!,
+                      })
+                  .toList(),
               hintText: 'Select Country',
               onChanged: (selectedValue) {
                 onCountryChanged(selectedValue);
@@ -476,7 +483,8 @@ class UserDetailsStep extends StatelessWidget {
     );
   }
 
-  Widget _buildTextField(String label, String hint, TextEditingController controller, BuildContext context,
+  Widget _buildTextField(String label, String hint,
+      TextEditingController controller, BuildContext context,
       {bool isDate = false, bool isPhone = false}) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -487,19 +495,20 @@ class UserDetailsStep extends StatelessWidget {
           controller: controller,
           readOnly: isDate,
           keyboardType: isPhone ? TextInputType.phone : TextInputType.text,
-          inputFormatters: isPhone ? [FilteringTextInputFormatter.digitsOnly] : [],
+          inputFormatters:
+              isPhone ? [FilteringTextInputFormatter.digitsOnly] : [],
           onTap: isDate
               ? () async {
-            DateTime? pickedDate = await showDatePicker(
-              context: context,
-              initialDate: DateTime.now(),
-              firstDate: DateTime(1900),
-              lastDate: DateTime.now(),
-            );
-            if (pickedDate != null) {
-              controller.text = "${pickedDate.toLocal()}".split(' ')[0];
-            }
-          }
+                  DateTime? pickedDate = await showDatePicker(
+                    context: context,
+                    initialDate: DateTime.now(),
+                    firstDate: DateTime(1900),
+                    lastDate: DateTime.now(),
+                  );
+                  if (pickedDate != null) {
+                    controller.text = "${pickedDate.toLocal()}".split(' ')[0];
+                  }
+                }
               : null,
           decoration: InputDecoration(
             filled: true,
@@ -517,7 +526,6 @@ class UserDetailsStep extends StatelessWidget {
     );
   }
 }
-
 
 // Step 2: Select Interests
 class InterestsStep extends StatefulWidget {
@@ -538,8 +546,15 @@ class InterestsStep extends StatefulWidget {
 
 class _InterestsStepState extends State<InterestsStep> {
   List<String> interests = [
-    "Gospel", "Metal", "Rock", "Hip-Pop", "Reggae",
-    "Country", "Classical", "Jazz", "Blues"
+    "Gospel",
+    "Metal",
+    "Rock",
+    "Hip-Pop",
+    "Reggae",
+    "Country",
+    "Classical",
+    "Jazz",
+    "Blues"
   ];
   List<String> selectedInterests = [];
 
@@ -566,8 +581,7 @@ class _InterestsStepState extends State<InterestsStep> {
           const Text("One last thing... What are your interests?",
               style: TextStyle(color: Colors.white, fontSize: 20)),
           const SizedBox(height: 10),
-          const Text("Pick at least one",
-              style: TextStyle(color: Colors.grey)),
+          const Text("Pick at least one", style: TextStyle(color: Colors.grey)),
           const SizedBox(height: 20),
           Wrap(
             spacing: 8,
@@ -610,7 +624,6 @@ class _InterestsStepState extends State<InterestsStep> {
             ),
           ),
           const SizedBox(height: 10),
-
         ],
       ),
     );
@@ -671,7 +684,8 @@ class _PinSetupStepState extends State<PinSetupStep> {
                       color: const Color(0xFF1A191E),
                       borderRadius: BorderRadius.circular(14),
                     ),
-                    child: const Icon(Icons.lock, size: 30, color: Colors.white),
+                    child:
+                        const Icon(Icons.lock, size: 30, color: Colors.white),
                   ),
                   const SizedBox(height: 20),
                   const Text(
@@ -770,14 +784,15 @@ class NumericKeyboard extends StatelessWidget {
                     ),
                     alignment: Alignment.center,
                     child: number == "X"
-                        ? Icon(Icons.backspace, color: Colors.white, size: clampedSize * 0.38)
+                        ? Icon(Icons.backspace,
+                            color: Colors.white, size: clampedSize * 0.38)
                         : Text(
-                      number,
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontSize: clampedSize * 0.38,
-                      ),
-                    ),
+                            number,
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontSize: clampedSize * 0.38,
+                            ),
+                          ),
                   ),
                 );
               }).toList(),
@@ -838,31 +853,35 @@ class _PhoneNumberFieldState extends State<PhoneNumberField> {
         final List data = response.data;
 
         setState(() {
-          countries = data.where((c) => c['idd'] != null).map((country) {
-            final idd = country['idd'] as Map<String, dynamic>;
-            final root = idd['root']?.toString() ?? '';
+          countries = data
+              .where((c) => c['idd'] != null)
+              .map((country) {
+                final idd = country['idd'] as Map<String, dynamic>;
+                final root = idd['root']?.toString() ?? '';
 
-            // FIX: Handle empty suffixes list
-            final suffixesList = idd['suffixes'] as List<dynamic>?;
-            String suffix = '';
-            if (suffixesList != null && suffixesList.isNotEmpty) {
-              suffix = suffixesList[0]?.toString() ?? '';
-            }
+                // FIX: Handle empty suffixes list
+                final suffixesList = idd['suffixes'] as List<dynamic>?;
+                String suffix = '';
+                if (suffixesList != null && suffixesList.isNotEmpty) {
+                  suffix = suffixesList[0]?.toString() ?? '';
+                }
 
-            final dialCode = '$root$suffix';
+                final dialCode = '$root$suffix';
 
-            // FIX: Use reliable flag source with fallback
-            final cca2 = (country['cca2'] ?? '').toString().toLowerCase();
-            final flagUrl = (country['flags']?['png'] != null)
-                ? country['flags']['png']
-                : 'https://flagcdn.com/w40/$cca2.png';
+                // FIX: Use reliable flag source with fallback
+                final cca2 = (country['cca2'] ?? '').toString().toLowerCase();
+                final flagUrl = (country['flags']?['png'] != null)
+                    ? country['flags']['png']
+                    : 'https://flagcdn.com/w40/$cca2.png';
 
-            return {
-              'name': country['name']['common'] ?? 'Unknown',
-              'flag': flagUrl,
-              'dial_code': dialCode,
-            };
-          }).where((item) => item['dial_code']!.isNotEmpty).toList();
+                return {
+                  'name': country['name']['common'] ?? 'Unknown',
+                  'flag': flagUrl,
+                  'dial_code': dialCode,
+                };
+              })
+              .where((item) => item['dial_code']!.isNotEmpty)
+              .toList();
         });
 
         print('Fetched ${countries.length} countries');
@@ -875,7 +894,6 @@ class _PhoneNumberFieldState extends State<PhoneNumberField> {
       print('GENERAL ERROR: $e\n$stack');
     }
   }
-
 
   @override
   Widget build(BuildContext context) {
@@ -892,7 +910,10 @@ class _PhoneNumberFieldState extends State<PhoneNumberField> {
       Container(
         height: 56,
         decoration: BoxDecoration(
-          border:  Border.all(color: widget.errorText != null ? const Color.fromRGBO(219, 33, 33, 0.76) : const Color(0xFF2C2C2C)),
+          border: Border.all(
+              color: widget.errorText != null
+                  ? const Color.fromRGBO(219, 33, 33, 0.76)
+                  : const Color(0xFF2C2C2C)),
           borderRadius: BorderRadius.circular(8),
         ),
         child: Row(
@@ -900,7 +921,8 @@ class _PhoneNumberFieldState extends State<PhoneNumberField> {
             GestureDetector(
               onTap: () => _showCountryPicker(context),
               child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 10),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 7, vertical: 10),
                 child: Row(
                   children: [
                     ClipOval(
@@ -912,23 +934,20 @@ class _PhoneNumberFieldState extends State<PhoneNumberField> {
                       ),
                     ),
 
-
                     const SizedBox(width: 6),
-                    Text(selectedDialCode,
+                    Text(
+                      selectedDialCode,
                       style: GoogleFonts.inter(
                           textStyle: const TextStyle(
                               fontSize: 14,
                               color: Color(0xFF7C7C88),
-                              fontWeight: FontWeight.w500
-                          )
-                      ),
+                              fontWeight: FontWeight.w500)),
                     ),
                     // const Icon(Icons.arrow_drop_down),
                   ],
                 ),
               ),
             ),
-
             Expanded(
               child: TextField(
                 controller: widget.controller,
@@ -941,9 +960,10 @@ class _PhoneNumberFieldState extends State<PhoneNumberField> {
                   hintText: '',
                   filled: true,
                   fillColor: Colors.white10,
-                  hintStyle:  TextStyle(color: Colors.white54),
+                  hintStyle: TextStyle(color: Colors.white54),
                   border: InputBorder.none,
-                  contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                  contentPadding:
+                      EdgeInsets.symmetric(horizontal: 12, vertical: 10),
                 ),
                 onChanged: widget.onChanged,
                 style: const TextStyle(color: Colors.white),
@@ -952,14 +972,13 @@ class _PhoneNumberFieldState extends State<PhoneNumberField> {
           ],
         ),
       ),
-      widget.errorText != null ?
-      Text(
-        widget.errorText ?? '',
-        style: const TextStyle(
-            color: Color.fromRGBO(219, 33, 33, 0.76),
-            fontSize: 12
-        ),
-      ): const Text(''),
+      widget.errorText != null
+          ? Text(
+              widget.errorText ?? '',
+              style: const TextStyle(
+                  color: Color.fromRGBO(219, 33, 33, 0.76), fontSize: 12),
+            )
+          : const Text(''),
       // const SizedBox(height: 16),
     ]);
   }
@@ -967,8 +986,7 @@ class _PhoneNumberFieldState extends State<PhoneNumberField> {
   void _showCountryPicker(BuildContext context) {
     if (countries.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('No countries available. Retrying...'))
-      );
+          const SnackBar(content: Text('No countries available. Retrying...')));
       fetchCountries(); // Retry
       return;
     }
@@ -977,8 +995,8 @@ class _PhoneNumberFieldState extends State<PhoneNumberField> {
       builder: (_) => ListView.builder(
         itemCount: countries.length,
         itemBuilder: (_, i) => ListTile(
-          leading: Image.network(countries[i]['flag']!, width: 24, errorBuilder:
-              (_, __, ___) => const Icon(Icons.flag)),
+          leading: Image.network(countries[i]['flag']!,
+              width: 24, errorBuilder: (_, __, ___) => const Icon(Icons.flag)),
           title: Text(countries[i]['name']!),
           subtitle: Text(countries[i]['dial_code']!),
           onTap: () => _selectCountry(countries[i]),
@@ -986,6 +1004,7 @@ class _PhoneNumberFieldState extends State<PhoneNumberField> {
       ),
     );
   }
+
   void _selectCountry(Map<String, dynamic> country) {
     setState(() {
       selectedDialCode = country['dial_code']!;
