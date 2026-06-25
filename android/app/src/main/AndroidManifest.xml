@@ -12,7 +12,7 @@
     <!-- For Android 12 and above devices, the following permission is also required. -->
     <uses-permission android:name="android.permission.BLUETOOTH_CONNECT" />
     <application
-        android:label="Cre8hive"
+        android:label="Cre8Hive"
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher">
         <meta-data

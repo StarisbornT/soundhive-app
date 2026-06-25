@@ -33,6 +33,9 @@ class _CreateAccountScreenState extends State<CreateAccount> {
   bool _isPasswordValid = false;
   bool isLoading = false;
 
+  // 1. ADD THIS LINE: Tracks if user tried to press continue
+  bool _hasAttemptedSubmit = false;
+
   @override
   void dispose() {
     passwordController.removeListener(_validatePassword);
@@ -77,6 +80,29 @@ class _CreateAccountScreenState extends State<CreateAccount> {
       identity = storedEmail;
       creatorIdentity = storedIdentity;
     });
+  }
+
+  // 2. MODIFIED THIS FUNCTION: Wraps validation check inside submission logic
+  void _onContinuePressed() {
+    if (isLoading) return;
+
+    setState(() {
+      _hasAttemptedSubmit = true;
+    });
+
+    if (!_isPasswordValid) {
+      // Give a brief warning alert to look down at indicators
+      showCustomAlert(
+        context: context,
+        isSuccess: false,
+        title: 'Weak Password',
+        message: 'Please fulfill all password requirements highlighted below.',
+      );
+      return;
+    }
+
+    // If password is valid, carry on to API integration
+    _saveFormData();
   }
 
   Future<void> _saveFormData() async {
@@ -202,10 +228,10 @@ class _CreateAccountScreenState extends State<CreateAccount> {
   }
 
   Future<String?> _resolveAppleEmail(
-    AuthorizationCredentialAppleID appleCredential,
-  ) async {
+      AuthorizationCredentialAppleID appleCredential,
+      ) async {
     final tokenEmail =
-        _emailFromAppleIdentityToken(appleCredential.identityToken);
+    _emailFromAppleIdentityToken(appleCredential.identityToken);
     final credentialEmail = appleCredential.email ?? tokenEmail;
 
     if (credentialEmail != null && credentialEmail.isNotEmpty) {
@@ -231,9 +257,9 @@ class _CreateAccountScreenState extends State<CreateAccount> {
   }
 
   Future<User?> _firebaseUserFromAppleAuth(
-    AuthorizationCredentialAppleID appleCredential,
-    String rawNonce,
-  ) async {
+      AuthorizationCredentialAppleID appleCredential,
+      String rawNonce,
+      ) async {
     final oauthCredential = OAuthProvider('apple.com').credential(
       idToken: appleCredential.identityToken,
       rawNonce: rawNonce,
@@ -241,7 +267,7 @@ class _CreateAccountScreenState extends State<CreateAccount> {
     );
 
     final userCredential =
-        await FirebaseAuth.instance.signInWithCredential(oauthCredential);
+    await FirebaseAuth.instance.signInWithCredential(oauthCredential);
     final user = userCredential.user;
     if (user == null) return null;
 
@@ -289,7 +315,7 @@ class _CreateAccountScreenState extends State<CreateAccount> {
 
       if (email == null) {
         final firebaseUser =
-            await _firebaseUserFromAppleAuth(appleCredential, rawNonce);
+        await _firebaseUserFromAppleAuth(appleCredential, rawNonce);
         email = firebaseUser?.email?.toLowerCase();
         userId ??= firebaseUser?.uid;
         name ??= firebaseUser?.displayName;
@@ -371,7 +397,7 @@ class _CreateAccountScreenState extends State<CreateAccount> {
       isSuccess: false,
       title: 'Email required',
       message:
-          'We could not retrieve an email from Apple. When prompted, choose Share My Email or Hide My Email — both work for sign-up. If you used Apple Sign In before, go to Settings → Apple Account → Sign in with Apple → Cre8Hive → Stop Using Apple ID, then try again.',
+      'We could not retrieve an email from Apple. When prompted, choose Share My Email or Hide My Email — both work for sign-up. If you used Apple Sign In before, go to Settings → Apple Account → Sign in with Apple → Cre8Hive → Stop Using Apple ID, then try again.',
     );
   }
 
@@ -390,7 +416,7 @@ class _CreateAccountScreenState extends State<CreateAccount> {
       );
 
       final userCredential =
-          await FirebaseAuth.instance.signInWithCredential(credential);
+      await FirebaseAuth.instance.signInWithCredential(credential);
 
       final user = userCredential.user;
       if (user == null) throw Exception('Firebase auth failed');
@@ -558,6 +584,11 @@ class _CreateAccountScreenState extends State<CreateAccount> {
           hasNumber &&
           hasSpecialChar &&
           hasMinLength;
+
+      // Reset submission visibility if they start completely clearing the field
+      if (password.isEmpty) {
+        _hasAttemptedSubmit = false;
+      }
     });
   }
 
@@ -597,6 +628,7 @@ class _CreateAccountScreenState extends State<CreateAccount> {
               _buildPasswordIndicators(),
               const SizedBox(height: 32),
               // Continue Button
+              // 3. UPDATED CALL: Pass `_onContinuePressed` inside instead of direct validation gate
               _buildButton(
                   isLoading ? 'Loading' : 'Continue', AppColors.PRIMARYCOLOR),
               const SizedBox(height: 24),
@@ -649,16 +681,16 @@ class _CreateAccountScreenState extends State<CreateAccount> {
             border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
             suffixIcon: isPassword
                 ? IconButton(
-                    icon: Icon(
-                      _isObscured ? Icons.visibility_off : Icons.visibility,
-                      color: Colors.white54,
-                    ),
-                    onPressed: () {
-                      setState(() {
-                        _isObscured = !_isObscured; // Toggle state
-                      });
-                    },
-                  )
+              icon: Icon(
+                _isObscured ? Icons.visibility_off : Icons.visibility,
+                color: Colors.white54,
+              ),
+              onPressed: () {
+                setState(() {
+                  _isObscured = !_isObscured; // Toggle state
+                });
+              },
+            )
                 : null,
           ),
           style: const TextStyle(color: Colors.white),
@@ -694,21 +726,38 @@ class _CreateAccountScreenState extends State<CreateAccount> {
     );
   }
 
+  // 4. MODIFIED THIS WIDGET: Re-calculates state context dynamically
   Widget _buildIndicator(String label, bool isValid) {
+    Color iconAndTextColor;
+
+    if (isValid) {
+      iconAndTextColor = Colors.green;
+    } else {
+      // If user attempted to submit but it's invalid, turn red. Otherwise stay gray.
+      iconAndTextColor = _hasAttemptedSubmit ? Colors.red : Colors.grey;
+    }
+
     return Row(
       children: [
-        Icon(isValid ? Icons.check_circle : Icons.circle_outlined,
-            color: isValid ? Colors.green : Colors.grey, size: 16),
+        Icon(
+            isValid ? Icons.check_circle : (_hasAttemptedSubmit ? Icons.cancel : Icons.circle_outlined),
+            color: iconAndTextColor,
+            size: 16
+        ),
         const SizedBox(width: 4),
-        Text(label,
-            style: const TextStyle(color: Colors.white70, fontSize: 12)),
+        Text(
+          label,
+          style: TextStyle(color: iconAndTextColor == Colors.grey ? Colors.white70 : iconAndTextColor, fontSize: 12),
+        ),
+        const SizedBox(width: 12), // Added right-padding spacing between elements in the row
       ],
     );
   }
 
+  // 5. MODIFIED THIS WIDGET: Swapped action callback to internal dynamic gateway `_onContinuePressed`
   Widget _buildButton(String text, Color color) {
     return GestureDetector(
-      onTap: (!isLoading && _isPasswordValid) ? _saveFormData : null,
+      onTap: _onContinuePressed,
       child: Container(
         width: double.infinity,
         padding: const EdgeInsets.symmetric(vertical: 16),
@@ -728,10 +777,10 @@ class _CreateAccountScreenState extends State<CreateAccount> {
   }
 
   Widget _buildSocialButton(
-    String text,
-    String asset, {
-    required VoidCallback onTap,
-  }) {
+      String text,
+      String asset, {
+        required VoidCallback onTap,
+      }) {
     return GestureDetector(
       onTap: isLoading ? null : onTap,
       child: Container(
