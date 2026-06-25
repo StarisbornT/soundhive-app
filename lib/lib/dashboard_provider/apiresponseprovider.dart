@@ -1468,6 +1468,33 @@ class ApiResponseProvider extends StateNotifier<AsyncValue<void>> {
     }
   }
 
+  Future<ApiResponseModel> updateUserProfile({
+    required BuildContext context,
+    required Map<String, dynamic> payload
+  }) async {
+    state = const AsyncValue.loading();
+    try {
+      LoaderService.showLoader(context);
+      final formData = jsonEncode(payload);
+      final response = await _dio.post(
+          '/update/profile',
+          data: formData
+      );
+
+      if (response.statusCode == 200) {
+        state = const AsyncValue.data(null);
+        return ApiResponseModel.fromJson(response.data);
+      } else {
+        throw Exception(response.data['message'] ?? 'Something went wrong');
+      }
+    } catch (error, stackTrace) {
+      state = AsyncValue.error(error, stackTrace);
+      rethrow;
+    } finally {
+      LoaderService.hideLoader(context);
+    }
+  }
+
   Future<ApiResponseModel> activateDollarWallet({
     required BuildContext context,
   }) async {

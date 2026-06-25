@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
 import 'package:soundhive2/utils/app_colors.dart';
@@ -238,30 +237,7 @@ class _CreatorProfileState extends ConsumerState<CreatorProfile> {
     );
   }
 
-  Widget _buildSocialIcons(ThemeData theme, bool isDark) {
-    return Row(
-      children: [
-        _buildSocialIcon(FontAwesomeIcons.x, theme, isDark),
-        const SizedBox(width: 15),
-        _buildSocialIcon(Icons.facebook, theme, isDark),
-        const SizedBox(width: 15),
-        _buildSocialIcon(FontAwesomeIcons.instagram, theme, isDark),
-      ],
-    );
-  }
 
-  Widget _buildSocialIcon(IconData icon, ThemeData theme, bool isDark) {
-    return Container(
-      padding: const EdgeInsets.all(10),
-      decoration: BoxDecoration(
-        color: isDark ? Colors.white12 : Colors.grey[200],
-        borderRadius: BorderRadius.circular(8),
-      ),
-      child: Icon(icon,
-          color: isDark ? Colors.white : Colors.grey[700],
-          size: 24),
-    );
-  }
 
   Widget _buildLocation(ThemeData theme) {
     return Row(
