@@ -388,7 +388,7 @@ class _VestDetailsScreenState extends ConsumerState<VestDetailsScreen>  {
                                     const SizedBox(width: 8),
                                     Expanded(
                                       child: Text(
-                                        'Soundhive Vest - ${ref.formatUserCurrency(widget.user.wallet?.balance)}',
+                                        'Cre8Pay - ${ref.formatUserCurrency(widget.user.wallet?.balance)}',
                                         style: GoogleFonts.roboto(
                                           textStyle: const TextStyle(color: Colors.white)
                                         ),
@@ -589,4 +589,3 @@ class _VestDetailsScreenState extends ConsumerState<VestDetailsScreen>  {
     );
   }
 }
-
