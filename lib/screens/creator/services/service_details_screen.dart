@@ -143,7 +143,7 @@ class _ServiceScreenState extends ConsumerState<ServiceDetailsScreen>
     return DefaultTabController(
       length: 4, // About, Portfolio, Reviews
       child: Scaffold(
-       
+
         appBar: AppBar(
           backgroundColor: Colors.transparent,
           elevation: 0,
@@ -152,110 +152,117 @@ class _ServiceScreenState extends ConsumerState<ServiceDetailsScreen>
             onPressed: () => Navigator.pop(context),
           ),
         ),
-        body: Column(
-          children: [
-            // Top Image
-            NetworkImageWithLoader(
-              imageUrl: widget.services.coverImage,
-            ),
-            const SizedBox(height: 16),
-
-            // Title Row with Edit/Delete
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        body: NestedScrollView(
+          headerSliverBuilder: (context, innerBoxIsScrolled) => [
+            SliverToBoxAdapter(
+              child: Column(
                 children: [
-                  Text(
-                    widget.services.serviceName,
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 18,
-                      fontWeight: FontWeight.w600,
+                  // Top Image
+                  NetworkImageWithLoader(
+                    imageUrl: widget.services.coverImage,
+                  ),
+                  const SizedBox(height: 16),
+
+                  // Title Row with Edit/Delete
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text(
+                          widget.services.serviceName,
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 18,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                        Row(
+                          children: [
+                            if (widget.services.status != 'PENDING' &&
+                                widget.services.status != 'REJECTED')
+                              IconButton(
+                                icon: const Icon(Icons.edit, color: Colors.white70),
+                                onPressed: () {
+                                  Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                      builder: (context) =>
+                                          EditServiceScreen(service: widget.services),
+                                    ),
+                                  );
+                                },
+                              ),
+                            IconButton(
+                              icon: const Icon(Icons.delete, color: Colors.redAccent),
+                              onPressed: () {
+                                ConfirmBottomSheet.show(
+                                  context: context,
+                                  message: "Are you sure you want to delete this service?",
+                                  confirmText: "Delete",
+                                  cancelText: "Cancel",
+                                  confirmColor: const Color(0xFFFE6163),
+                                  onConfirm: () => deleteService(widget.services),
+                                );
+                              },
+                            ),
+                          ],
+                        ),
+                      ],
                     ),
                   ),
 
-                  Row(
-                    children: [
-                      if (widget.services.status != 'PENDING' && widget.services.status != 'REJECTED')
-                        IconButton(
-                          icon: const Icon(Icons.edit, color: Colors.white70),
-                          onPressed: () {
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (context) => EditServiceScreen(
-                                  service: widget.services,
-                                ),
-                              ),
-                            );
-                          },
+                  const SizedBox(height: 8),
+
+                  // Stats Row
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceAround,
+                      children: [
+                        _statItem(
+                          ref.formatCreatorCurrency(widget.earnings.toString()),
+                          "Earnings",
                         ),
-                      IconButton(
-                        icon: const Icon(Icons.delete, color: Colors.redAccent),
-                        onPressed: () {
-                          ConfirmBottomSheet.show(
-                            context: context,
-                            message: "Are you sure you want to delete this service?",
-                            confirmText: "Delete",
-                            cancelText: "Cancel",
-                            confirmColor: const Color(0xFFFE6163),
-                            onConfirm: () {
-                              deleteService(widget.services);
-                            },
-                          );
-                        },
-                      ),
-                    ],
+                        _statItem("100", "Customers"),
+                        _statItem("15", "Reviews"),
+                      ],
+                    ),
                   ),
+
+                  const SizedBox(height: 12),
                 ],
               ),
             ),
 
-            const SizedBox(height: 8),
-
-            // Stats Row
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceAround,
-                children: [
-                  _statItem( ref.formatCreatorCurrency(
-                    (widget.earnings).toString(),
-                  ), "Earnings"),
-                  _statItem("100", "Customers"),
-                  _statItem("15", "Reviews"),
-                ],
-              ),
-            ),
-
-            const SizedBox(height: 12),
-
-            // TabBar
-            const TabBar(
-              indicatorColor: Colors.white,
-              labelColor: Colors.white,
-              unselectedLabelColor: Colors.grey,
-              tabs: [
-                Tab(text: "About"),
-                Tab(text: "Portfolio"),
-                Tab(text: "Reviews"),
-                Tab(text: "Offers"),
-              ],
-            ),
-
-            // TabBarView
-            Expanded(
-              child: TabBarView(
-                children: [
-                  _aboutTab(),
-                  _portfolioTab(),
-                  _reviewsTab(),
-                  buildMyBookingsUI(),
-                ],
+            // Pinned TabBar
+            SliverPersistentHeader(
+              pinned: true,
+              delegate: _StickyTabBarDelegate(
+                TabBar(
+                  controller: _tabController,
+                  indicatorColor: Colors.white,
+                  labelColor: Colors.white,
+                  unselectedLabelColor: Colors.grey,
+                  tabs: const [
+                    Tab(text: "About"),
+                    Tab(text: "Portfolio"),
+                    Tab(text: "Reviews"),
+                    Tab(text: "Offers"),
+                  ],
+                ),
               ),
             ),
           ],
+          body: TabBarView(
+            controller: _tabController,
+            children: [
+              _aboutTab(),
+              _portfolioTab(),
+              _reviewsTab(),
+              buildMyBookingsUI(),
+            ],
+          ),
         ),
       ),
     );
@@ -296,7 +303,7 @@ class _ServiceScreenState extends ConsumerState<ServiceDetailsScreen>
       ),
       data: (offerModel) {
         // Access the offers list correctly from the model
-        final offers = offerModel.data.data ?? [];
+        final offers = offerModel.data.data;
         final isLastPage = ref.read(getOfferFromUserProvider.notifier).isLastPage;
         final isLoadingMore = ref.read(getOfferFromUserProvider.notifier).isLoadingMore;
 
@@ -517,6 +524,29 @@ class _ServiceScreenState extends ConsumerState<ServiceDetailsScreen>
       child: Text("Reviews go here", style: TextStyle(color: Colors.white70)),
     );
   }
+}
+
+class _StickyTabBarDelegate extends SliverPersistentHeaderDelegate {
+  final TabBar tabBar;
+
+  _StickyTabBarDelegate(this.tabBar);
+
+  @override
+  Widget build(BuildContext context, double shrinkOffset, bool overlapsContent) {
+    return Container(
+      color: Theme.of(context).scaffoldBackgroundColor,
+      child: tabBar,
+    );
+  }
+
+  @override
+  double get maxExtent => tabBar.preferredSize.height;
+
+  @override
+  double get minExtent => tabBar.preferredSize.height;
+
+  @override
+  bool shouldRebuild(_StickyTabBarDelegate oldDelegate) => false;
 }
 
 

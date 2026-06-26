@@ -223,7 +223,7 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
         children: [
           if (data['amount'] != null)
             Text(
-              'Amount: ${data['currency'] ?? data['service_currency'] ?? data['original_currency']}${data['amount']}',
+              'Amount: ${data['currency'] ?? data['service_currency'] ?? data['original_currency'] ?? "NGN"}${data['amount']}',
               style: const TextStyle(fontSize: 12, fontFamily: 'Roboto',),
             ),
           if (data['property_name'] != null)
@@ -241,20 +241,6 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
     );
   }
 
-  Color _getNotificationColor(String type) {
-    switch (type) {
-      case 'transaction':
-        return AppColors.BUTTONCOLOR;
-      case 'card':
-        return AppColors.GREYCOLOR;
-      case 'alert':
-        return Colors.red;
-      case 'document':
-        return AppColors.DARKGREY;
-      default:
-        return Colors.blue;
-    }
-  }
 
   IconData _getNotificationIcon(String type) {
     switch (type) {
@@ -302,6 +288,10 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
       case 'wallet':
         Navigator.pushNamed(context, NonCreatorDashboard.id);
         ref.read(bottomNavigationProvider.notifier).state = 1;
+        break;
+      case 'vest':
+        Navigator.pushNamed(context, NonCreatorDashboard.id);
+        ref.read(bottomNavigationProvider.notifier).state = 2;
         break;
       case 'book':
         final data = ActiveInvestment.fromMap(notification.data['booking']);
