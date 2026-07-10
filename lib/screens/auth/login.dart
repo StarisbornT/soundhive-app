@@ -23,7 +23,14 @@ class Login extends StatefulWidget {
   static String id = 'login';
   final FlutterSecureStorage storage;
   final Dio dio;
-  const Login({super.key, required this.dio, required this.storage});
+  final int? redirectCreatorId; // add this
+
+  const Login({
+    super.key,
+    required this.dio,
+    required this.storage,
+    this.redirectCreatorId, // add this
+  });
 
   @override
   State<Login> createState() => _LoginScreenState();
@@ -62,6 +69,24 @@ class _LoginScreenState extends State<Login> {
   }
 
   late final GoogleSignIn _googleSignIn;
+
+  void _navigateAfterAuth(Map<String, dynamic> user) {
+    if (user['first_name'] != null) {
+      if (widget.redirectCreatorId != null) {
+        Navigator.pushReplacementNamed(
+          context,
+          '/creator-profile-view',
+          arguments: widget.redirectCreatorId,
+        );
+      } else {
+        Navigator.pushNamed(context, DashboardScreen.id);
+      }
+    } else {
+      // Profile setup isn't finished yet — that has to happen before
+      // anything else, so the redirect intent is dropped here.
+      Navigator.pushNamed(context, UpdateProfile1.id);
+    }
+  }
   Future<void> _saveFormData() async {
     try {
       LoaderService.showLoader(context);
@@ -87,11 +112,7 @@ class _LoginScreenState extends State<Login> {
 
         print("FULL RESPONSE: ${response.data}");
 
-        if (responseData['user']['first_name'] != null) {
-          Navigator.pushNamed(context, DashboardScreen.id);
-        } else {
-          Navigator.pushNamed(context, UpdateProfile1.id);
-        }
+        _navigateAfterAuth(responseData['user']);
       } else {
         showCustomAlert(
           context: context,
@@ -452,11 +473,7 @@ class _LoginScreenState extends State<Login> {
           await FirebaseAuth.instance.signInWithCustomToken(firebaseToken);
         }
 
-        if (responseData['user']['first_name'] != null) {
-          Navigator.pushNamed(context, DashboardScreen.id);
-        } else {
-          Navigator.pushNamed(context, UpdateProfile1.id);
-        }
+        _navigateAfterAuth(responseData['user']);
       }
     } on DioException catch (error) {
       LoaderService.hideLoader(context);

@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:io';
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -37,6 +38,84 @@ class ApiResponseProvider extends StateNotifier<AsyncValue<void>> {
       if (response.statusCode == 200) {
         state = const AsyncValue.data(null);
         return ApiResponseModel.fromJson(response.data);
+      } else {
+        throw Exception(response.data['message'] ?? 'Something went wrong');
+      }
+    } catch (error, stackTrace) {
+      state = AsyncValue.error(error, stackTrace);
+      rethrow;
+    } finally {
+      LoaderService.hideLoader(context);
+    }
+  }
+  Future<ApiResponseModel> uploadCreatorVideo({
+    required BuildContext context,
+    required File videoFile,
+    required void Function(double progress) onProgress,
+  }) async {
+    state = const AsyncValue.loading();
+    try {
+      // LoaderService.showLoader(context);
+      final formData = FormData.fromMap({
+        'video': await MultipartFile.fromFile(
+          videoFile.path,
+          filename: videoFile.path.split('/').last,
+        ),
+      });
+      final response = await _dio.post(
+        '/creator/video',
+        data: formData,
+        onSendProgress: (sent, total) {
+          if (total > 0) onProgress(sent / total);
+        },
+      );
+
+      if (response.statusCode == 200) {
+        state = const AsyncValue.data(null);
+        return ApiResponseModel.fromJson(response.data);
+      } else {
+        throw Exception(response.data['message'] ?? 'Something went wrong');
+      }
+    } catch (error, stackTrace) {
+      state = AsyncValue.error(error, stackTrace);
+      rethrow;
+    } finally {
+      // LoaderService.hideLoader(context);
+    }
+  }
+
+  Future<ApiResponseModel> getReferralInfo() async {
+    state = const AsyncValue.loading();
+    try {
+      final response = await _dio.get('/referrals/info');
+
+      if (response.statusCode == 200) {
+        state = const AsyncValue.data(null);
+        return ApiResponseModel.fromJson(response.data);
+      } else {
+        throw Exception(response.data['message'] ?? 'Something went wrong');
+      }
+    } catch (error, stackTrace) {
+      state = AsyncValue.error(error, stackTrace);
+      rethrow;
+    }
+  }
+
+  Future<ApiResponseModel> redeemReferralPoints({required BuildContext context}) async {
+    state = const AsyncValue.loading();
+    try {
+      LoaderService.showLoader(context);
+      final response = await _dio.post('/referrals/redeem');
+
+      if (response.statusCode == 200) {
+        state = const AsyncValue.data(null);
+        // Backend returns fields (credit_amount, currency, etc.) at the top level,
+        // not nested under 'data', so build the model manually rather than via fromJson.
+        return ApiResponseModel(
+          status: response.data['success'] ?? false,
+          message: response.data['message'] ?? '',
+          data: response.data,
+        );
       } else {
         throw Exception(response.data['message'] ?? 'Something went wrong');
       }
@@ -383,12 +462,14 @@ class ApiResponseProvider extends StateNotifier<AsyncValue<void>> {
   Future<ApiResponseModel> rejectOffer({
     required BuildContext context,
     required int id,
+    Map<String, dynamic>? payload, // 👈 Added payload argument
   }) async {
     state = const AsyncValue.loading();
     try {
       LoaderService.showLoader(context);
       final response = await _dio.post(
         '/offers/$id/reject',
+        data: payload, // 👈 Pass the payload map containing the reason here
       );
 
       if (response.statusCode == 200) {

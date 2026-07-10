@@ -1,3 +1,4 @@
+import 'package:app_links/app_links.dart';
 import 'package:dio/dio.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_core/firebase_core.dart';
@@ -5,7 +6,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
-import 'package:just_audio_background/just_audio_background.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:soundhive2/screens/auth/create_account.dart';
 import 'package:soundhive2/screens/auth/creator_identity.dart';
@@ -23,17 +23,18 @@ import 'package:soundhive2/screens/non_creator/non_creator.dart';
 import 'package:soundhive2/screens/onboarding/just_curious.dart';
 import 'package:soundhive2/screens/onboarding/onboard.dart';
 import 'package:soundhive2/screens/onboarding/splash_screen.dart';
+import 'package:soundhive2/services/creator_profile_loader.dart';
 import 'package:soundhive2/services/firebase_service.dart';
 import 'package:soundhive2/services/loader_service.dart';
 import 'package:soundhive2/theme/theme_provider.dart';
 import 'package:soundhive2/utils/app_colors.dart';
-import 'package:webview_flutter/webview_flutter.dart';
 
 import 'lib/app_life_cycle.dart';
 import 'lib/auth_state_provider.dart';
 import 'lib/interceptor.dart';
 import 'lib/no_network_overlay.dart';
 import 'lib/provider.dart';
+import 'package:upgrader/upgrader.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -76,6 +77,8 @@ void main() async {
   final navigatorKey = GlobalKey<NavigatorState>();
   LoaderService.navigatorKey = navigatorKey;
 
+  _initDeepLinkListener(navigatorKey);
+
   // ────────────────────────────────────────────────
   // 4. Create Riverpod container & initialize services
   // ────────────────────────────────────────────────
@@ -106,6 +109,65 @@ void main() async {
       ),
     ),
   );
+}
+
+/// Listens for cre8hive:// deep links (e.g. cre8hive://creator/42) and
+/// navigates to the right screen once the app is running.
+void _initDeepLinkListener(GlobalKey<NavigatorState> navigatorKey) {
+  final appLinks = AppLinks();
+
+  // Cold start: the app was launched by this link.
+  appLinks.getInitialLink().then((uri) {
+    if (uri != null) _handleDeepLinkWhenReady(uri, navigatorKey);
+  });
+
+  // Warm start: app already running, link received while active.
+  appLinks.uriLinkStream.listen((uri) {
+    _handleDeepLinkWhenReady(uri, navigatorKey);
+  }, onError: (err) {
+    debugPrint('Deep link stream error: $err');
+  });
+}
+
+/// On cold start, getInitialLink() can resolve before MaterialApp has
+/// finished its first build — meaning navigatorKey.currentState is still
+/// null at that instant, and any pushNamed() call silently no-ops.
+/// This waits (briefly, with a timeout) until the navigator is actually
+/// attached before handling the link.
+Future<void> _handleDeepLinkWhenReady(
+    Uri uri, GlobalKey<NavigatorState> navigatorKey) async {
+  var attempts = 0;
+  while (navigatorKey.currentState == null && attempts < 30) {
+    await Future.delayed(const Duration(milliseconds: 100));
+    attempts++;
+  }
+
+  if (navigatorKey.currentState == null) {
+    debugPrint('Navigator never became ready — dropping deep link: $uri');
+    return;
+  }
+
+  _handleDeepLink(uri, navigatorKey);
+}
+
+void _handleDeepLink(Uri uri, GlobalKey<NavigatorState> navigatorKey) {
+  debugPrint('Received deep link: $uri (host: ${uri.host}, segments: ${uri.pathSegments})');
+
+  // Expected shape: cre8hive://creator/42
+  if (uri.host == 'creator' && uri.pathSegments.isNotEmpty) {
+    final creatorId = int.tryParse(uri.pathSegments.first);
+    if (creatorId != null) {
+      navigatorKey.currentState?.pushNamed(
+        '/creator-profile-view',
+        arguments: creatorId,
+      );
+    } else {
+      debugPrint('Could not parse creator ID from segment: ${uri.pathSegments.first}');
+    }
+    return;
+  }
+
+  debugPrint('Unhandled deep link: $uri');
 }
 
 /// Checks if Firebase is already signed in. If not but a Laravel token
@@ -184,6 +246,21 @@ class SoundHive extends ConsumerWidget {
       debugShowCheckedModeBanner: false,
       navigatorObservers: [routeObserver],
       navigatorKey: navigatorKey,
+      restorationScopeId: 'app',
+      // Wraps every route (splash, auth, dashboards, creator profile, etc.)
+      // with the offline overlay. `child` here is the currently active
+      // route's widget tree, and this `context` is already inside
+      // MaterialApp, so Theme.of(context) resolves correctly for _OfflineScreen.
+     builder: (context, child) {
+        return NoNetworkOverlay(
+          child: UpgradeAlert(
+            upgrader: Upgrader(
+              durationUntilAlertAgain: const Duration(days: 3),
+            ),
+            child: child ?? const SizedBox.shrink(),
+          ),
+        );
+      },
       themeMode: themeState.themeMode,
       theme: ThemeData(
         brightness: Brightness.light,
@@ -196,7 +273,7 @@ class SoundHive extends ConsumerWidget {
         scaffoldBackgroundColor: AppColors.BACKGROUNDCOLOR,
       ),
       initialRoute:
-          authState.token != null ? DashboardScreen.id : SplashScreen.id,
+      authState.token != null ? DashboardScreen.id : SplashScreen.id,
       routes: {
         SplashScreen.id: (_) => const SplashScreen(),
         Onboard.id: (_) => const Onboard(),
@@ -216,6 +293,10 @@ class SoundHive extends ConsumerWidget {
             TermsAndCondition(storage: storage, dio: dio),
         CreatorDashboard.id: (_) => CreatorDashboard(),
         NonCreatorDashboard.id: (_) => NonCreatorDashboard(),
+        '/creator-profile-view': (context) {
+          final creatorId = ModalRoute.of(context)!.settings.arguments as int;
+          return CreatorProfileLoader(creatorId: creatorId);
+        },
       },
     );
   }

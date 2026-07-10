@@ -74,6 +74,11 @@ dependencies:
   just_audio_background: ^0.0.1-beta.17
   pdf: ^3.12.0
   connectivity_plus: ^7.1.1
+  geolocator: ^14.0.2
+  app_links: ^7.2.0
+  upgrader: ^13.5.0
+  video_player: ^2.11.1
+  chewie: ^1.13.1
 
 dev_dependencies:
   flutter_test:

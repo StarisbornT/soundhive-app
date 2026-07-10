@@ -8,6 +8,7 @@ import '../../screens/auth/update_profile1.dart';
 import '../../services/loader_service.dart';
 import '../auth_state_provider.dart';
 import '../provider.dart';
+import 'locationProvider.dart';
 
 final userProvider = StateNotifierProvider<UserNotifier, AsyncValue<MemberCreatorResponse>>((ref) {
   final dio = ref.watch(dioProvider);
@@ -40,6 +41,7 @@ class UserNotifier extends StateNotifier<AsyncValue<MemberCreatorResponse>> {
               (route) => false,
         );
       }
+      _ref.read(locationSyncProvider).syncLocation();
       return userData;
     }on DioException catch (dioError, stackTrace) {
       if (dioError.response?.statusCode == 401) {

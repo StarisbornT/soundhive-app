@@ -765,7 +765,12 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
     );
 
     try {
-      await messageRef.set(message.toMap());
+      final updates = <String, dynamic>{
+        'chats/$chatId/messages/${messageRef.key}': message.toMap(),
+        'userChats/$userId/$chatId': true,
+        'userChats/$receiverId/$chatId': true,
+      };
+      await _dbRef.update(updates);
       _controller.clear();
       setState(() {
         _pendingFiles.clear();

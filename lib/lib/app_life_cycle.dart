@@ -1,19 +1,21 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'app_resume_provider.dart';
+import 'dashboard_provider/user_provider.dart';
 
-class AppLifecycleManager extends StatefulWidget {
+class AppLifecycleManager extends ConsumerStatefulWidget {
   final Widget child;
 
   const AppLifecycleManager({super.key, required this.child});
 
   @override
-  State<AppLifecycleManager> createState() => _AppLifecycleManagerState();
+  ConsumerState<AppLifecycleManager> createState() =>
+      _AppLifecycleManagerState();
 }
 
-class _AppLifecycleManagerState extends State<AppLifecycleManager>
+class _AppLifecycleManagerState extends ConsumerState<AppLifecycleManager>
     with WidgetsBindingObserver {
-  // Track loader visibility and context
-  final bool _isLoaderShowing = false;
-  BuildContext? _loaderContext;
+  DateTime? _pausedAt;
 
   @override
   void initState() {
@@ -42,40 +44,30 @@ class _AppLifecycleManagerState extends State<AppLifecycleManager>
   }
 
   void _onAppPaused() {
-    // Standard cleanup
     FocusManager.instance.primaryFocus?.unfocus();
+    _pausedAt = DateTime.now();
   }
 
   void _onAppResumed() {
-    // No need for forceHideLoader() anymore
-    // Just ensure no stuck focus states
     FocusManager.instance.primaryFocus?.unfocus();
+
+    final pausedAt = _pausedAt;
+    _pausedAt = null;
+    if (pausedAt == null) return;
+
+    final awayFor = DateTime.now().difference(pausedAt);
+    if (awayFor < staleAfterBackground) return;
+
+    // Refresh core, app-wide data that most screens depend on.
+    ref.read(userProvider.notifier).loadUserProfile();
+
+    // Broadcast to any screen that wants to refresh its own data —
+    // see appResumeSignalProvider for how to listen to this.
+    ref.read(appResumeSignalProvider.notifier).state++;
   }
 
   @override
   Widget build(BuildContext context) {
-    return _LifecycleAwareLoader(
-      onLoaderShown: (ctx) => _loaderContext = ctx,
-      onLoaderHidden: () => _loaderContext = null,
-      child: widget.child,
-    );
-  }
-}
-
-/// Helper widget to track loader state
-class _LifecycleAwareLoader extends StatelessWidget {
-  final Function(BuildContext)? onLoaderShown;
-  final VoidCallback? onLoaderHidden;
-  final Widget child;
-
-  const _LifecycleAwareLoader({
-    required this.child,
-    this.onLoaderShown,
-    this.onLoaderHidden,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return child;
+    return widget.child;
   }
 }

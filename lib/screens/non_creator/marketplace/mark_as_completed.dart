@@ -19,6 +19,7 @@ import '../../../components/success.dart';
 import 'package:soundhive2/lib/dashboard_provider/apiresponseprovider.dart';
 import '../../../model/apiresponse_model.dart';
 import '../../../utils/alert_helper.dart';
+import 'creator.dart';
 
 class MarkAsCompletedScreen extends ConsumerStatefulWidget {
   final ActiveInvestment services;
@@ -116,32 +117,54 @@ class _MarkAsCompletedScreenState extends ConsumerState<MarkAsCompletedScreen> {
                   children: [
                     Row(
                       children: [
-                        serviceUser?.image != null && serviceUser!.image!.isNotEmpty
-                            ? Container(
-                          width: 30,
-                          height: 30,
-                          decoration: BoxDecoration(
-                            shape: BoxShape.circle,
-                            image: DecorationImage(
-                              image: NetworkImage(serviceUser.image!),
-                              fit: BoxFit.cover,
+                        if (serviceUser?.image != null && serviceUser!.image!.isNotEmpty) GestureDetector(
+                          onTap: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => CreatorProfile(
+                                  creator: serviceUser.creator!,
+                                ),
+                              ),
+                            );
+                          },
+                          child: Container(
+                            width: 30,
+                            height: 30,
+                            decoration: BoxDecoration(
+                              shape: BoxShape.circle,
+                              image: DecorationImage(
+                                image: NetworkImage(serviceUser.image!),
+                                fit: BoxFit.cover,
+                              ),
                             ),
                           ),
-                        )
-                            : Container(
-                          width: 30,
-                          height: 30,
-                          decoration: BoxDecoration(
-                            shape: BoxShape.circle,
-                            color: theme.colorScheme.primary,
-                          ),
-                          alignment: Alignment.center,
-                          child: Text(
-                            avatarLetter,
-                            style: TextStyle(
-                              fontSize: 10,
-                              fontWeight: FontWeight.bold,
-                              color: theme.colorScheme.onPrimary,
+                        ) else GestureDetector(
+                          onTap: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => CreatorProfile(
+                                  creator: serviceUser!.creator!,
+                                ),
+                              ),
+                            );
+                          },
+                          child: Container(
+                            width: 30,
+                            height: 30,
+                            decoration: BoxDecoration(
+                              shape: BoxShape.circle,
+                              color: theme.colorScheme.primary,
+                            ),
+                            alignment: Alignment.center,
+                            child: Text(
+                              avatarLetter,
+                              style: TextStyle(
+                                fontSize: 10,
+                                fontWeight: FontWeight.bold,
+                                color: theme.colorScheme.onPrimary,
+                              ),
                             ),
                           ),
                         ),
@@ -150,13 +173,25 @@ class _MarkAsCompletedScreenState extends ConsumerState<MarkAsCompletedScreen> {
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              Text(
-                                displayName,
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                                style: TextStyle(
-                                  color: theme.colorScheme.onSurface,
-                                  fontWeight: FontWeight.w600,
+                              GestureDetector(
+                                onTap: () {
+                                  Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                      builder: (context) => CreatorProfile(
+                                        creator: serviceUser!.creator!,
+                                      ),
+                                    ),
+                                  );
+                        },
+                                child: Text(
+                                  displayName,
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: TextStyle(
+                                    color: theme.colorScheme.onSurface,
+                                    fontWeight: FontWeight.w600,
+                                  ),
                                 ),
                               ),
                               Row(

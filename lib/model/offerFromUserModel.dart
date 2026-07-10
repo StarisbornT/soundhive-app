@@ -100,6 +100,8 @@ class OfferFromUser {
   final String userId;
   final String amount;
   final String status;
+  final String? message;
+  final String? rejectionReason;
   final String createdAt;
   final String updatedAt;
   final BookingUser? user;
@@ -121,6 +123,8 @@ class OfferFromUser {
     required this.updatedAt,
     this.service,
     this.user,
+    this.message,
+    this.rejectionReason,
     this.counterAmount,
     this.counterCurrency,
     this.counterMessage,
@@ -133,6 +137,8 @@ class OfferFromUser {
       serviceId: map['service_id']?.toString() ?? '',
       userId: map['user_id']?.toString() ?? '',
       status: map['status'] ?? '',
+      message: map['message'] ?? '',
+      rejectionReason: map['rejection_reason'] ?? '',
       createdAt: map['created_at'] ?? '',
       updatedAt: map['updated_at'] ?? '',
       amount: map['amount'],

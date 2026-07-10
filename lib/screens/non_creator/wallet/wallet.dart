@@ -10,6 +10,7 @@ import 'package:soundhive2/screens/non_creator/wallet/transaction_history.dart';
 import 'package:soundhive2/screens/non_creator/wallet/wallet_cards.dart';
 import 'package:soundhive2/utils/app_colors.dart';
 import 'package:soundhive2/utils/utils.dart';
+import '../../../components/kyc_blur_overlay.dart';
 import '../../../components/rounded_button.dart';
 import '../../../components/success.dart';
 import 'package:soundhive2/lib/dashboard_provider/apiresponseprovider.dart';
@@ -19,6 +20,7 @@ import '../../../model/apiresponse_model.dart';
 import '../../../model/transaction_history_model.dart';
 import '../../../model/user_model.dart';
 import '../../../utils/alert_helper.dart';
+import '../../creator/profile/setup_screen.dart';
 import 'add_money_screen.dart';
 import 'bills/airtime_screen.dart';
 
@@ -370,14 +372,48 @@ class _WalletScreenState extends ConsumerState<WalletScreen> {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
     final serviceState = ref.watch(getTransactionHistoryPlaceProvider);
-    final user = widget.user;
+
+    // 1. Read the user wrapper profile from your provider state
+    final userWrapper = ref.watch(userProvider).value;
+    final innerUser = userWrapper?.user;
+
+    // 2. Evaluate the blur configuration safely using null-aware operators
+    final bool showBlur = innerUser?.creator == null || innerUser?.creator?.active == false;
+
+    // 3. Fallback safely if the data is still loading or unavailable
+    if (userWrapper == null || innerUser == null) {
+      return const Scaffold(
+        body: Center(
+          child: CircularProgressIndicator(color: AppColors.BUTTONCOLOR),
+        ),
+      );
+    }
 
     return Scaffold(
       body: SafeArea(
-        child: RefreshIndicator(
-          onRefresh: _onRefresh,
-          color: AppColors.BUTTONCOLOR,
-          child: _buildScrollableBody(user, serviceState, theme, isDark),
+        child: Stack(
+          children: [
+            RefreshIndicator(
+              onRefresh: _onRefresh,
+              color: AppColors.BUTTONCOLOR,
+              // 4. innerUser is now guaranteed to be non-nullable here
+              child: _buildScrollableBody(innerUser, serviceState, theme, isDark),
+            ),
+
+            // Reusable component sitting on top of the scrolling layer
+            KycBlurOverlay(
+              showBlur: showBlur,
+              user: userWrapper,
+              onVerifyPressed: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => SetupScreen(user: userWrapper),
+                  ),
+                );
+              },
+            ),
+          ],
         ),
       ),
     );

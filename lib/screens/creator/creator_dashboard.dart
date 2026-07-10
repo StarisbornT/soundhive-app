@@ -6,6 +6,7 @@ import 'package:soundhive2/screens/creator/artist_arena/artist_profile_screen.da
 import 'package:soundhive2/screens/creator/chat_screen/chats.dart';
 import 'package:soundhive2/screens/creator/profile/profile_screen.dart';
 import 'package:soundhive2/screens/creator/profile/setup_screen.dart';
+import 'package:soundhive2/screens/creator/referral/referral_screen.dart';
 import 'package:soundhive2/screens/creator/services/services.dart';
 import 'package:soundhive2/screens/non_creator/non_creator.dart';
 import 'package:soundhive2/utils/app_colors.dart';
@@ -274,6 +275,12 @@ class CreatorDashboard extends ConsumerWidget {
                           MaterialPageRoute(
                             builder: (context) =>   const EventScreen(),
                           ),
+                        );
+                      }),
+                      _buildDrawerItem(icon: 'images/calendar.png', text: 'Refer & Earn', onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(builder: (context) => const ReferralScreen()),
                         );
                       }),
                       _buildDrawerItem(icon:'images/settings.png', text: 'Settings', onTap: () {

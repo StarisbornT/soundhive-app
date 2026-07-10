@@ -2,17 +2,21 @@ import 'dart:io';
 
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:share_plus/share_plus.dart';
 import 'package:soundhive2/components/rounded_button.dart';
 import 'package:soundhive2/utils/app_colors.dart';
 import '../../../components/label_text.dart';
 import 'package:soundhive2/lib/dashboard_provider/apiresponseprovider.dart';
 import 'package:soundhive2/lib/dashboard_provider/user_provider.dart';
+import '../../../components/video_preview_player.dart';
 import '../../../components/widgets.dart';
 import '../../../model/apiresponse_model.dart';
 import '../../../model/user_model.dart';
 import '../../../utils/alert_helper.dart';
+import '../../../utils/app_constants.dart';
 
 class ProfileScreen extends ConsumerStatefulWidget {
   final MemberCreatorResponse user;
@@ -24,6 +28,125 @@ class ProfileScreen extends ConsumerStatefulWidget {
 
 class _ProfileScreenState extends ConsumerState<ProfileScreen> {
   final ValueNotifier<File?> _imageNotifier = ValueNotifier<File?>(null);
+
+  // Video upload state
+  bool _isUploadingVideo = false;
+  double _uploadProgress = 0.0;
+
+  static const int _maxVideoSizeBytes = 100 * 1024 * 1024; // 100MB
+  static const List<String> _allowedVideoExtensions = ['mp4', 'mov', 'avi', 'mkv', 'webm'];
+
+  Future<void> _pickAndUploadVideo() async {
+    if (_isUploadingVideo) return; // guard against double-tap while uploading
+
+    final picker = ImagePicker();
+    final XFile? pickedFile;
+
+    try {
+      pickedFile = await picker.pickVideo(source: ImageSource.gallery);
+    } catch (e) {
+      showCustomAlert(
+        context: context,
+        isSuccess: false,
+        title: 'Error',
+        message: 'Could not open gallery. Please check app permissions.',
+      );
+      return;
+    }
+
+    if (pickedFile == null) return;
+
+    final videoFile = File(pickedFile.path);
+
+    // Validate extension client-side before wasting bandwidth
+    final extension = pickedFile.path.split('.').last.toLowerCase();
+    if (!_allowedVideoExtensions.contains(extension)) {
+      showCustomAlert(
+        context: context,
+        isSuccess: false,
+        title: 'Unsupported format',
+        message: 'Please select a video in ${_allowedVideoExtensions.join(', ')} format.',
+      );
+      return;
+    }
+
+    // Validate size client-side before wasting bandwidth
+    final fileSize = await videoFile.length();
+    if (fileSize > _maxVideoSizeBytes) {
+      showCustomAlert(
+        context: context,
+        isSuccess: false,
+        title: 'File too large',
+        message: 'Please select a video under 100MB. Selected file is '
+            '${(fileSize / (1024 * 1024)).toStringAsFixed(1)}MB.',
+      );
+      return;
+    }
+
+    if (fileSize == 0) {
+      showCustomAlert(
+        context: context,
+        isSuccess: false,
+        title: 'Error',
+        message: 'Selected file appears to be empty or unreadable.',
+      );
+      return;
+    }
+
+    setState(() {
+      _isUploadingVideo = true;
+      _uploadProgress = 0.0;
+    });
+
+    try {
+      await ref.read(apiresponseProvider.notifier).uploadCreatorVideo(
+        context: context,
+        videoFile: videoFile,
+        onProgress: (progress) {
+          if (mounted) {
+            setState(() => _uploadProgress = progress);
+          }
+        },
+      );
+
+      await ref.read(userProvider.notifier).loadUserProfile();
+
+      if (!mounted) return;
+      showCustomAlert(
+        context: context,
+        isSuccess: true,
+        title: 'Success',
+        message: 'Intro video updated successfully.',
+      );
+    } catch (error) {
+      if (!mounted) return;
+      String errorMessage = 'Failed to upload video. Please try again.';
+      if (error is DioException) {
+        if (error.type == DioExceptionType.connectionTimeout ||
+            error.type == DioExceptionType.sendTimeout) {
+          errorMessage = 'Upload timed out. Please check your connection and try again.';
+        } else if (error.response?.data != null) {
+          try {
+            final apiResponse = ApiResponseModel.fromJson(error.response?.data);
+            errorMessage = apiResponse.message;
+          } catch (_) {}
+        }
+      }
+      showCustomAlert(
+        context: context,
+        isSuccess: false,
+        title: 'Error',
+        message: errorMessage,
+      );
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isUploadingVideo = false;
+          _uploadProgress = 0.0;
+        });
+      }
+    }
+  }
 
   Future<void> _pickAndUploadImage() async {
     final picker = ImagePicker();
@@ -338,6 +461,108 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
       },
     );
   }
+  Widget _buildVideoCard({
+    required String? videoUrl,
+    required ThemeData theme,
+    required bool isDark,
+  }) {
+    final hasVideo = videoUrl != null && videoUrl.isNotEmpty;
+
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(16.0),
+      decoration: BoxDecoration(
+        color: isDark ? const Color(0xFF1A191E) : Colors.grey[100],
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: theme.dividerColor.withOpacity(0.1)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                'Intro Video',
+                style: TextStyle(
+                  color: theme.colorScheme.onSurface.withOpacity(0.7),
+                  fontSize: 14,
+                ),
+              ),
+              Icon(
+                hasVideo ? Icons.check_circle : Icons.info_outline,
+                color: hasVideo
+                    ? Colors.green
+                    : theme.colorScheme.onSurface.withOpacity(0.4),
+                size: 18,
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+
+          if (hasVideo && !_isUploadingVideo)
+          // Keyed by URL so a replaced video creates a fresh player
+          // instead of reusing a disposed/stale controller.
+            VideoPreviewPlayer(
+              key: ValueKey(videoUrl),
+              videoUrl: videoUrl,
+            )
+          else if (!_isUploadingVideo)
+            Text(
+              'Add a short intro video to help clients get to know you.',
+              style: TextStyle(
+                color: theme.colorScheme.onSurface,
+                fontSize: 13,
+              ),
+            ),
+
+          const SizedBox(height: 12),
+
+          if (_isUploadingVideo) ...[
+            ClipRRect(
+              borderRadius: BorderRadius.circular(8),
+              child: LinearProgressIndicator(
+                value: _uploadProgress > 0 ? _uploadProgress : null,
+                minHeight: 6,
+                backgroundColor: theme.dividerColor.withOpacity(0.2),
+                color: AppColors.PRIMARYCOLOR,
+              ),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              'Uploading… ${(_uploadProgress * 100).toStringAsFixed(0)}%',
+              style: TextStyle(
+                color: theme.colorScheme.onSurface.withOpacity(0.6),
+                fontSize: 12,
+              ),
+            ),
+          ] else
+            OutlinedButton.icon(
+              onPressed: _pickAndUploadVideo,
+              icon: Icon(
+                Icons.videocam_outlined,
+                color: theme.colorScheme.onSurface.withOpacity(0.6),
+                size: 16,
+              ),
+              label: Text(
+                hasVideo ? 'Replace video' : 'Upload video',
+                style: TextStyle(
+                  color: theme.colorScheme.onSurface.withOpacity(0.6),
+                  fontSize: 13,
+                ),
+              ),
+              style: OutlinedButton.styleFrom(
+                side: BorderSide(color: theme.dividerColor),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(20),
+                ),
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              ),
+            ),
+        ],
+      ),
+    );
+  }
 
   void showLocationBottomSheet(BuildContext context, String currentBio,
       ThemeData theme, bool isDark) {
@@ -532,12 +757,130 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
               isDark: isDark,
             ),
             const SizedBox(height: 16),
+            _buildVideoCard(
+              videoUrl: creator?.videoUrl, // add this field to your Creator model
+              theme: theme,
+              isDark: isDark,
+            ),
+            const SizedBox(height: 16),
+            _buildProfileLinkCard(
+              creatorId: creator?.id,
+              theme: theme,
+              isDark: isDark,
+            ),
+
+            const SizedBox(height: 16),
           ],
         ),
       ),
     );
   }
+  Widget _buildProfileLinkCard({
+    required int? creatorId,
+    required ThemeData theme,
+    required bool isDark,
+  }) {
+    final link = creatorId != null
+        ? '${AppConstants.publicProfileBaseUrl}$creatorId'
+        : null;
 
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(16.0),
+      decoration: BoxDecoration(
+        color: isDark ? const Color(0xFF1A191E) : Colors.grey[100],
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: theme.dividerColor.withOpacity(0.1)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'Your profile link',
+            style: TextStyle(
+              color: theme.colorScheme.onSurface.withOpacity(0.7),
+              fontSize: 14,
+            ),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            link ?? 'Complete your creator setup to get a shareable link',
+            style: TextStyle(
+              color: theme.colorScheme.onSurface,
+              fontSize: 13,
+              fontWeight: FontWeight.w400,
+            ),
+          ),
+          if (link != null) ...[
+            const SizedBox(height: 16),
+            Row(
+              children: [
+                Expanded(
+                  child: OutlinedButton.icon(
+                    onPressed: () => _copyProfileLink(link),
+                    icon: Icon(
+                      Icons.copy,
+                      size: 16,
+                      color: theme.colorScheme.onSurface.withOpacity(0.7),
+                    ),
+                    label: Text(
+                      'Copy',
+                      style: TextStyle(
+                        color: theme.colorScheme.onSurface.withOpacity(0.7),
+                        fontSize: 13,
+                      ),
+                    ),
+                    style: OutlinedButton.styleFrom(
+                      side: BorderSide(color: theme.dividerColor),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(20),
+                      ),
+                      padding: const EdgeInsets.symmetric(vertical: 10),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: ElevatedButton.icon(
+                    onPressed: () => _shareProfileLink(link),
+                    icon: const Icon(Icons.share, size: 16, color: Colors.white),
+                    label: const Text(
+                      'Share',
+                      style: TextStyle(color: Colors.white, fontSize: 13),
+                    ),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppColors.PRIMARYCOLOR,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(20),
+                      ),
+                      padding: const EdgeInsets.symmetric(vertical: 10),
+                      elevation: 0,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  void _copyProfileLink(String link) {
+    Clipboard.setData(ClipboardData(text: link));
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Profile link copied')),
+    );
+  }
+
+  void _shareProfileLink(String link) {
+    final name = widget.user.user?.firstName ?? 'my';
+    SharePlus.instance.share(
+      ShareParams(
+        text: "Check out $name's profile on Cre8Hive: $link",
+      ),
+    );
+  }
   // Helper widget to build a generic info card
   Widget _buildInfoCard({
     required String label,

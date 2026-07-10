@@ -1,7 +1,7 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:firebase_database/firebase_database.dart';
-import 'package:firebase_database/ui/firebase_animated_list.dart';
 import 'package:intl/intl.dart';
 import 'package:soundhive2/model/user_model.dart';
 
@@ -22,69 +22,96 @@ class ChatListScreen extends ConsumerStatefulWidget {
 
 class _ChatListScreenState extends ConsumerState<ChatListScreen> {
   final DatabaseReference _dbRef = FirebaseDatabase.instance.ref();
-  late Query _chatsQuery;
+
+  StreamSubscription<DatabaseEvent>? _userChatsSubscription;
+  final Map<String, StreamSubscription<DatabaseEvent>> _chatSubscriptions = {};
+  final Map<String, Map<dynamic, dynamic>> _chatsData = {};
+
+  List<String> _chatIds = [];
+  bool _isLoading = true;
+
+  String? get _currentUserId => widget.user.user?.id.toString();
 
   @override
   void initState() {
     super.initState();
-    // Query all chats
-    _chatsQuery = _dbRef.child('chats').limitToLast(50);
-
-    // Run migrations when the screen loads
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      _migrateAllChats();
-    });
+    _listenToUserChatsIndex();
   }
 
-  // MIGRATION FUNCTION FOR CHAT LIST
-  Future<void> _migrateAllChats() async {
-    try {
-      final snapshot = await _dbRef.child('chats').get();
-      if (snapshot.exists) {
-        final Map<dynamic, dynamic> chatsMap = snapshot.value as Map<dynamic, dynamic>;
+  @override
+  void dispose() {
+    _userChatsSubscription?.cancel();
+    for (final sub in _chatSubscriptions.values) {
+      sub.cancel();
+    }
+    super.dispose();
+  }
 
-        final updates = <String, dynamic>{};
+  // Listen to this user's own chat index: userChats/{uid}/{chatId} = true
+  // This is what the security rules actually allow us to read at scale
+  // (we can never read the whole /chats collection).
+  void _listenToUserChatsIndex() {
+    final userId = _currentUserId;
+    if (userId == null) {
+      setState(() => _isLoading = false);
+      return;
+    }
 
-        chatsMap.forEach((chatKey, chatValue) {
-          if (chatValue is Map<dynamic, dynamic>) {
-            final chatData = Map<String, dynamic>.from(chatValue);
+    _userChatsSubscription =
+        _dbRef.child('userChats/$userId').onValue.listen((event) {
+          final value = event.snapshot.value;
+          final Set<String> newChatIds = {};
 
-            // Migration 1: Add lastMessage field if missing
-            if (!chatData.containsKey('lastMessage') && chatData.containsKey('messages')) {
-              final lastMessage = _getLastMessage(chatData);
-              if (lastMessage != null) {
-                updates['chats/$chatKey/lastMessage'] = lastMessage;
-              }
-            }
+          if (value is Map<dynamic, dynamic>) {
+            newChatIds.addAll(value.keys.map((k) => k.toString()));
+          }
 
-            // Migration 2: Fix participants if it's a List
-            if (chatData['participants'] is List) {
-              print('Fixing participants for chat $chatKey (was List)');
-              // Extract participants from messages
-              final participants = _getParticipants(chatData, chatKey.toString());
-              if (participants != null) {
-                updates['chats/$chatKey/participants'] = participants;
-              }
-            }
+          // Stop listening to chats that dropped out of the index
+          final removed = _chatSubscriptions.keys
+              .where((id) => !newChatIds.contains(id))
+              .toList();
+          for (final id in removed) {
+            _chatSubscriptions[id]?.cancel();
+            _chatSubscriptions.remove(id);
+            _chatsData.remove(id);
+          }
 
-            // Migration 3: Fix lastRead if it's a List
-            if (chatData['lastRead'] is List) {
-              print('Fixing lastRead for chat $chatKey (was List)');
-              updates['chats/$chatKey/lastRead'] = {};
+          // Start listening to any newly indexed chats (live updates for
+          // last message / previews)
+          for (final chatId in newChatIds) {
+            if (!_chatSubscriptions.containsKey(chatId)) {
+              _chatSubscriptions[chatId] =
+                  _dbRef.child('chats/$chatId').onValue.listen((chatEvent) {
+                    final chatValue = chatEvent.snapshot.value;
+                    if (chatValue is Map<dynamic, dynamic>) {
+                      if (mounted) {
+                        setState(() {
+                          _chatsData[chatId] = chatValue;
+                        });
+                      }
+                    } else {
+                      if (mounted) {
+                        setState(() {
+                          _chatsData.remove(chatId);
+                        });
+                      }
+                    }
+                  }, onError: (e) {
+                    print('Error listening to chat $chatId: $e');
+                  });
             }
           }
-        });
 
-        if (updates.isNotEmpty) {
-          await _dbRef.update(updates);
-          print('Migrated ${updates.length} chats');
-          // Refresh the list after migration
-          setState(() {});
-        }
-      }
-    } catch (e) {
-      print('Error migrating chat data: $e');
-    }
+          if (mounted) {
+            setState(() {
+              _chatIds = newChatIds.toList();
+              _isLoading = false;
+            });
+          }
+        }, onError: (e) {
+          print('Error listening to userChats index: $e');
+          if (mounted) setState(() => _isLoading = false);
+        });
   }
 
   // Helper function to extract the last message from a chat
@@ -129,7 +156,8 @@ class _ChatListScreenState extends ConsumerState<ChatListScreen> {
   }
 
   // Helper function to extract participants from messages
-  Map<String, dynamic>? _getParticipants(Map<dynamic, dynamic> chatData, String chatKey) {
+  Map<String, dynamic>? _getParticipants(
+      Map<dynamic, dynamic> chatData, String chatKey) {
     try {
       // First try to get participants from root level
       final participants = chatData['participants'];
@@ -161,7 +189,9 @@ class _ChatListScreenState extends ConsumerState<ChatListScreen> {
             final senderId = messageMap['senderId']?.toString();
             final senderName = messageMap['senderName']?.toString();
 
-            if (senderId != null && senderName != null && !participantsMap.containsKey(senderId)) {
+            if (senderId != null &&
+                senderName != null &&
+                !participantsMap.containsKey(senderId)) {
               participantsMap[senderId] = {
                 'firstName': senderName.split(' ').first,
                 'lastName': senderName.split(' ').length > 1
@@ -186,169 +216,199 @@ class _ChatListScreenState extends ConsumerState<ChatListScreen> {
   @override
   Widget build(BuildContext context) {
     final user = widget.user.user;
+
+    if (_isLoading) {
+      return Scaffold(
+        appBar: AppBar(
+          title: const Text('Messages', style: TextStyle()),
+          leading: IconButton(
+            icon: const Icon(Icons.arrow_back_ios),
+            onPressed: () => Navigator.pop(context),
+          ),
+        ),
+        body: const Center(child: CircularProgressIndicator()),
+      );
+    }
+
+    // Build display-ready entries from whatever chat data has loaded so far
+    final List<_ChatEntry> displayEntries = [];
+
+    for (final chatKey in _chatIds) {
+      final chatDataValue = _chatsData[chatKey];
+      if (chatDataValue == null) continue; // still loading this chat
+
+      final Map<dynamic, dynamic> chatData = chatDataValue;
+
+      final bool isDisputeChat = chatKey.startsWith('dispute_') ||
+          (chatData['lastMessage'] != null &&
+              chatData['lastMessage']['disputeTitle'] != null);
+
+      final lastMessage = _getLastMessage(chatData);
+      final participants = _getParticipants(chatData, chatKey);
+
+      if (lastMessage == null || participants == null) {
+        continue;
+      }
+
+      // For dispute chats, check if current user is a participant
+      if (isDisputeChat) {
+        final List<dynamic> disputeParticipants =
+        lastMessage['participants'] is List
+            ? lastMessage['participants'] as List<dynamic>
+            : [];
+
+        if (!disputeParticipants.contains(user?.id.toString())) {
+          continue; // Skip if user is not a participant
+        }
+      } else {
+        final userIds = chatKey.split('_');
+        if (userIds.length < 2 || !userIds.contains(user?.id.toString())) {
+          continue;
+        }
+      }
+
+      String displayName;
+      String displayService = '';
+      String otherUserId = '';
+      String disputeId = '';
+
+      if (isDisputeChat) {
+        disputeId = chatKey.startsWith('dispute_')
+            ? chatKey.replaceFirst('dispute_', '')
+            : '';
+        displayName =
+            lastMessage['disputeTitle']?.toString() ?? 'Dispute Resolution';
+        displayService = 'Dispute';
+        otherUserId = lastMessage['senderId']?.toString() ?? '';
+      } else {
+        final userIds = chatKey.split('_');
+        final lastMessageSenderId = lastMessage['senderId']?.toString();
+        final lastMessageReceiverId = lastMessage['receiverId']?.toString();
+
+        if (lastMessageSenderId == user?.id.toString()) {
+          displayName =
+              lastMessage['customerName']?.toString() ?? 'Unknown User';
+          displayService =
+              lastMessage['serviceName']?.toString() ?? 'Unknown Service';
+          otherUserId = lastMessageReceiverId ??
+              (userIds[0] == user?.id.toString() ? userIds[1] : userIds[0]);
+        } else if (lastMessageReceiverId == user?.id.toString()) {
+          displayName =
+              lastMessage['customerName']?.toString() ?? 'Unknown User';
+          displayService =
+              lastMessage['serviceName']?.toString() ?? 'Unknown Service';
+          otherUserId = lastMessageSenderId ??
+              (userIds[0] == user?.id.toString() ? userIds[1] : userIds[0]);
+        } else {
+          otherUserId =
+          userIds[0] == user?.id.toString() ? userIds[1] : userIds[0];
+          final otherUserData = participants[otherUserId];
+          if (otherUserData is Map<dynamic, dynamic>) {
+            displayName =
+                '${otherUserData['firstName'] ?? ''} ${otherUserData['lastName'] ?? ''}'
+                    .trim();
+            displayService = otherUserData['serviceName'] ?? 'User';
+          } else {
+            displayName = 'Unknown User';
+            displayService = 'Unknown Service';
+          }
+        }
+      }
+
+      final lastMessageText = lastMessage['text']?.toString() ?? '';
+
+      DateTime lastMessageTime;
+      try {
+        final timestampString = lastMessage['timestamp']?.toString();
+        if (timestampString != null && timestampString.isNotEmpty) {
+          lastMessageTime = DateTime.parse(timestampString);
+        } else {
+          lastMessageTime = DateTime.now();
+        }
+      } catch (e) {
+        print('Error parsing last message timestamp for chat $chatKey: $e');
+        lastMessageTime = DateTime.now();
+      }
+
+      displayEntries.add(_ChatEntry(
+        chatKey: chatKey,
+        displayName: displayName,
+        displayService: displayService,
+        otherUserId: otherUserId,
+        disputeId: disputeId,
+        isDisputeChat: isDisputeChat,
+        lastMessageText: lastMessageText,
+        lastMessageTime: lastMessageTime,
+        lastMessageSenderId: lastMessage['senderId']?.toString() ?? '',
+        lastMessageSenderName: lastMessage['senderName']?.toString() ?? '',
+      ));
+    }
+
+    // Most recent conversation first
+    displayEntries.sort((a, b) => b.lastMessageTime.compareTo(a.lastMessageTime));
+
     return Scaffold(
       appBar: AppBar(
         title: const Text('Messages', style: TextStyle()),
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios, ),
+          icon: const Icon(Icons.arrow_back_ios),
           onPressed: () => Navigator.pop(context),
         ),
       ),
-      body: FirebaseAnimatedList(
-        query: _chatsQuery,
-        itemBuilder: (context, snapshot, animation, index) {
-          final chatKey = snapshot.key!;
-
-          // Add debug logging
-          print('Processing chat with key: $chatKey');
-          print('Chat data: ${snapshot.value}');
-
-          // Safe type checking for chatData
-          dynamic chatDataValue = snapshot.value;
-          Map<dynamic, dynamic> chatData = {};
-
-          if (chatDataValue is Map<dynamic, dynamic>) {
-            chatData = chatDataValue;
-          } else {
-            print('WARNING: Chat data is not a Map for key $chatKey, skipping');
-            return const SizedBox();
-          }
-
-          // Check if this is a dispute chat
-          final bool isDisputeChat = chatKey.startsWith('dispute_') ||
-              (chatData['lastMessage'] != null &&
-                  chatData['lastMessage']['disputeTitle'] != null);
-
-          // Get last message from the messages collection
-          final lastMessage = _getLastMessage(chatData);
-
-          // Get participants information
-          final participants = _getParticipants(chatData, chatKey);
-
-          if (lastMessage == null || participants == null) {
-            print('WARNING: Missing lastMessage or participants for chat $chatKey');
-            return const SizedBox();
-          }
-
-          // For dispute chats, check if current user is a participant
-          if (isDisputeChat) {
-            final List<dynamic> disputeParticipants = lastMessage['participants'] is List
-                ? lastMessage['participants'] as List<dynamic>
-                : [];
-
-            if (!disputeParticipants.contains(user?.id.toString())) {
-              return const SizedBox(); // Skip if user is not a participant
-            }
-          }
-          // For regular chats, check if this chat involves the current user using the chat ID format
-          else {
-            final userIds = chatKey.split('_');
-            if (userIds.length < 2 || !userIds.contains(user?.id.toString())) {
-              return const SizedBox();
-            }
-          }
-
-          String displayName;
-          String displayService = '';
-          String otherUserId = '';
-          String disputeId = '';
-
-          // Extract dispute ID if this is a dispute chat
-          if (isDisputeChat) {
-            disputeId = chatKey.startsWith('dispute_')
-                ? chatKey.replaceFirst('dispute_', '')
-                : '';
-            displayName = lastMessage['disputeTitle']?.toString() ?? 'Dispute Resolution';
-            displayService = 'Dispute';
-            otherUserId = lastMessage['senderId']?.toString() ?? '';
-          } else {
-            // Regular chat logic - extract user IDs from chat key
-            final userIds = chatKey.split('_');
-            final lastMessageSenderId = lastMessage['senderId']?.toString();
-            final lastMessageReceiverId = lastMessage['receiverId']?.toString();
-
-            // If current user sent the last message, show receiver's name
-            if (lastMessageSenderId == user?.id.toString()) {
-              displayName = lastMessage['customerName']?.toString() ?? 'Unknown User';
-              displayService = lastMessage['serviceName']?.toString() ?? 'Unknown Service';
-              otherUserId = lastMessageReceiverId ?? (userIds[0] == user?.id.toString() ? userIds[1] : userIds[0]);
-            }
-            // If current user received the last message, show sender's name
-            else if (lastMessageReceiverId == user?.id.toString()) {
-              displayName = lastMessage['customerName']?.toString() ?? 'Unknown User';
-              displayService = lastMessage['serviceName']?.toString() ?? 'Unknown Service';
-              otherUserId = lastMessageSenderId ?? (userIds[0] == user?.id.toString() ? userIds[1] : userIds[0]);
-            }
-            // Fallback: use participants data
-            else {
-              otherUserId = userIds[0] == user?.id.toString() ? userIds[1] : userIds[0];
-              final otherUserData = participants[otherUserId];
-              if (otherUserData is Map<dynamic, dynamic>) {
-                displayName = '${otherUserData['firstName'] ?? ''} ${otherUserData['lastName'] ?? ''}'.trim();
-                displayService = otherUserData['serviceName'] ?? 'User';
-              } else {
-                displayName = 'Unknown User';
-                displayService = 'Unknown Service';
-              }
-            }
-          }
-
-          final lastMessageText = lastMessage['text']?.toString() ?? '';
-
-          // Safe timestamp parsing
-          DateTime lastMessageTime;
-          try {
-            final timestampString = lastMessage['timestamp']?.toString();
-            if (timestampString != null && timestampString.isNotEmpty) {
-              lastMessageTime = DateTime.parse(timestampString);
-            } else {
-              lastMessageTime = DateTime.now();
-            }
-          } catch (e) {
-            print('Error parsing last message timestamp for chat $chatKey: $e');
-            lastMessageTime = DateTime.now();
-          }
-
-          // For now, set unread count to 0 since we don't have lastRead data
-          int unreadCount = 0;
+      body: displayEntries.isEmpty
+          ? Center(
+        child: Text(
+          'No messages yet',
+          style: TextStyle(color: Colors.white.withOpacity(0.6)),
+        ),
+      )
+          : ListView.builder(
+        itemCount: displayEntries.length,
+        itemBuilder: (context, index) {
+          final entry = displayEntries[index];
 
           return _ChatListItem(
-            chatId: chatKey,
-            userName: displayName,
-            userService: displayService,
-            lastMessage: lastMessageText,
-            timestamp: lastMessageTime,
-            unreadCount: unreadCount,
-            isDispute: isDisputeChat,
-            disputeId: disputeId,
-            sellerId: isDisputeChat ? lastMessage['senderId']?.toString() ?? '' : otherUserId,
-            sellerName: isDisputeChat ? lastMessage['senderName']?.toString() ?? '' : displayName,
+            chatId: entry.chatKey,
+            userName: entry.displayName,
+            userService: entry.displayService,
+            lastMessage: entry.lastMessageText,
+            timestamp: entry.lastMessageTime,
+            unreadCount: 0,
+            isDispute: entry.isDisputeChat,
+            disputeId: entry.disputeId,
+            sellerId: entry.isDisputeChat
+                ? entry.lastMessageSenderId
+                : entry.otherUserId,
+            sellerName: entry.isDisputeChat
+                ? entry.lastMessageSenderName
+                : entry.displayName,
             onTap: () {
-              if (isDisputeChat) {
-                // Navigate to dispute chat screen
+              if (entry.isDisputeChat) {
                 Navigator.push(
                   context,
                   MaterialPageRoute(
                     builder: (context) => DisputeChatScreen(
-                      sellerId: lastMessage['senderId']?.toString() ?? '',
-                      sellerName: lastMessage['senderName']?.toString() ?? 'Unknown',
+                      sellerId: entry.lastMessageSenderId,
+                      sellerName: entry.lastMessageSenderName.isNotEmpty
+                          ? entry.lastMessageSenderName
+                          : 'Unknown',
                       userId: user!.id.toString(),
-                      senderName: "${user.firstName} ${user.lastName}",
-                      disputeId: disputeId,
+                      senderName:
+                      "${user.firstName} ${user.lastName}",
+                      disputeId: entry.disputeId,
                     ),
                   ),
                 );
               } else {
-                // Navigate to regular chat screen
                 Navigator.push(
                   context,
                   MaterialPageRoute(
                     builder: (context) => ChatScreen(
                       sellerId: user!.id.toString(),
-                      sellerName: displayName,
-                      sellerService: displayService,
-                      receiverId: otherUserId,
-                      senderName: displayName,
+                      sellerName: entry.displayName,
+                      sellerService: entry.displayService,
+                      receiverId: entry.otherUserId,
+                      senderName: entry.displayName,
                     ),
                   ),
                 );
@@ -359,6 +419,33 @@ class _ChatListScreenState extends ConsumerState<ChatListScreen> {
       ),
     );
   }
+}
+
+// Simple internal model to hold a fully-resolved chat list row
+class _ChatEntry {
+  final String chatKey;
+  final String displayName;
+  final String displayService;
+  final String otherUserId;
+  final String disputeId;
+  final bool isDisputeChat;
+  final String lastMessageText;
+  final DateTime lastMessageTime;
+  final String lastMessageSenderId;
+  final String lastMessageSenderName;
+
+  _ChatEntry({
+    required this.chatKey,
+    required this.displayName,
+    required this.displayService,
+    required this.otherUserId,
+    required this.disputeId,
+    required this.isDisputeChat,
+    required this.lastMessageText,
+    required this.lastMessageTime,
+    required this.lastMessageSenderId,
+    required this.lastMessageSenderName,
+  });
 }
 
 class _ChatListItem extends StatelessWidget {
@@ -392,7 +479,8 @@ class _ChatListItem extends StatelessWidget {
     final now = DateTime.now();
     final today = DateTime(now.year, now.month, now.day);
     final yesterday = DateTime(now.year, now.month, now.day - 1);
-    final messageDay = DateTime(timestamp.year, timestamp.month, timestamp.day);
+    final messageDay =
+    DateTime(timestamp.year, timestamp.month, timestamp.day);
 
     if (messageDay == today) {
       return DateFormat('HH:mm').format(timestamp);
@@ -410,7 +498,8 @@ class _ChatListItem extends StatelessWidget {
       leading: Stack(
         children: [
           CircleAvatar(
-            backgroundColor: isDispute ? Colors.orange : const Color(0xFF4D3490),
+            backgroundColor:
+            isDispute ? Colors.orange : const Color(0xFF4D3490),
             child: Icon(
               isDispute ? Icons.warning : Icons.person,
               color: Colors.white,
@@ -445,24 +534,29 @@ class _ChatListItem extends StatelessWidget {
       ),
       title: Row(
         children: [
-          if (isDispute)
-            const Icon(Icons.warning, color: Colors.orange, size: 16),
-          if (isDispute)
-            const SizedBox(width: 4),
+          if (isDispute) const Icon(Icons.warning, color: Colors.orange, size: 16),
+          if (isDispute) const SizedBox(width: 4),
           Expanded(
             child: Text(
               userName,
               style: TextStyle(
-                fontWeight: unreadCount > 0 ? FontWeight.bold : FontWeight.normal,
+                fontWeight:
+                unreadCount > 0 ? FontWeight.bold : FontWeight.normal,
               ),
             ),
           ),
         ],
       ),
       subtitle: Text(
-        isDispute ? 'Dispute: $lastMessage' : lastMessage.isNotEmpty ? lastMessage : 'No messages yet',
+        isDispute
+            ? 'Dispute: $lastMessage'
+            : lastMessage.isNotEmpty
+            ? lastMessage
+            : 'No messages yet',
         style: TextStyle(
-          color: isDispute ? Colors.orange.withOpacity(0.8) : Colors.white.withOpacity(0.7),
+          color: isDispute
+              ? Colors.orange.withOpacity(0.8)
+              : Colors.white.withOpacity(0.7),
           overflow: TextOverflow.ellipsis,
           fontWeight: unreadCount > 0 ? FontWeight.bold : FontWeight.normal,
         ),
