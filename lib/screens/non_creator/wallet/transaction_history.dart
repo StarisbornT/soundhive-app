@@ -276,7 +276,7 @@ class TransactionCard extends ConsumerWidget {
                   borderRadius: BorderRadius.circular(8),
                 ),
                 child: Center(
-                  child: Icon(
+                  child: FaIcon(
                     isDebit
                         ? FontAwesomeIcons.arrowDown
                         : FontAwesomeIcons.arrowUp,

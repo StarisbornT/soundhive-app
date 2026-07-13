@@ -6,7 +6,7 @@ import 'package:soundhive2/model/offerFromUserModel.dart';
 import '../../../components/rounded_button.dart';
 import '../../../components/success.dart';
 import 'package:soundhive2/lib/dashboard_provider/apiresponseprovider.dart';
-import '../../../lib/dashboard_provider/getUserOfferProvider.dart';
+import 'package:soundhive2/lib/dashboard_provider/getUserOfferProvider.dart';
 import '../../../model/apiresponse_model.dart';
 import '../../../model/getOfferFromUserProvider.dart';
 import '../../../utils/alert_helper.dart';
@@ -24,6 +24,7 @@ class OfferDetailScreen extends ConsumerStatefulWidget {
 class _OfferDetailScreenState extends ConsumerState<OfferDetailScreen> {
   final TextEditingController _counterAmountController = TextEditingController();
   final TextEditingController _counterMessageController = TextEditingController();
+  final TextEditingController _rejectionReasonController = TextEditingController(); // 👈 Added
   bool _isCountering = false;
 
   void _acceptOffer() async {
@@ -54,15 +55,90 @@ class _OfferDetailScreenState extends ConsumerState<OfferDetailScreen> {
     }
   }
 
-  void _rejectOffer() async {
+  // Display a text dialogue field to input the optional rejection reason note
+  void _showRejectOfferDialog() {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: const Color(0xFF1A191E),
+        surfaceTintColor: Colors.transparent,
+        title: const Text(
+          'Reject Offer',
+          style: TextStyle(color: Colors.white, fontSize: 20),
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(
+              'Reason for rejection (Optional):',
+              style: TextStyle(color: Colors.white70, fontSize: 14),
+            ),
+            const SizedBox(height: 12),
+            TextFormField(
+              controller: _rejectionReasonController,
+              style: const TextStyle(color: Colors.white),
+              decoration: InputDecoration(
+                hintText: 'Provide a reason for the user...',
+                hintStyle: const TextStyle(color: Colors.white54),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: const BorderSide(color: Colors.white24),
+                ),
+                enabledBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: const BorderSide(color: Colors.white24),
+                ),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: const BorderSide(color: AppColors.PRIMARYCOLOR),
+                ),
+              ),
+              maxLines: 3,
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () {
+              Navigator.pop(context);
+              _rejectionReasonController.clear();
+            },
+            child: const Text('Cancel', style: TextStyle(color: Colors.white70)),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              final reason = _rejectionReasonController.text.trim();
+              Navigator.pop(context); // Close dialog
+              _rejectOffer(reason.isEmpty ? null : reason);
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.red[700],
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            ),
+            child: const Text('Reject Offer', style: TextStyle(color: Colors.white)),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _rejectOffer(String? reason) async {
     try {
+      final payload = {
+        if (reason != null) "reason": reason,
+      };
+
       final response = await ref.read(apiresponseProvider.notifier).rejectOffer(
           context: context,
-          id: widget.offer.id
+          id: widget.offer.id,
+          payload: payload // 👈 Passed to your API
       );
 
       if(response.status) {
+        _rejectionReasonController.clear();
         await ref.read(getOfferFromUserProvider.notifier).getOffers(id: int.parse(widget.offer.serviceId));
+        await ref.read(getUserOfferProvider.notifier).getReceivedOffers();
         Navigator.pushReplacement(
           context,
           MaterialPageRoute(
@@ -105,7 +181,7 @@ class _OfferDetailScreenState extends ConsumerState<OfferDetailScreen> {
                 style: TextStyle(color: Colors.white70, fontSize: 14),
               ),
               Text(
-               ref.formatCreatorCurrency(widget.offer.convertedAmount ?? ''),
+                ref.formatCreatorCurrency(widget.offer.convertedAmount ?? ''),
                 style: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold),
               ),
               const SizedBox(height: 20),
@@ -259,13 +335,7 @@ class _OfferDetailScreenState extends ConsumerState<OfferDetailScreen> {
 
   void _handleError(dynamic error) {
     String errorMessage = 'An unexpected error occurred';
-
-    print("Raw error: $error");
-
     if (error is DioException) {
-      print("Dio error: ${error.response?.data}");
-      print("Status code: ${error.response?.statusCode}");
-
       if (error.response?.data != null) {
         try {
           final apiResponse = ApiResponseModel.fromJson(error.response?.data);
@@ -290,13 +360,13 @@ class _OfferDetailScreenState extends ConsumerState<OfferDetailScreen> {
   void dispose() {
     _counterAmountController.dispose();
     _counterMessageController.dispose();
+    _rejectionReasonController.dispose(); // 👈 Added
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-     
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
@@ -353,7 +423,6 @@ class _OfferDetailScreenState extends ConsumerState<OfferDetailScreen> {
             ),
             const SizedBox(height: 10),
 
-            // Show counter offer details if status is COUNTERED
             if (widget.offer.status == "COUNTERED")
               Container(
                 padding: const EdgeInsets.all(16),
@@ -401,8 +470,27 @@ class _OfferDetailScreenState extends ConsumerState<OfferDetailScreen> {
                   Utils.confirmRow('Client', "${widget.offer.user?.firstName} ${widget.offer.user?.lastName}"),
                   Utils.confirmRow('Price', ref.formatCreatorCurrency(widget.offer.convertedAmount)),
                   Utils.confirmRow('Service Request', widget.offer.service?.serviceName),
-                  if (widget.offer.counterMessage != null && widget.offer.counterMessage!.isNotEmpty)
-                    Utils.confirmRow('Client Message', widget.offer.counterMessage!),
+
+                  // 1. Show the message coming from the person making the offer
+                  if (widget.offer.message != null && widget.offer.message!.isNotEmpty) ...[
+                    const Padding(
+                      padding: EdgeInsets.symmetric(vertical: 8.0),
+                      child: Divider(color: Colors.white12),
+                    ),
+                    const Text(
+                      'Client Message:',
+                      style: TextStyle(color: Colors.white70, fontSize: 13),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      widget.offer.message!,
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 15,
+                        height: 1.4, // Provides nice vertical spacing for long text blocks
+                      ),
+                    ),
+                  ],
                 ],
               ),
             ),
@@ -416,7 +504,7 @@ class _OfferDetailScreenState extends ConsumerState<OfferDetailScreen> {
                   runSpacing: 12,
                   children: [
                     OutlinedButton(
-                      onPressed: _rejectOffer,
+                      onPressed: _showRejectOfferDialog, // 👈 Hooked up dialog block
                       style: OutlinedButton.styleFrom(
                         foregroundColor: Colors.white,
                         side: const BorderSide(color: Colors.white24),
@@ -425,7 +513,6 @@ class _OfferDetailScreenState extends ConsumerState<OfferDetailScreen> {
                       child: const Text("Reject"),
                     ),
 
-                    // Counter Offer Button
                     OutlinedButton(
                       onPressed: _showCounterOfferDialog,
                       style: OutlinedButton.styleFrom(

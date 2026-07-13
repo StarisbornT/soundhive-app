@@ -4,11 +4,11 @@ import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
-import 'package:soundhive2/screens/auth/update_profile1.dart';
 import 'package:soundhive2/utils/app_colors.dart';
-
 import '../../services/loader_service.dart';
 import '../../utils/alert_helper.dart';
+import '../creator/creator_dashboard.dart';
+import '../onboarding/just_curious.dart';
 
 class TermsAndCondition extends ConsumerStatefulWidget {
   static String id = 'terms_and_condition';
@@ -59,8 +59,12 @@ class _TermsAndConditionScreenState extends ConsumerState<TermsAndCondition> {
       if (response.statusCode == 200) {
         LoaderService.hideLoader(context);
         final responseData = response.data;
-        await widget.storage.write(key: 'role', value: responseData['data']['role']);
-        Navigator.pushNamed(context, UpdateProfile1.id);
+        final role = responseData['data']['role'];
+        if(role.toLowerCase() == "creator") {
+          Navigator.pushNamed(context, CreatorDashboard.id);
+        }else {
+          Navigator.pushNamed(context, JustCurious.id);
+        }
       }
 
       else {

@@ -6,6 +6,7 @@ import 'package:soundhive2/components/rounded_button.dart';
 import 'package:soundhive2/lib/dashboard_provider/checkOfferProvider.dart';
 import 'package:soundhive2/screens/non_creator/wallet/wallet.dart';
 import 'package:soundhive2/utils/utils.dart';
+import '../../../components/label_text.dart';
 import '../../../components/success.dart';
 import '../../../components/widgets.dart';
 import 'package:soundhive2/lib/dashboard_provider/apiresponseprovider.dart';
@@ -16,6 +17,7 @@ import '../../../model/apiresponse_model.dart';
 import '../../../model/market_orders_service_model.dart';
 import '../../../model/offerFromUserModel.dart';
 import '../../../model/user_model.dart';
+import '../../../services/creator_profile_loader.dart';
 import '../../../utils/alert_helper.dart';
 import '../../../utils/app_colors.dart';
 import '../../creator/profile/profile_screen.dart';
@@ -401,8 +403,8 @@ class _MarketplaceDetailsScreenState extends ConsumerState<MarketplaceDetails> {
               Navigator.push(
                 context,
                 MaterialPageRoute(
-                  builder: (context) => CreatorProfile(
-                    creator: creator,
+                  builder: (context) => CreatorProfileLoader(
+                    creatorId: creator.id,
                   ),
                 ),
               );
@@ -447,7 +449,7 @@ class _MarketplaceDetailsScreenState extends ConsumerState<MarketplaceDetails> {
             const Icon(Icons.star, color: Colors.amber, size: 18),
             Text(
               (widget.service.user?.creator != null)
-                  ? Utils.getOverallRating(widget.service.user!.creator!).toString()
+                  ? Utils.getOverallRating(widget.service.user!.creator!).toStringAsFixed(1)
                   : "0.0",
 
               style: TextStyle(
@@ -844,16 +846,11 @@ class _MarketplaceDetailsScreenState extends ConsumerState<MarketplaceDetails> {
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
       builder: (BuildContext context) {
-        return EditTextFieldBottomSheet(
-          title: 'Offer Amount',
-          initialValue: "",
-          hintText: 'Enter your offer amount',
-          buttonText: "Submit Offer",
-          inputType: TextInputType.number,
-          onSave: (newValue) {
-            if (newValue.trim().isEmpty) return;
-            Navigator.pop(context);
-            _makeAnOffer(double.parse(newValue));
+        return MakeOfferFormBottomSheet(
+          theme: theme,
+          isDark: isDark,
+          onSubmit: (amount, message) {
+            _makeAnOffer(amount, message);
           },
         );
       },
@@ -1007,11 +1004,12 @@ class _MarketplaceDetailsScreenState extends ConsumerState<MarketplaceDetails> {
     );
   }
 
-  void _makeAnOffer(double amount) async {
+  void _makeAnOffer(double amount, String? message) async {
     try {
       final payload = {
         "amount": amount,
         'service_id': widget.service.id,
+        if (message != null) 'message': message,
       };
 
       final response = await ref.read(apiresponseProvider.notifier).makeOffer(
@@ -1021,9 +1019,7 @@ class _MarketplaceDetailsScreenState extends ConsumerState<MarketplaceDetails> {
 
       if (response.status) {
         await ref.read(userProvider.notifier).loadUserProfile();
-        await ref
-            .read(checkOfferProvider.notifier)
-            .checkOffer(widget.service.id);
+        await ref.read(checkOfferProvider.notifier).checkOffer(widget.service.id);
 
         showCustomAlert(
           context: context,
@@ -1063,6 +1059,139 @@ class _MarketplaceDetailsScreenState extends ConsumerState<MarketplaceDetails> {
       isSuccess: false,
       title: 'Error',
       message: errorMessage,
+    );
+  }
+}
+
+class MakeOfferFormBottomSheet extends ConsumerStatefulWidget {
+  final ThemeData theme;
+  final bool isDark;
+  final Function(double amount, String? message) onSubmit;
+
+  const MakeOfferFormBottomSheet({
+    super.key,
+    required this.theme,
+    required this.isDark,
+    required this.onSubmit,
+  });
+
+  @override
+  ConsumerState<MakeOfferFormBottomSheet> createState() => _MakeOfferFormBottomSheetState();
+}
+
+class _MakeOfferFormBottomSheetState extends ConsumerState<MakeOfferFormBottomSheet> {
+  final _formKey = GlobalKey<FormState>();
+  final TextEditingController _amountController = TextEditingController();
+  final TextEditingController _messageController = TextEditingController();
+
+  @override
+  void dispose() {
+    _amountController.dispose();
+    _messageController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = widget.theme;
+    final isDark = widget.isDark;
+
+    return Container(
+      decoration: BoxDecoration(
+        color: isDark ? const Color(0xFF1A191E) : Colors.white,
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      padding: const EdgeInsets.all(20.0),
+      child: Form(
+        key: _formKey,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Header
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  'Make an Offer',
+                  style: TextStyle(
+                    color: theme.colorScheme.onSurface,
+                    fontSize: 18,
+                    fontWeight: FontWeight.w400,
+                  ),
+                ),
+                IconButton(
+                  icon: Icon(
+                    Icons.close,
+                    color: theme.colorScheme.onSurface.withOpacity(0.6),
+                  ),
+                  onPressed: () => Navigator.pop(context),
+                ),
+              ],
+            ),
+            const SizedBox(height: 15),
+
+            CurrencyInputField(
+              label: "Offer Amount",
+              controller: _amountController,
+              currencySymbol: ref.userCurrencySymbol,
+              onChanged: (value) {},
+              validator: (value) {
+                if (value == null || value.trim().isEmpty) {
+                  return 'Please enter an amount';
+                }
+
+                // 👈 Strip out commas before parsing
+                final cleanValue = value.replaceAll(',', '').trim();
+
+                if (double.tryParse(cleanValue) == null || double.parse(cleanValue) <= 0) {
+                  return 'Please enter a valid active amount';
+                }
+                return null;
+              },
+              theme: theme,
+              isDark: isDark,
+            ),
+            const SizedBox(height: 20),
+
+            LabeledTextField(
+              label: 'Message / Note (Optional)',
+              controller: _messageController,
+              hintText: 'Add notes, timeline requests, or details...',
+              keyboardType: TextInputType.multiline,
+              maxLines: 3,
+            ),
+            const SizedBox(height: 25),
+
+            // Submit Button
+            RoundedButton(
+              title: "Submit Offer",
+              color: AppColors.BUTTONCOLOR,
+              onPressed: () {
+                if (_formKey.currentState!.validate()) {
+                  // 👈 Clean commas here too so double.parse() doesn't crash the application
+                  final cleanAmountText = _amountController.text.replaceAll(',', '').trim();
+                  final double parsedAmount = double.parse(cleanAmountText);
+
+                  final String? finalMessage = _messageController.text.trim().isEmpty
+                      ? null
+                      : _messageController.text.trim();
+
+                  Navigator.pop(context);
+                  widget.onSubmit(parsedAmount, finalMessage);
+                }
+              },
+            ),
+
+            // Adjusts container layout height when standard software keyboard rises
+            Padding(
+              padding: EdgeInsets.only(
+                bottom: MediaQuery.of(context).viewInsets.bottom,
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 }

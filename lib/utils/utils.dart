@@ -213,7 +213,7 @@ class Utils {
       BuildContext context, {
         required String name,
         required String role,
-        required double rating,
+        required String rating,
         required String profileImage,
         required String firstName,
         ThemeData? theme,

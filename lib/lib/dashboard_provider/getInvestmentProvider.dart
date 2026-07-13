@@ -18,32 +18,47 @@ class GetInvestmentNotifier extends StateNotifier<AsyncValue<InvestmentResponse>
   bool _hasMore = true;
   String _searchQuery = '';
 
+  // Filtering tracking fields
+  String? _selectedType;
+  int? _selectedCategoryId;
+  String? _selectedStage;
+
   GetInvestmentNotifier(this._dio, this._storage) : super(const AsyncValue.loading()) {
     getInvestments();
   }
 
-  Future<void> getInvestments({bool reset = false, String? searchQuery}) async {
+  Future<void> getInvestments({
+    bool reset = false,
+    String? searchQuery,
+    String? type,
+    int? categoryId,
+    String? projectStage,
+  }) async {
     if (reset) {
       _currentPage = 1;
       _hasMore = true;
       state = const AsyncValue.loading();
     }
 
-    if (searchQuery != null) {
-      _searchQuery = searchQuery;
-      _currentPage = 1;
-      _hasMore = true;
-    }
+    if (searchQuery != null) _searchQuery = searchQuery;
+    if (type != null) _selectedType = type == 'ALL' ? null : type;
+    if (categoryId != null) _selectedCategoryId = categoryId == -1 ? null : categoryId;
+    if (projectStage != null) _selectedStage = projectStage == 'ALL' ? null : projectStage;
 
     if (!_hasMore && !reset) return;
 
     try {
+      final queryParams = {
+        'page': _currentPage,
+        if (_searchQuery.isNotEmpty) 'search': _searchQuery,
+        if (_selectedType != null) 'type': _selectedType,
+        if (_selectedCategoryId != null) 'category_id': _selectedCategoryId,
+        if (_selectedStage != null) 'project_stage': _selectedStage,
+      };
+
       final response = await _dio.get(
           '/soundhive-vests',
-          queryParameters: {
-            'page': _currentPage,
-            if (_searchQuery.isNotEmpty) 'search': _searchQuery,
-          },
+          queryParameters: queryParams,
           options: Options(
               headers: {
                 'Accept': 'application/json',
@@ -96,30 +111,13 @@ class GetInvestmentNotifier extends StateNotifier<AsyncValue<InvestmentResponse>
     await getInvestments(reset: true, searchQuery: query);
   }
 
+  Future<void> filterVests({String? type, int? categoryId, String? stage}) async {
+    await getInvestments(reset: true, type: type, categoryId: categoryId, projectStage: stage);
+  }
+
   Future<void> loadMore() async {
     if (_hasMore && !state.isLoading) {
       await getInvestments();
-    }
-  }
-
-  Future<void> getActiveInvestments() async {
-    _currentPage = 1;
-    _hasMore = true;
-    state = const AsyncValue.loading();
-    try {
-      final response = await _dio.get(
-          '/member/investment/member-list',
-          options: Options(
-              headers: {
-                'Accept': 'application/json',
-                'Content-Type': 'application/json'
-              }
-          )
-      );
-      final serviceResponse = InvestmentResponse.fromMap(response.data);
-      state = AsyncValue.data(serviceResponse);
-    } catch (error, stackTrace) {
-      state = AsyncValue.error(error, stackTrace);
     }
   }
 }

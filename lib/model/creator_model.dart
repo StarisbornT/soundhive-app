@@ -111,6 +111,7 @@ class CreatorData {
   final String? businessAddress;
   final String? bvn;
   final String? cacDocs;
+  final String? videoUrl;
 
   final bool verified;
   final String baseCurrency;
@@ -140,6 +141,7 @@ class CreatorData {
     required this.location,
     this.linkedin,
     this.x,
+    this.videoUrl,
     this.instagram,
     this.businessName,
     this.businessPhone,
@@ -168,6 +170,7 @@ class CreatorData {
       copyOfUtilityBill: json['copy_of_utility_bill'],
       jobTitle: json['job_title'] ?? '',
       bio: json['bio'] ?? '',
+      videoUrl: json['video_url'] ?? '',
       active: json['active'] ?? false,
       hasLiveTest: json['has_live_test'] ?? false,
       hasVerifiedIdentity: json['has_verified_identity'] ?? false,

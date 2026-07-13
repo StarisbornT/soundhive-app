@@ -3162,7 +3162,7 @@ class _CreativesSectionState extends State<CreativesSection> {
                     context,
                     name: creatorName,
                     role: creator.jobTitle,
-                    rating: Utils.getOverallRating(creator),
+                    rating: Utils.getOverallRating(creator).toStringAsFixed(1),
                     profileImage: creator.user?.image ?? '',
                     firstName: creator.businessName ??
                         creator.user?.firstName ??

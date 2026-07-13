@@ -89,9 +89,11 @@ class Investment {
   final String riskAssessment;
   final List<String> news;
   final String status;
+  final String type; // NEW: GENERAL or ARTIST
   final String createdAt;
   final String updatedAt;
   final dynamic convertedMinimumAmount;
+  final ArtistDetails? artistDetails; // NEW: Added relationship mapper
 
   Investment({
     required this.id,
@@ -106,10 +108,14 @@ class Investment {
     required this.riskAssessment,
     required this.news,
     required this.status,
+    required this.type,
     required this.createdAt,
     required this.updatedAt,
-    required this.convertedMinimumAmount
+    required this.convertedMinimumAmount,
+    this.artistDetails,
   });
+
+  bool get isArtistVest => type.toUpperCase() == 'ARTIST';
 
   factory Investment.fromMap(Map<String, dynamic> map) {
     return Investment(
@@ -125,9 +131,111 @@ class Investment {
       riskAssessment: map['risk_assessment'] ?? '',
       news: List<String>.from(map['news'] ?? []),
       status: map['status'] ?? '',
+      type: map['type'] ?? 'GENERAL',
       createdAt: map['created_at'] ?? '',
       updatedAt: map['updated_at'] ?? '',
       convertedMinimumAmount: map['converted_minimum_amount'] ?? '',
+      artistDetails: map['artist_details'] != null
+          ? ArtistDetails.fromMap(map['artist_details'])
+          : null,
+    );
+  }
+}
+
+class ArtistDetails {
+  final int id;
+  final int categoryId;
+  final String projectStage; // PRE_RELEASE or RELEASED
+  final String projectType;
+  final double fundingTarget;
+  final double totalRaised;
+  final double revenueSplitArtist;
+  final double revenueSplitInvestor;
+  final String? previewAudioUrl;
+  final HiveCategory? category;
+  final VestSong? song;
+
+  ArtistDetails({
+    required this.id,
+    required this.categoryId,
+    required this.projectStage,
+    required this.projectType,
+    required this.fundingTarget,
+    required this.totalRaised,
+    required this.revenueSplitArtist,
+    required this.revenueSplitInvestor,
+    this.previewAudioUrl,
+    this.category,
+    this.song,
+  });
+
+  double get fundingProgress {
+    if (fundingTarget <= 0) return 0.0;
+    final progress = totalRaised / fundingTarget;
+    return progress > 1.0 ? 1.0 : progress;
+  }
+
+  factory ArtistDetails.fromMap(Map<String, dynamic> map) {
+    return ArtistDetails(
+      id: map['id'] ?? 0,
+      categoryId: map['category_id'] ?? 0,
+      projectStage: map['project_stage'] ?? '',
+      projectType: map['project_type'] ?? '',
+      fundingTarget: double.tryParse(map['funding_target']?.toString() ?? '0') ?? 0.0,
+      totalRaised: double.tryParse(map['total_raised']?.toString() ?? '0') ?? 0.0,
+      revenueSplitArtist: double.tryParse(map['revenue_split_artist']?.toString() ?? '0') ?? 0.0,
+      revenueSplitInvestor: double.tryParse(map['revenue_split_investor']?.toString() ?? '0') ?? 0.0,
+      previewAudioUrl: map['preview_audio_url'],
+      category: map['category'] != null ? HiveCategory.fromMap(map['category']) : null,
+      song: map['song'] != null ? VestSong.fromMap(map['song']) : null,
+    );
+  }
+}
+
+class HiveCategory {
+  final int id;
+  final String name;
+
+  HiveCategory({required this.id, required this.name});
+
+  factory HiveCategory.fromMap(Map<String, dynamic> map) {
+    return HiveCategory(
+      id: map['id'] ?? 0,
+      name: map['name'] ?? '',
+    );
+  }
+}
+
+class VestSong {
+  final int id;
+  final String title;
+  final String? status;
+  final VestArtist? artist;
+
+  VestSong({required this.id, required this.title, this.status, this.artist});
+
+  factory VestSong.fromMap(Map<String, dynamic> map) {
+    return VestSong(
+      id: map['id'] ?? 0,
+      title: map['title'] ?? '',
+      status: map['status'],
+      artist: map['artist'] != null ? VestArtist.fromMap(map['artist']) : null,
+    );
+  }
+}
+
+class VestArtist {
+  final int id;
+  final String name;
+  final String? stageName;
+
+  VestArtist({required this.id, required this.name, this.stageName});
+
+  factory VestArtist.fromMap(Map<String, dynamic> map) {
+    return VestArtist(
+      id: map['id'] ?? 0,
+      name: map['name'] ?? '',
+      stageName: map['stage_name'],
     );
   }
 }
@@ -137,11 +245,7 @@ class Link {
   final String label;
   final bool active;
 
-  Link({
-    this.url,
-    required this.label,
-    required this.active,
-  });
+  Link({this.url, required this.label, required this.active});
 
   factory Link.fromMap(Map<String, dynamic> map) {
     return Link(

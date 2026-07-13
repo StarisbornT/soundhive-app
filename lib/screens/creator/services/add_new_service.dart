@@ -32,73 +32,253 @@ class AddNewServiceScreen extends ConsumerStatefulWidget {
 }
 
 class _AddNewServiceScreenState extends ConsumerState<AddNewServiceScreen> {
-  List<Category> services = [];
+  final ValueNotifier<List<Category>> _servicesNotifier = ValueNotifier([]);
+  final ValueNotifier<List<dynamic>> _subCategoriesNotifier = ValueNotifier([]);
+  final ValueNotifier<bool> _categoryLoadingMoreNotifier = ValueNotifier(false);
+  final ValueNotifier<bool> _categoryHasMoreNotifier = ValueNotifier(true);
+  final ValueNotifier<bool> _subcategoryLoadingMoreNotifier = ValueNotifier(false);
+  final ValueNotifier<bool> _subcategoryHasMoreNotifier = ValueNotifier(true);
+  List<dynamic> subCategories = [];
+
   Category? selectedService;
   String? selectedCategoryId;
   String? selectedSubCategoryId;
 
   final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
-  final TextEditingController rateController = TextEditingController(); // Single rate controller
-  final PortfolioData portfolioData = PortfolioData(); // Single portfolio data
+  final TextEditingController rateController = TextEditingController();
+  final PortfolioData portfolioData = PortfolioData();
   final TextEditingController serviceNameController = TextEditingController();
   final TextEditingController serviceDescriptionController = TextEditingController();
   final TextEditingController categoryController = TextEditingController();
   final TextEditingController subcategoryController = TextEditingController();
+
+  // ── Category pagination state ──────────────────────────────────────
+  final TextEditingController _categorySearchController = TextEditingController();
+  bool _isCategoryLoadingMore = false;
+
+  // ── Subcategory pagination state ───────────────────────────────────
+  final TextEditingController _subcategorySearchController = TextEditingController();
+  bool _isSubcategoryLoadingMore = false;
 
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) async {
       await ref.read(categoryProvider.notifier).getCategory();
-      final fetched = ref.read(categoryProvider).value?.data.data;
-      setState(() {
-        services = fetched!;
+      _syncCategories();
+      ref.listenManual(subcategoryProvider, (_, next) {
+        next.whenData((_) => _syncSubCategories());
       });
     });
   }
 
+  void _syncCategories() {
+    final fetched = ref.read(categoryProvider).value?.data.data;
+    if (fetched != null) _servicesNotifier.value = fetched;
+  }
+
+  void _syncSubCategories() {
+    final value = ref.read(subcategoryProvider).value;
+    if (value != null) {
+      _subCategoriesNotifier.value = value.data;
+      _subcategoryHasMoreNotifier.value = value.nextPageUrl != null; // false for flat response
+    }
+  }
+
+  // ── Category load-more & search ────────────────────────────────────
+  Future<void> _loadMoreCategories() async {
+    if (_categoryLoadingMoreNotifier.value) return;
+    _categoryLoadingMoreNotifier.value = true;
+    await ref.read(categoryProvider.notifier).loadMore();
+    _syncCategories();
+    _categoryHasMoreNotifier.value = ref.read(categoryProvider).value?.data.nextPageUrl != null;
+    _categoryLoadingMoreNotifier.value = false;
+  }
+
+  Future<void> _onCategorySearch(String query) async {
+    await ref.read(categoryProvider.notifier).getCategory(searchQuery: query);
+    _syncCategories();
+  }
+
+  Future<void> _loadMoreSubCategories() async {
+    if (_subcategoryLoadingMoreNotifier.value) return;
+    _subcategoryLoadingMoreNotifier.value = true;
+    await ref.read(subcategoryProvider.notifier).loadMore();
+    _syncSubCategories();
+    _subcategoryHasMoreNotifier.value = ref.read(subcategoryProvider).value?.nextPageUrl != null;
+    _subcategoryLoadingMoreNotifier.value = false;
+  }
+
+  Future<void> _onSubcategorySearch(String query) async {
+    if (selectedCategoryId == null) return;
+    await ref.read(subcategoryProvider.notifier).searchSubCategories(query);
+    _syncSubCategories();
+  }
+
+  // ── Pickers ────────────────────────────────────────────────────────
+  void _openHivesPicker() {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (_) => PaginatedPickerSheet(
+        title: 'Select Hive',
+        itemsNotifier: _servicesNotifier,
+        toPickerItem: (c) => PickerItem(id: (c).id.toString(), label: c.name),
+        searchController: _categorySearchController,
+        onSearch: _onCategorySearch,
+        onLoadMore: _loadMoreCategories,
+        isLoadingMoreNotifier: _categoryLoadingMoreNotifier,
+        hasMoreNotifier: _categoryHasMoreNotifier,
+        onSelected: (id, name) async {          // <-- make async
+          setState(() {
+            categoryController.text = name;
+            selectedCategoryId = id;
+            subcategoryController.clear();
+            selectedSubCategoryId = null;
+            _subCategoriesNotifier.value = [];
+            _subcategoryHasMoreNotifier.value = false;
+          });
+
+          // Await the fetch then sync into the notifier
+          await ref.read(subcategoryProvider.notifier).getSubCategory(int.parse(id));
+          _syncSubCategories();                 // <-- this was missing
+        },
+      ),
+    );
+  }
+
+  void _openClusterPicker() {
+    if (selectedCategoryId == null) {
+      _showError('Please select a Hive first');
+      return;
+    }
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (_) => PaginatedPickerSheet(
+        title: 'Select Cluster',
+        itemsNotifier: _subCategoriesNotifier, // <-- notifier instead of snapshot
+        toPickerItem: (s) => PickerItem(id: s.id.toString(), label: s.name),
+        searchController: _subcategorySearchController,
+        onSearch: _onSubcategorySearch,
+        onLoadMore: _loadMoreSubCategories,
+        isLoadingMoreNotifier: _subcategoryLoadingMoreNotifier,
+        hasMoreNotifier: _subcategoryHasMoreNotifier,
+        onSelected: (id, name) {
+          setState(() {
+            subcategoryController.text = name;
+            selectedSubCategoryId = id;
+          });
+        },
+      ),
+    );
+  }
+
+  @override
+  void dispose() {
+    _servicesNotifier.dispose();
+    _subCategoriesNotifier.dispose();
+    _categoryLoadingMoreNotifier.dispose();
+    _categoryHasMoreNotifier.dispose();
+    _subcategoryLoadingMoreNotifier.dispose();
+    _subcategoryHasMoreNotifier.dispose();
+    _categorySearchController.dispose();
+    _subcategorySearchController.dispose();
+    rateController.dispose();
+    portfolioData.dispose();
+    super.dispose();
+  }
+
+  // ── Bio step ───────────────────────────────────────────────────────
+  Widget _buildBioStep() {
+    final categoryState = ref.watch(categoryProvider);
+    final subcategoryState = ref.watch(subcategoryProvider);
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const SizedBox(height: 24),
+        const Text(
+          'Services',
+          style: TextStyle(fontSize: 24, fontWeight: FontWeight.w400, color: Colors.white),
+        ),
+        const SizedBox(height: 20),
+        LabeledTextField(
+          label: 'Service Name',
+          controller: serviceNameController,
+          hintText: "Service Name",
+        ),
+        LabeledTextField(
+          label: 'Service Description',
+          controller: serviceDescriptionController,
+          hintText: "Service Description",
+          maxLines: 4,
+        ),
+
+        // Hives picker
+        PickerTriggerField(
+          label: 'Hives',
+          controller: categoryController,
+          hintText: categoryState.isLoading ? 'Loading...' : 'Select Hives',
+          isLoading: categoryState.isLoading,
+          onTap: categoryState.isLoading ? null : _openHivesPicker,
+        ),
+
+        // Service Clusters picker
+        PickerTriggerField(
+          label: 'Service Clusters',
+          controller: subcategoryController,
+          hintText: selectedCategoryId == null
+              ? 'Select a Hive first'
+              : subcategoryState.isLoading
+              ? 'Loading...'
+              : 'Select Cluster',
+          isLoading: subcategoryState.isLoading,
+          onTap: (selectedCategoryId == null || subcategoryState.isLoading)
+              ? null
+              : _openClusterPicker,
+        ),
+      ],
+    );
+  }
+
+  // ── Everything below is unchanged from your original ───────────────
+
   int _currentStep = 0;
+
   void _nextStep() {
     if (_currentStep < 5) {
       final isValid = _validateCurrentStep();
       if (!isValid) return;
-
-      setState(() {
-        _currentStep++;
-      });
+      setState(() => _currentStep++);
     }
   }
 
   bool _validateCurrentStep() {
     switch (_currentStep) {
-      case 0: // Bio Step
+      case 0:
         if (categoryController.text.isEmpty || serviceNameController.text.isEmpty) {
           _showError("Please select a service");
           return false;
         }
         return true;
-
-      case 1: // Rate Step
+      case 1:
         if (rateController.text.isEmpty) {
           _showError("Rate is required");
           return false;
         }
         return true;
-
-      case 2: // Portfolio Step
-      // Validate cover image
+      case 2:
         if (portfolioData.coverNotifier.value == null) {
           _showError("Cover image is required");
           return false;
         }
-
-        // Validate selected formats
         if (portfolioData.selectedFormats.value.isEmpty) {
           _showError("Please select at least one portfolio format");
           return false;
         }
-
-        // Validate each selected format
         for (final format in portfolioData.selectedFormats.value) {
           if (format == 'image' && portfolioData.imageNotifier.value == null) {
             _showError("Image file is required");
@@ -114,26 +294,13 @@ class _AddNewServiceScreenState extends ConsumerState<AddNewServiceScreen> {
           }
         }
         return true;
-
       default:
         return true;
     }
   }
 
   void _showError(String message) {
-    showCustomAlert(
-      context: context,
-      isSuccess: false,
-      title: "Error",
-      message: message,
-    );
-  }
-
-  @override
-  void dispose() {
-    rateController.dispose();
-    portfolioData.dispose();
-    super.dispose();
+    showCustomAlert(context: context, isSuccess: false, title: "Error", message: message);
   }
 
   void _handleContinue() {
@@ -145,11 +312,7 @@ class _AddNewServiceScreenState extends ConsumerState<AddNewServiceScreen> {
   }
 
   void _previousStep() {
-    if (_currentStep > 0) {
-      setState(() {
-        _currentStep--;
-      });
-    }
+    if (_currentStep > 0) setState(() => _currentStep--);
   }
 
   bool _isSubmitting = false;
@@ -158,18 +321,11 @@ class _AddNewServiceScreenState extends ConsumerState<AddNewServiceScreen> {
   Future<void> _submitForm() async {
     if (_isSubmitting) return;
     _isSubmitting = true;
-
     try {
       LoaderService.showLoader(context);
-
-      // Upload media files
       await _uploadServiceMedia(portfolioData);
-
-      // Submit to backend
       await _submitToBackend();
-
       if (!mounted) return;
-
       LoaderService.hideLoader(context);
       final user = await ref.read(userProvider.notifier).loadUserProfile();
       await ref.read(getCreatorServiceStatistics.notifier).getStats();
@@ -192,10 +348,7 @@ class _AddNewServiceScreenState extends ConsumerState<AddNewServiceScreen> {
     } catch (error) {
       _logger.e("Submission Error", error: error);
       LoaderService.hideLoader(context);
-
       String errorMessage = 'An unexpected error occurred';
-      print('FULL ERROR DETAILS: $error');
-
       if (error is DioException) {
         if (error.response?.data != null) {
           try {
@@ -208,29 +361,19 @@ class _AddNewServiceScreenState extends ConsumerState<AddNewServiceScreen> {
           errorMessage = error.message ?? 'Network error occurred';
         }
       }
-
-      print("Error: $errorMessage");
-      if(mounted) {
-        showCustomAlert(
-          context: context,
-          isSuccess: false,
-          title: 'Error',
-          message: errorMessage,
-        );
+      if (mounted) {
+        showCustomAlert(context: context, isSuccess: false, title: 'Error', message: errorMessage);
       }
-
       return;
     } finally {
-      if(mounted) {
+      if (mounted) {
         LoaderService.hideLoader(context);
         _isSubmitting = false;
       }
-
     }
   }
 
   Future<void> _uploadServiceMedia(PortfolioData data) async {
-    // Upload cover image
     if (data.coverNotifier.value != null) {
       data.coverUrl = await _uploadFileToCloudinary(
         file: data.coverNotifier.value!,
@@ -238,8 +381,6 @@ class _AddNewServiceScreenState extends ConsumerState<AddNewServiceScreen> {
         preset: 'soundhive',
       );
     }
-
-    // Upload other media based on selected formats
     for (final format in data.selectedFormats.value) {
       if (format == 'image' && data.imageNotifier.value != null) {
         data.imageUrl = await _uploadFileToCloudinary(
@@ -267,38 +408,24 @@ class _AddNewServiceScreenState extends ConsumerState<AddNewServiceScreen> {
       'upload_preset': preset,
       'resource_type': resourceType,
     });
-
     final response = await Dio().post(
       'https://api.cloudinary.com/v1_1/djutcezwz/$resourceType/upload',
       data: formData,
     );
-
     if (response.statusCode != 200) {
       throw Exception('$resourceType upload failed: ${response.statusMessage}');
     }
-
     return response.data['secure_url'] as String;
   }
 
   Future<ApiResponseModel> _submitToBackend() async {
-    // Prepare portfolio data based on selected formats
     final portfolioFormats = portfolioData.selectedFormats.value;
-
-    String? portfolioImage;
-    String? portfolioAudio;
-    String? portfolioLink;
-
-    // Set values based on what formats were selected
+    String? portfolioImage, portfolioAudio, portfolioLink;
     for (final format in portfolioFormats) {
-      if (format == 'image') {
-        portfolioImage = portfolioData.imageUrl;
-      } else if (format == 'audio') {
-        portfolioAudio = portfolioData.audioUrl;
-      } else if (format == 'link') {
-        portfolioLink = portfolioData.linkController.text;
-      }
+      if (format == 'image') portfolioImage = portfolioData.imageUrl;
+      else if (format == 'audio') portfolioAudio = portfolioData.audioUrl;
+      else if (format == 'link') portfolioLink = portfolioData.linkController.text;
     }
-
     final payload = {
       "category_id": int.parse(selectedCategoryId!),
       "sub_category_id": int.parse(selectedSubCategoryId!),
@@ -310,12 +437,8 @@ class _AddNewServiceScreenState extends ConsumerState<AddNewServiceScreen> {
       "service_audio": portfolioAudio ?? '',
       "link": portfolioLink ?? '',
     };
-
     try {
-      final response = await ref.read(apiresponseProvider.notifier).createService(
-        payload: payload,
-      );
-
+      final response = await ref.read(apiresponseProvider.notifier).createService(payload: payload);
       if (!response.status) {
         throw DioException(
           requestOptions: RequestOptions(path: ''),
@@ -325,19 +448,12 @@ class _AddNewServiceScreenState extends ConsumerState<AddNewServiceScreen> {
           ),
         );
       }
-
       return response;
     } catch (error) {
       _logger.e("Backend submission failed", error: error);
       rethrow;
     }
   }
-
-  final List<Map<String, String>> portfolioFormat = [
-    {'label': 'Image', 'value': 'image'},
-    {'label': 'Link', 'value': 'link'},
-    {'label': 'Audio', 'value': 'audio'},
-  ];
 
   Widget _buildProgressDots() {
     return Row(
@@ -359,80 +475,11 @@ class _AddNewServiceScreenState extends ConsumerState<AddNewServiceScreen> {
 
   Widget _buildStepContent() {
     switch (_currentStep) {
-      case 0:
-        return _buildBioStep();
-      case 1:
-        return _rateStep();
-      case 2:
-        return _portfolioStep();
-      default:
-        return const Center(child: Text("More steps to come", style: TextStyle(color: Colors.white)));
+      case 0: return _buildBioStep();
+      case 1: return _rateStep();
+      case 2: return _portfolioStep();
+      default: return const Center(child: Text("More steps to come", style: TextStyle(color: Colors.white)));
     }
-  }
-
-  Widget _buildBioStep() {
-    final categoryItems = services.map((category) {
-      return {
-        'value': category.id.toString(),
-        'label': category.name,
-      };
-    }).toList();
-
-    final subcategories = ref.watch(subcategoryProvider);
-
-    final subCategoryItems = (subcategories.value?.data ?? []).map((sub) {
-      return {
-        'value': sub.id.toString(),
-        'label': sub.name,
-      };
-    }).toList();
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        const SizedBox(height: 24),
-        const Text(
-          'Services',
-          style: TextStyle(
-            fontSize: 24,
-            fontWeight: FontWeight.w400,
-            color: Colors.white,
-          ),
-        ),
-        const SizedBox(height: 20),
-        LabeledTextField(
-          label: 'Service Name',
-          controller: serviceNameController,
-          hintText: "Service Name",
-        ),
-        LabeledTextField(
-          label: 'Service Description',
-          controller: serviceDescriptionController,
-          hintText: "Service Description",
-          maxLines: 4,
-        ),
-        LabeledSelectField(
-          label: "Hives",
-          controller: categoryController,
-          items: categoryItems,
-          hintText: 'Select Hives',
-          onChanged: (selectedValue) {
-            selectedCategoryId = selectedValue;
-            ref.read(subcategoryProvider.notifier).getSubCategory(int.parse(selectedValue));
-          },
-        ),
-        LabeledSelectField(
-          label: "Service Clusters",
-          controller: subcategoryController,
-          items: subCategoryItems,
-          hintText: 'Select Cluster',
-          onChanged: (value) {
-            selectedSubCategoryId = value;
-          },
-        ),
-
-      ],
-    );
   }
 
   Widget _portfolioStep() {
@@ -442,20 +489,12 @@ class _AddNewServiceScreenState extends ConsumerState<AddNewServiceScreen> {
         const SizedBox(height: 24),
         const Text(
           'What are some of the amazing projects you have done so far?',
-          style: TextStyle(
-            fontSize: 16,
-            fontWeight: FontWeight.w400,
-            color: Colors.white,
-          ),
+          style: TextStyle(fontSize: 16, fontWeight: FontWeight.w400, color: Colors.white),
         ),
         const SizedBox(height: 10),
         const Text(
           'N.B: A good portfolio of work usually attract good clients.',
-          style: TextStyle(
-            fontSize: 12,
-            fontWeight: FontWeight.w300,
-            color: Color(0xFFF2F2F2),
-          ),
+          style: TextStyle(fontSize: 12, fontWeight: FontWeight.w300, color: Color(0xFFF2F2F2)),
         ),
         const SizedBox(height: 20),
         PortfolioUploadSection(
@@ -477,20 +516,14 @@ class _AddNewServiceScreenState extends ConsumerState<AddNewServiceScreen> {
         const SizedBox(height: 24),
         const Text(
           'What are your rates?',
-          style: TextStyle(
-            fontSize: 16,
-            fontWeight: FontWeight.w400,
-            color: Colors.white,
-          ),
+          style: TextStyle(fontSize: 16, fontWeight: FontWeight.w400, color: Colors.white),
         ),
         const SizedBox(height: 20),
         CurrencyInputField(
           label: serviceNameController.text,
           suffixText: 'per project',
           controller: rateController,
-          onChanged: (value) {
-            print('Input changed to: $value');
-          },
+          onChanged: (value) => print('Input changed to: $value'),
           validator: (value) {
             if (value == null || value.isEmpty || double.tryParse(value) == null) {
               return 'Please enter a valid amount';
@@ -505,7 +538,6 @@ class _AddNewServiceScreenState extends ConsumerState<AddNewServiceScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-     
       body: SafeArea(
         child: Form(
           key: _formKey,
@@ -525,18 +557,13 @@ class _AddNewServiceScreenState extends ConsumerState<AddNewServiceScreen> {
                   alignment: Alignment.centerLeft,
                   child: Text(
                     'Add a new service',
-                    style: TextStyle(
-                      fontSize: 24,
-                      color: Colors.white,
-                    ),
+                    style: TextStyle(fontSize: 24, color: Colors.white),
                   ),
                 ),
                 _buildProgressDots(),
                 const SizedBox(height: 20),
                 Expanded(
-                  child: SingleChildScrollView(
-                    child: _buildStepContent(),
-                  ),
+                  child: SingleChildScrollView(child: _buildStepContent()),
                 ),
                 const SizedBox(height: 10),
                 RoundedButton(
@@ -548,6 +575,204 @@ class _AddNewServiceScreenState extends ConsumerState<AddNewServiceScreen> {
               ],
             ),
           ),
+        ),
+      ),
+    );
+  }
+}
+
+class PickerItem {
+  final String id;
+  final String label;
+  const PickerItem({required this.id, required this.label});
+}
+
+// Tappable field that looks like your existing LabeledSelectField
+class PickerTriggerField extends StatelessWidget {
+  final String label;
+  final TextEditingController controller;
+  final String hintText;
+  final bool isLoading;
+  final VoidCallback? onTap;
+
+  const PickerTriggerField({super.key,
+    required this.label,
+    required this.controller,
+    required this.hintText,
+    this.isLoading = false,
+    this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final isDisabled = onTap == null || isLoading;
+
+    return Opacity(
+      opacity: isDisabled ? 0.5 : 1.0, // visual dimming
+      child: GestureDetector(
+        onTap: isDisabled ? null : onTap,
+        child: AbsorbPointer(
+          child: LabeledSelectField(
+            label: label,
+            controller: controller,
+            items: const [],
+            hintText: isLoading ? 'Loading...' : hintText,
+            onChanged: (_) {},
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+// Reusable paginated bottom-sheet picker
+class PaginatedPickerSheet<T> extends StatefulWidget {
+  final String title;
+  final ValueNotifier<List<T>> itemsNotifier;
+  final PickerItem Function(T) toPickerItem;
+  final TextEditingController searchController;
+  final Future<void> Function(String) onSearch;
+  final Future<void> Function() onLoadMore;
+  final ValueNotifier<bool> isLoadingMoreNotifier;
+  final ValueNotifier<bool> hasMoreNotifier;
+  final void Function(String id, String name) onSelected;
+
+  const PaginatedPickerSheet({
+    super.key,
+    required this.title,
+    required this.itemsNotifier,
+    required this.toPickerItem,
+    required this.searchController,
+    required this.onSearch,
+    required this.onLoadMore,
+    required this.isLoadingMoreNotifier,
+    required this.hasMoreNotifier,
+    required this.onSelected,
+  });
+
+  @override
+  State<PaginatedPickerSheet<T>> createState() => _PaginatedPickerSheetState<T>();
+}
+
+class _PaginatedPickerSheetState<T> extends State<PaginatedPickerSheet<T>> {
+  late final ScrollController _scroll;
+
+  @override
+  void initState() {
+    super.initState();
+    _scroll = ScrollController()
+      ..addListener(() {
+        if (_scroll.position.pixels >= _scroll.position.maxScrollExtent - 100) {
+          widget.onLoadMore();
+        }
+      });
+  }
+
+  @override
+  void dispose() {
+    _scroll.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return DraggableScrollableSheet(
+      initialChildSize: 0.6,
+      maxChildSize: 0.9,
+      minChildSize: 0.4,
+      builder: (_, __) => Material(
+        color: const Color(0xFF1E1B2E),
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
+        child: Column(
+          children: [
+            const SizedBox(height: 8),
+            Container(
+              width: 40, height: 4,
+              decoration: BoxDecoration(
+                color: Colors.white24,
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
+            const SizedBox(height: 12),
+            Text(
+              widget.title,
+              style: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w600),
+            ),
+            const SizedBox(height: 12),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              child: TextField(
+                controller: widget.searchController,
+                style: const TextStyle(color: Colors.white),
+                decoration: InputDecoration(
+                  hintText: 'Search...',
+                  hintStyle: const TextStyle(color: Colors.white38),
+                  prefixIcon: const Icon(Icons.search, color: Colors.white54),
+                  filled: true,
+                  fillColor: Colors.white10,
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(8),
+                    borderSide: BorderSide.none,
+                  ),
+                  contentPadding: const EdgeInsets.symmetric(vertical: 10),
+                ),
+                onChanged: widget.onSearch,
+              ),
+            ),
+            const SizedBox(height: 8),
+            Expanded(
+              // ValueListenableBuilder rebuilds the list whenever
+              // itemsNotifier, isLoadingMoreNotifier, or hasMoreNotifier change
+              child: ValueListenableBuilder<List<T>>(
+                valueListenable: widget.itemsNotifier,
+                builder: (_, items, __) {
+                  final pickerItems = items.map(widget.toPickerItem).toList();
+
+                  if (pickerItems.isEmpty) {
+                    return const Center(
+                      child: Text('No results found', style: TextStyle(color: Colors.white54)),
+                    );
+                  }
+
+                  return ValueListenableBuilder<bool>(
+                    valueListenable: widget.hasMoreNotifier,
+                    builder: (_, hasMore, __) {
+                      return ValueListenableBuilder<bool>(
+                        valueListenable: widget.isLoadingMoreNotifier,
+                        builder: (_, isLoadingMore, __) {
+                          return ListView.builder(
+                            controller: _scroll,
+                            itemCount: pickerItems.length + (hasMore ? 1 : 0),
+                            itemBuilder: (_, index) {
+                              if (index == pickerItems.length) {
+                                return const Padding(
+                                  padding: EdgeInsets.all(16),
+                                  child: Center(
+                                    child: SizedBox(
+                                      width: 20, height: 20,
+                                      child: CircularProgressIndicator(strokeWidth: 2),
+                                    ),
+                                  ),
+                                );
+                              }
+                              final item = pickerItems[index];
+                              return ListTile(
+                                title: Text(item.label, style: const TextStyle(color: Colors.white)),
+                                onTap: () {
+                                  widget.onSelected(item.id, item.label);
+                                  Navigator.pop(context);
+                                },
+                              );
+                            },
+                          );
+                        },
+                      );
+                    },
+                  );
+                },
+              ),
+            ),
+          ],
         ),
       ),
     );

@@ -19,8 +19,10 @@
     <string>Cre8Hive</string>
     <key>GIDClientID</key>
     <string>153492997340-qpuqmu0llf7pig08nqokps1732sgfgcf.apps.googleusercontent.com</string>
-    
+    <key>NSLocationWhenInUseUsageDescription</key>
+    <string>We use your location to show you creators near you.</string>
     <key>CFBundleURLTypes</key>
+
     <array>
         <dict>
             <key>CFBundleTypeRole</key>
@@ -30,6 +32,16 @@
                 <string>com.googleusercontent.apps.153492997340-qpuqmu0llf7pig08nqokps1732sgfgcf</string>
             </array>
         </dict>
+        <dict>
+                <key>CFBundleTypeRole</key>
+                <string>Editor</string>
+                <key>CFBundleURLName</key>
+                <string>com.cre8hive.deeplink</string>
+                <key>CFBundleURLSchemes</key>
+                <array>
+                    <string>cre8hive</string>
+                </array>
+            </dict>
     </array>
 
     <key>CFBundleExecutable</key>
@@ -45,6 +57,7 @@
     
     <key>NSLocalNetworkUsageDescription</key>
     <string>This app checks network connectivity.</string>
+
     
     <!-- <key>UIBackgroundModes</key>
     <array>

@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:soundhive2/screens/creator/creator_dashboard.dart';
 import 'package:soundhive2/screens/creator/profile/verify_business_screen.dart';
 import 'package:soundhive2/screens/creator/profile/verify_identity.dart';
+import 'package:soundhive2/screens/non_creator/non_creator.dart';
 
 import '../../../components/widgets.dart';
 import '../../../model/user_model.dart';
@@ -35,6 +37,8 @@ class _SetupScreenState extends ConsumerState<SetupScreen> {
   late final _user = widget.user.user;
   late final _creator = _user?.creator;
 
+  bool get _isVerified => _creator?.hasVerifiedIdentity == true;
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -65,12 +69,12 @@ class _SetupScreenState extends ConsumerState<SetupScreen> {
   }
 
   Widget _buildHeader() {
-    return const Column(
+    return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        _BackButton(),
-        SizedBox(height: 10),
-        Text(
+        _BackButton(onPressed: _handleBackPressed),
+        const SizedBox(height: 10),
+        const Text(
           'Creator Verification & Access Setup',
           style: TextStyle(
             fontSize: 24,
@@ -78,10 +82,10 @@ class _SetupScreenState extends ConsumerState<SetupScreen> {
             color: _textColor,
           ),
         ),
-        SizedBox(height: _spacingSmall),
-        Text(
+        const SizedBox(height: _spacingSmall),
+        const Text(
           'To fully access CreateHive as a creator and investor, we need to verify your identity and creator details.'
-   ' Completing the steps below helps us keep the platform secure, build trust, and unlock earnings, investments, and withdrawals.',
+              ' Completing the steps below helps us keep the platform secure, build trust, and unlock earnings, investments, and withdrawals.',
           style: TextStyle(
             color: Colors.white70,
             fontSize: 12,
@@ -115,7 +119,7 @@ class _SetupScreenState extends ConsumerState<SetupScreen> {
       title: 'Identity & KYC Verification',
       subtitle:
       'Verify your identity to unlock earnings, withdrawals, and investment access.'
-     ' This includes submitting your BVN or NIN, a government-issued ID, and proof of address where required.',
+          ' This includes submitting your BVN or NIN, a government-issued ID, and proof of address where required.',
       status: isVerified ? 'Under review' : 'Not submitted',
       statusColor: isVerified ? _warningColor : _errorColor,
       onTap: !isVerified
@@ -132,7 +136,7 @@ class _SetupScreenState extends ConsumerState<SetupScreen> {
       title: 'Liveliness Check',
       subtitle:
       'Complete a quick live photo check to confirm you are the rightful account owner.'
-     ' This helps prevent impersonation and protects creators and investors on the platform.',
+          ' This helps prevent impersonation and protects creators and investors on the platform.',
       status: hasLiveTest ? 'Completed' : 'Not submitted',
       statusColor: hasLiveTest ? _successColor : _errorColor,
       onTap: () => _handleLivelinessTap(),
@@ -149,7 +153,7 @@ class _SetupScreenState extends ConsumerState<SetupScreen> {
       title: 'Creator / Business Profile Setup',
       subtitle:
       'Share details about your creative service or business.'
-      'Add your service category, offerings, pricing, and basic business information to help users discover and book you.',
+          'Add your service category, offerings, pricing, and basic business information to help users discover and book you.',
       status: status,
       statusColor: statusColor,
       onTap: () => !hasVerifiedCreativeProfile ? _handleKYCTap() : null,
@@ -215,6 +219,17 @@ class _SetupScreenState extends ConsumerState<SetupScreen> {
       context,
       MaterialPageRoute(builder: (_) => CreativeFormScreen(user: user)),
     );
+  }
+
+  // Back button now behaves like a "done for now" exit: it drops the user
+  // onto the dashboard that matches their current verification status,
+  // rather than just popping the route.
+  void _handleBackPressed() {
+
+    final route = _isVerified
+        ? CreatorDashboard.id
+        : NonCreatorDashboard.id;
+    Navigator.pushNamed(context, route);
   }
 
   void _showVerificationRequiredAlert() {
@@ -308,7 +323,9 @@ class _SetupCard extends StatelessWidget {
 }
 
 class _BackButton extends StatelessWidget {
-  const _BackButton();
+  final VoidCallback onPressed;
+
+  const _BackButton({required this.onPressed});
 
   @override
   Widget build(BuildContext context) {
@@ -317,7 +334,7 @@ class _BackButton extends StatelessWidget {
         Icons.arrow_back_ios_new,
         color: Color(0xFFB0B0B6),
       ),
-      onPressed: () => Navigator.pop(context),
+      onPressed: onPressed,
     );
   }
 }

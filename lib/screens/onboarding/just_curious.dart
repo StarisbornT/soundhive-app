@@ -167,11 +167,11 @@ class _JustCuriousState extends ConsumerState<JustCurious> {
 
   // Card widget
   Widget _buildOptionCard({
-    required IconData icon,
+    required dynamic icon, // Changed from IconData to dynamic to accept both types
     required String text,
     required Color color,
     required VoidCallback onTap,
-    String? backgroundImage, // optional background image
+    String? backgroundImage,
     bool disabled = false,
   }) {
     return GestureDetector(
@@ -192,11 +192,11 @@ class _JustCuriousState extends ConsumerState<JustCurious> {
               Align(
                 alignment: Alignment.bottomRight,
                 child: Opacity(
-                  opacity: 0.2, // 👈 Adjust transparency (0.0 - 1.0)
+                  opacity: 0.2,
                   child: Image.asset(
                     backgroundImage,
                     fit: BoxFit.contain,
-                    width: 120, // 👈 Adjust image size if needed
+                    width: 120,
                     height: 120,
                   ),
                 ),
@@ -209,6 +209,7 @@ class _JustCuriousState extends ConsumerState<JustCurious> {
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
+                  // FaIcon handles dynamic icon inputs flawlessly
                   FaIcon(
                     icon,
                     color: Colors.white,
@@ -226,7 +227,6 @@ class _JustCuriousState extends ConsumerState<JustCurious> {
                       ),
                     ),
                   ),
-
                 ],
               ),
             ),

@@ -141,10 +141,15 @@ class _DisputeChatScreenState extends ConsumerState<DisputeChatScreen> {
       setState(() {
         adminId = "soundhive_admin";
       });
-      return {'id': 'soundhive_admin', 'name': 'SoundHive Support'};
+      return {'id': 'soundhive_admin', 'name': 'Cre8Hive Support'};
     } catch (e) {
       print('Error fetching admin details: $e');
-      return {'id': 'soundhive_admin', 'name': 'SoundHive Support'};
+      if (mounted) {
+        setState(() {
+          adminId = "soundhive_admin";
+        });
+      }
+      return {'id': 'soundhive_admin', 'name': 'Cre8Hive Support'};
     }
   }
 
@@ -262,6 +267,8 @@ class _DisputeChatScreenState extends ConsumerState<DisputeChatScreen> {
     }
   }
 
+
+
   Future<void> _sendMessage(String text) async {
     if (text.isEmpty && _pendingFiles.isEmpty) return;
 
@@ -298,16 +305,26 @@ class _DisputeChatScreenState extends ConsumerState<DisputeChatScreen> {
     );
 
     try {
-      await messageRef.set(message.toMap());
+      final updates = <String, dynamic>{
+        'chats/$chatId/messages/${messageRef.key}': message.toMap(),
+        // Index this dispute chat for every participant (matches the
+        // participants array on the message + the migration script's schema).
+        'userChats/${widget.userId}/$chatId': true,
+        'userChats/${widget.sellerId}/$chatId': true,
+        'userChats/$adminId/$chatId': true,
+      };
+      await _dbRef.update(updates);
       _controller.clear();
       setState(() {
         _pendingFiles.clear();
       });
     } catch (e) {
       print('Error sending message: $e');
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Failed to send message')),
-      );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Failed to send message')),
+        );
+      }
     }
   }
 
@@ -564,7 +581,7 @@ class _GroupChatBubble extends StatelessWidget {
               Padding(
                 padding: const EdgeInsets.only(top: 8, left: 16, right: 16),
                 child: Text(
-                  isAdmin ? "SoundHive Support" : message.senderName,
+                  isAdmin ? "Cre8Hive Support" : message.senderName,
                   style: TextStyle(
                     color: isAdmin ? Colors.green[200] : Colors.white70,
                     fontSize: 12,
