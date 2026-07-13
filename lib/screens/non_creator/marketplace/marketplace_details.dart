@@ -17,6 +17,7 @@ import '../../../model/apiresponse_model.dart';
 import '../../../model/market_orders_service_model.dart';
 import '../../../model/offerFromUserModel.dart';
 import '../../../model/user_model.dart';
+import '../../../services/creator_profile_loader.dart';
 import '../../../utils/alert_helper.dart';
 import '../../../utils/app_colors.dart';
 import '../../creator/profile/profile_screen.dart';
@@ -402,8 +403,8 @@ class _MarketplaceDetailsScreenState extends ConsumerState<MarketplaceDetails> {
               Navigator.push(
                 context,
                 MaterialPageRoute(
-                  builder: (context) => CreatorProfile(
-                    creator: creator,
+                  builder: (context) => CreatorProfileLoader(
+                    creatorId: creator.id,
                   ),
                 ),
               );

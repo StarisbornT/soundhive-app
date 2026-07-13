@@ -200,7 +200,7 @@ class _MarkAsCompletedScreenState extends ConsumerState<MarkAsCompletedScreen> {
                                   const SizedBox(width: 4),
                                   Text(
                                     serviceUser?.creator != null
-                                        ? Utils.getOverallRating(serviceUser!.creator!).toString()
+                                        ? Utils.getOverallRating(serviceUser!.creator!).toStringAsFixed(1)
                                         : "0",
                                     style: TextStyle(
                                       color: theme.colorScheme.onSurface.withOpacity(0.7),

@@ -294,11 +294,10 @@ class CreatorDashboard extends ConsumerWidget {
                       const SizedBox(height: 20),
                       Padding(
                         padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
-                        child: Container(
-                          decoration: BoxDecoration(
-                            color: AppColors.PRIMARYCOLOR,
-                            borderRadius: BorderRadius.circular(12),
-                          ),
+                        child: Material(
+                          color: AppColors.PRIMARYCOLOR,
+                          borderRadius: BorderRadius.circular(12),
+                          clipBehavior: Clip.antiAlias,
                           child: ListTile(
                             leading: Image.asset('images/link.png'),
                             title: const Text(

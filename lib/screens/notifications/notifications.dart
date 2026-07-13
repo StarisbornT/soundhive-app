@@ -295,14 +295,16 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
         break;
       case 'book':
         final data = ActiveInvestment.fromMap(notification.data['booking']);
-        Navigator.push(
-          context,
-          MaterialPageRoute(
-            builder: (context) => MarkAsCompletedScreen(
-              services: data,
+        if (data.status == "PENDING") {
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => MarkAsCompletedScreen(
+                services: data,
+              ),
             ),
-          ),
-        );
+          );
+        }
         break;
       case 'creator_booking':
         Navigator.pushNamed(context, CreatorDashboard.id);

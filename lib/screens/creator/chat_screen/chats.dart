@@ -65,6 +65,7 @@ class _ChatListScreenState extends ConsumerState<ChatListScreen> {
           if (value is Map<dynamic, dynamic>) {
             newChatIds.addAll(value.keys.map((k) => k.toString()));
           }
+          print('=== ALL CHAT IDS FOR USER $userId: $newChatIds ===');
 
           // Stop listening to chats that dropped out of the index
           final removed = _chatSubscriptions.keys
@@ -84,6 +85,7 @@ class _ChatListScreenState extends ConsumerState<ChatListScreen> {
                   _dbRef.child('chats/$chatId').onValue.listen((chatEvent) {
                     final chatValue = chatEvent.snapshot.value;
                     if (chatValue is Map<dynamic, dynamic>) {
+                      print('=== CHAT DATA [$chatId]: $chatValue ===');
                       if (mounted) {
                         setState(() {
                           _chatsData[chatId] = chatValue;
@@ -346,6 +348,13 @@ class _ChatListScreenState extends ConsumerState<ChatListScreen> {
 
     // Most recent conversation first
     displayEntries.sort((a, b) => b.lastMessageTime.compareTo(a.lastMessageTime));
+    print('=== DISPLAY ENTRIES (${displayEntries.length} chats) ===');
+    for (final e in displayEntries) {
+      debugPrint(
+        '  chatKey: ${e.chatKey} | name: ${e.displayName} | service: ${e.displayService} | '
+            'last: "${e.lastMessageText}" | time: ${e.lastMessageTime} | isDispute: ${e.isDisputeChat}',
+      );
+    }
 
     return Scaffold(
       appBar: AppBar(
