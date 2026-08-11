@@ -9,10 +9,9 @@ import 'package:soundhive2/utils/app_colors.dart';
 import 'package:soundhive2/utils/utils.dart';
 import 'package:soundhive2/lib/dashboard_provider/user_provider.dart';
 import 'package:soundhive2/lib/dashboard_provider/getCreatorBookings.dart';
-import '../../lib/dashboard_provider/getUserOfferProvider.dart';
+import 'package:soundhive2/lib/dashboard_provider/getUserOfferProvider.dart';
 import '../../model/user_model.dart';
 import '../non_creator/wallet/add_money_screen.dart';
-import '../non_creator/wallet/fund_wallet_provider.dart';
 import '../non_creator/wallet/wallet.dart';
 import 'creator_bookings_detail.dart';
 
@@ -231,16 +230,14 @@ class _CreatorHomeState extends ConsumerState<CreatorHome> with SingleTickerProv
 
                 return GestureDetector(
                   onTap: () {
-                    if (investment.status == "PENDING") {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => CreatorBookingsDetailScreen(
-                            service: investment,
-                          ),
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => CreatorBookingsDetailScreen(
+                          service: investment,
                         ),
-                      );
-                    }
+                      ),
+                    );
                   },
                   child: Card(
                     color: Colors.transparent,

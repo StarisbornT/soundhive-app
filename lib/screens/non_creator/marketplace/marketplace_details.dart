@@ -20,6 +20,7 @@ import '../../../model/user_model.dart';
 import '../../../services/creator_profile_loader.dart';
 import '../../../utils/alert_helper.dart';
 import '../../../utils/app_colors.dart';
+import '../../../utils/no_phone_number_validator.dart';
 import '../../creator/profile/profile_screen.dart';
 import '../../dashboard/marketplace/markplace_recept.dart';
 import '../../dashboard/verification_webview.dart';
@@ -44,6 +45,10 @@ class _MarketplaceDetailsScreenState extends ConsumerState<MarketplaceDetails> {
   String? selectedPaymentOption;
   late List<DateTime> availabilityDates = [];
   double? _bookingAmount;
+
+  // Terms of Service state
+  bool _termsAccepted = false;
+  bool _showTermsError = false;
 
   String _formatDate(String dateString) {
     try {
@@ -366,6 +371,8 @@ class _MarketplaceDetailsScreenState extends ConsumerState<MarketplaceDetails> {
         return _buildDetailsStep(theme, isDark);
       case 1:
         return _buildConfirmationStep(theme, isDark);
+      case 2:
+        return _buildTermsStep(theme, isDark);
       default:
         return const SizedBox.shrink();
     }
@@ -698,7 +705,9 @@ class _MarketplaceDetailsScreenState extends ConsumerState<MarketplaceDetails> {
           borderWidth: 0,
           borderRadius: 25.0,
           onPressed: () {
-            _submitBooking();
+            setState(() {
+              _currentStep++;
+            });
           },
         )
       ],
@@ -837,6 +846,277 @@ class _MarketplaceDetailsScreenState extends ConsumerState<MarketplaceDetails> {
       child: Center(
         child: CircularProgressIndicator(color: theme.colorScheme.primary),
       ),
+    );
+  }
+
+  Widget _buildTermsStep(ThemeData theme, bool isDark) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'Terms of Service',
+          style: TextStyle(
+            color: theme.colorScheme.onSurface,
+            fontSize: 24,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+        const SizedBox(height: 12),
+        Text(
+          'Please review and accept our Terms of Service before proceeding with your booking.',
+          style: TextStyle(
+            color: theme.colorScheme.onSurface.withOpacity(0.7),
+            fontSize: 14,
+          ),
+        ),
+        const SizedBox(height: 20),
+
+        // Terms content container
+        Container(
+          height: 300,
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: isDark ? const Color(0xFF1A191E) : Colors.grey[50],
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(
+              color: theme.dividerColor.withOpacity(0.3),
+            ),
+          ),
+          child: SingleChildScrollView(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                _buildTermsSection(
+                  theme,
+                  '1. Booking Confirmation',
+                  'By proceeding with this booking, you confirm that all information provided is accurate and complete. You understand that your booking is subject to the creator\'s availability and confirmation.',
+                ),
+                const SizedBox(height: 12),
+                _buildTermsSection(
+                  theme,
+                  '2. Payment and Pricing',
+                  'You agree to pay the total amount as displayed. All payments are final and non-refundable unless otherwise stated in the creator\'s cancellation policy.',
+                ),
+                const SizedBox(height: 12),
+                _buildTermsSection(
+                  theme,
+                  '3. Cancellation Policy',
+                  'Cancellations must be made at least 24 hours before the scheduled service date. Late cancellations may result in partial or full charges at the creator\'s discretion.',
+                ),
+                const SizedBox(height: 12),
+                _buildTermsSection(
+                  theme,
+                  '4. Creator Liability',
+                  'The platform acts as a facilitator between users and creators. We are not liable for the quality, safety, or legality of services provided. Please review the creator\'s profile and ratings before booking.',
+                ),
+                const SizedBox(height: 12),
+                _buildTermsSection(
+                  theme,
+                  '5. User Conduct',
+                  'You agree to treat creators with respect and professionalism. Any abusive, harassing, or inappropriate behavior may result in account suspension.',
+                ),
+                const SizedBox(height: 12),
+                _buildTermsSection(
+                  theme,
+                  '6. Data Privacy',
+                  'Your personal information will be handled in accordance with our Privacy Policy. We may share necessary information with the creator to facilitate the service.',
+                ),
+                const SizedBox(height: 12),
+                _buildTermsSection(
+                  theme,
+                  '7. Dispute Resolution',
+                  'Any disputes arising from this booking shall be resolved through our dispute resolution process. Both parties agree to engage in good faith negotiations before escalation.',
+                ),
+                const SizedBox(height: 12),
+                _buildTermsSection(
+                  theme,
+                  '8. Modifications',
+                  'These terms may be updated from time to time. The current version will always be available on our platform.',
+                ),
+                const SizedBox(height: 8),
+                Center(
+                  child: Text(
+                    'Last Updated: July 2026',
+                    style: TextStyle(
+                      color: theme.colorScheme.onSurface.withOpacity(0.4),
+                      fontSize: 12,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+
+        const SizedBox(height: 20),
+
+        // Terms acceptance checkbox
+        Container(
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: _showTermsError
+                ? Colors.red.withOpacity(0.08)
+                : Colors.transparent,
+            borderRadius: BorderRadius.circular(8),
+            border: _showTermsError
+                ? Border.all(color: Colors.red, width: 1.5)
+                : null,
+          ),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              GestureDetector(
+                onTap: () {
+                  setState(() {
+                    _termsAccepted = !_termsAccepted;
+                    _showTermsError = false;
+                  });
+                },
+                child: Container(
+                  width: 24,
+                  height: 24,
+                  margin: const EdgeInsets.only(top: 2),
+                  decoration: BoxDecoration(
+                    color: _termsAccepted
+                        ? AppColors.BUTTONCOLOR
+                        : Colors.transparent,
+                    borderRadius: BorderRadius.circular(4),
+                    border: Border.all(
+                      color: _termsAccepted
+                          ? AppColors.BUTTONCOLOR
+                          : theme.colorScheme.onSurface.withOpacity(0.3),
+                      width: 2,
+                    ),
+                  ),
+                  child: _termsAccepted
+                      ? const Icon(Icons.check, color: Colors.white, size: 18)
+                      : null,
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    RichText(
+                      text: TextSpan(
+                        style: TextStyle(
+                          color: theme.colorScheme.onSurface,
+                          fontSize: 14,
+                          height: 1.4,
+                        ),
+                        children: const [
+                           TextSpan(text: 'I have read and agree to the '),
+                          TextSpan(
+                            text: 'Terms of Service',
+                            style: TextStyle(
+                              color: AppColors.BUTTONCOLOR,
+                              fontWeight: FontWeight.w600,
+                              decoration: TextDecoration.underline,
+                            ),
+                          ),
+                          TextSpan(text: ' and '),
+                          TextSpan(
+                            text: 'Privacy Policy',
+                            style: TextStyle(
+                              color: AppColors.BUTTONCOLOR,
+                              fontWeight: FontWeight.w600,
+                              decoration: TextDecoration.underline,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    if (_showTermsError) ...[
+                      const SizedBox(height: 4),
+                      const Text(
+                        'You must agree to the Terms of Service to continue',
+                        style: TextStyle(
+                          color: Colors.red,
+                          fontSize: 12,
+                        ),
+                      ),
+                    ],
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+
+        const SizedBox(height: 20),
+
+        // Navigation buttons
+        Row(
+          children: [
+            Expanded(
+              child: OutlinedButton(
+                onPressed: () {
+                  setState(() {
+                    _currentStep--;
+                  });
+                },
+                style: OutlinedButton.styleFrom(
+                  padding: const EdgeInsets.symmetric(vertical: 14),
+                  side: BorderSide(color: theme.dividerColor),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(25),
+                  ),
+                ),
+                child: Text(
+                  'Back',
+                  style: TextStyle(
+                    color: theme.colorScheme.onSurface,
+                  ),
+                ),
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: RoundedButton(
+                title: 'Complete Booking',
+                color: AppColors.BUTTONCOLOR,
+                borderWidth: 0,
+                borderRadius: 25.0,
+                onPressed: () {
+                  if (!_termsAccepted) {
+                    setState(() {
+                      _showTermsError = true;
+                    });
+                    return;
+                  }
+                  _submitBooking();
+                },
+              ),
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+
+  Widget _buildTermsSection(ThemeData theme, String title, String content) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          title,
+          style: TextStyle(
+            color: theme.colorScheme.onSurface,
+            fontSize: 14,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+        const SizedBox(height: 4),
+        Text(
+          content,
+          style: TextStyle(
+            color: theme.colorScheme.onSurface.withOpacity(0.7),
+            fontSize: 13,
+            height: 1.5,
+          ),
+        ),
+      ],
     );
   }
 
@@ -1160,6 +1440,7 @@ class _MakeOfferFormBottomSheetState extends ConsumerState<MakeOfferFormBottomSh
               hintText: 'Add notes, timeline requests, or details...',
               keyboardType: TextInputType.multiline,
               maxLines: 3,
+              validator: NoPhoneNumberValidator.validate,
             ),
             const SizedBox(height: 25),
 

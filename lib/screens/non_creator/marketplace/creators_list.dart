@@ -1,8 +1,8 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:soundhive2/screens/non_creator/marketplace/creator.dart';
 import 'package:soundhive2/lib/dashboard_provider/creatorProvider.dart';
+import '../../../services/creator_profile_loader.dart';
 import '../../../utils/utils.dart';
 
 class CreatorsList extends ConsumerStatefulWidget {
@@ -248,8 +248,8 @@ class _CreatorsListState extends ConsumerState<CreatorsList> {
                             Navigator.push(
                               context,
                               MaterialPageRoute(
-                                builder: (context) => CreatorProfile(
-                                  creator: creator,
+                                builder: (context) => CreatorProfileLoader(
+                                  creatorId: creator.id,
                                 ),
                               ),
                             );
@@ -257,7 +257,7 @@ class _CreatorsListState extends ConsumerState<CreatorsList> {
                           child: Utils.buildCreativeCard(
                             context,
                             name: creator.businessName ?? '${creator.user?.firstName} ${creator.user?.lastName}',
-                            role: creator.jobTitle,
+                            role: creator.jobTitle ?? "",
                             rating: Utils.getOverallRating(creator).toStringAsFixed(1),
                             profileImage: creator.user?.image ?? '',
                             firstName: creator.businessName ?? creator.user?.firstName ?? '',

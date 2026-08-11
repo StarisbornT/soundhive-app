@@ -21,6 +21,8 @@ class LabeledTextField extends StatelessWidget {
   final IconData? prefixIcon;
   final List<TextInputFormatter>? inputFormatters;
   final TextAlign? textAlign;
+  final String? Function(String?)? validator;          // 👈 added
+  final AutovalidateMode? autovalidateMode;             // 👈 added
 
   const LabeledTextField({
     super.key,
@@ -39,6 +41,8 @@ class LabeledTextField extends StatelessWidget {
     this.maxLines = 1,
     this.prefixIcon,
     this.textAlign,
+    this.validator,                                     // 👈 added
+    this.autovalidateMode,                               // 👈 added
   });
 
   @override
@@ -72,7 +76,7 @@ class LabeledTextField extends StatelessWidget {
           ],
         ),
         const SizedBox(height: 6),
-        TextField(
+        TextFormField(                                   // 👈 was TextField
           controller: controller,
           keyboardType: keyboardType,
           obscureText: obscureText,
@@ -81,6 +85,8 @@ class LabeledTextField extends StatelessWidget {
           textAlign: textAlign ?? TextAlign.start,
           style: TextStyle(color: theme.colorScheme.onSurface),
           inputFormatters: inputFormatters,
+          validator: validator,                           // 👈 added
+          autovalidateMode: autovalidateMode,               // 👈 added
           decoration: InputDecoration(
             prefixIcon: prefixIcon != null
                 ? Icon(

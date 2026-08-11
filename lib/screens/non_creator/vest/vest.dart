@@ -17,6 +17,8 @@ import '../wallet/wallet_cards.dart';
 import 'active_vest_details.dart';
 import 'package:shimmer/shimmer.dart';
 
+import 'artist_vest.dart';
+
 final authTokenProvider = FutureProvider<String?>((ref) async {
   const storage = FlutterSecureStorage();
   return await storage.read(key: 'auth_token');
@@ -133,6 +135,34 @@ class _SoundHiveVestScreenState extends ConsumerState<SoundHiveVestScreen>
       MaterialPageRoute(
           builder: (context) => const WithdrawScreen(walletType: 'NGN')),
     );
+  }
+
+  // NEW — single navigation entry point for tapping an investment card.
+  // Artist vests must build trust first (Overview -> Portfolio -> Project
+  // -> Opportunity) before reaching the invest action. General vests keep
+  // the original behaviour: straight into VestDetailsScreen.
+  void _openInvestment(Investment investment) {
+    if (investment.isArtistVest) {
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (context) => ArtistVestFlowScreen(
+            investment: investment,
+            user: widget.user.user!,
+          ),
+        ),
+      );
+    } else {
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (context) => VestDetailsScreen(
+            investment: investment,
+            user: widget.user.user!,
+          ),
+        ),
+      );
+    }
   }
 
   Widget _buildShimmerLoadingScreen() {
@@ -277,7 +307,7 @@ class _SoundHiveVestScreenState extends ConsumerState<SoundHiveVestScreen>
                               title: 'Base balance',
                               balance: user?.wallet?.balance != null
                                   ? ref
-                                      .formatUserCurrency(user?.wallet?.balance)
+                                  .formatUserCurrency(user?.wallet?.balance)
                                   : '',
                               currencySymbol: user?.wallet!.currency ?? '',
                               onAddFunds: () => _showAmountInputModal(
@@ -368,7 +398,6 @@ class _SoundHiveVestScreenState extends ConsumerState<SoundHiveVestScreen>
         ),
         const SizedBox(height: 12),
 
-        // NEW: Filter Chips Layer Integration
         _buildFilterChipsTier(),
         const SizedBox(height: 10),
 
@@ -382,7 +411,7 @@ class _SoundHiveVestScreenState extends ConsumerState<SoundHiveVestScreen>
                 controller: _innerScrollController,
                 physics: const ClampingScrollPhysics(),
                 keyboardDismissBehavior:
-                    ScrollViewKeyboardDismissBehavior.onDrag,
+                ScrollViewKeyboardDismissBehavior.onDrag,
                 padding: EdgeInsets.only(
                   top: 10,
                   bottom: MediaQuery.of(context).viewInsets.bottom + 10,
@@ -395,17 +424,10 @@ class _SoundHiveVestScreenState extends ConsumerState<SoundHiveVestScreen>
                   return Padding(
                     padding: const EdgeInsets.symmetric(vertical: 5),
                     child: GestureDetector(
-                      onTap: () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (context) => VestDetailsScreen(
-                              investment: allServices[index],
-                              user: widget.user.user!,
-                            ),
-                          ),
-                        );
-                      },
+                      // CHANGED: was an unconditional push to VestDetailsScreen.
+                      // Now routes through _openInvestment so artist vests go
+                      // through the 5-stage flow, general vests unaffected.
+                      onTap: () => _openInvestment(allServices[index]),
                       child: _investmentCard(allServices[index]),
                     ),
                   );
@@ -420,14 +442,12 @@ class _SoundHiveVestScreenState extends ConsumerState<SoundHiveVestScreen>
     );
   }
 
-  // NEW: Horizontal Filter Bar Layer Builder
   Widget _buildFilterChipsTier() {
     return SingleChildScrollView(
       scrollDirection: Axis.horizontal,
       physics: const BouncingScrollPhysics(),
       child: Row(
         children: [
-          // Platform type filters
           _filterChip(
               label: 'All Vests',
               isActive: _activeTypeFilter == 'ALL',
@@ -466,8 +486,8 @@ class _SoundHiveVestScreenState extends ConsumerState<SoundHiveVestScreen>
 
   Widget _filterChip(
       {required String label,
-      required bool isActive,
-      required VoidCallback onTap}) {
+        required bool isActive,
+        required VoidCallback onTap}) {
     return Padding(
       padding: const EdgeInsets.only(right: 8.0),
       child: ChoiceChip(
@@ -493,9 +513,9 @@ class _SoundHiveVestScreenState extends ConsumerState<SoundHiveVestScreen>
       if (value != 'ARTIST') _activeStageFilter = 'ALL';
     });
     ref.read(getInvestmentProvider.notifier).filterVests(
-          type: _activeTypeFilter,
-          stage: _activeStageFilter,
-        );
+      type: _activeTypeFilter,
+      stage: _activeStageFilter,
+    );
   }
 
   void _updateStageFilter(String value) {
@@ -503,12 +523,11 @@ class _SoundHiveVestScreenState extends ConsumerState<SoundHiveVestScreen>
       _activeStageFilter = value;
     });
     ref.read(getInvestmentProvider.notifier).filterVests(
-          type: _activeTypeFilter,
-          stage: _activeStageFilter,
-        );
+      type: _activeTypeFilter,
+      stage: _activeStageFilter,
+    );
   }
 
-  // UPDATED: Standard template logic enriched with progress tracks + playback nodes
   Widget _investmentCard(Investment investment) {
     final bool isArtist = investment.isArtistVest;
     final artistDetails = investment.artistDetails;
@@ -534,11 +553,11 @@ class _SoundHiveVestScreenState extends ConsumerState<SoundHiveVestScreen>
                   borderRadius: BorderRadius.circular(8),
                   child: (investment.images.isNotEmpty)
                       ? Image.network(
-                          investment.images.first,
-                          fit: BoxFit.cover,
-                          errorBuilder: (context, error, stackTrace) =>
-                              _buildImagePlaceholder(),
-                        )
+                    investment.images.first,
+                    fit: BoxFit.cover,
+                    errorBuilder: (context, error, stackTrace) =>
+                        _buildImagePlaceholder(),
+                  )
                       : _buildImagePlaceholder(),
                 ),
               ),
@@ -613,15 +632,13 @@ class _SoundHiveVestScreenState extends ConsumerState<SoundHiveVestScreen>
                     Text(
                       'ROI: ${investment.roi}% • ${investment.duration} mos',
                       style:
-                          const TextStyle(color: Colors.white54, fontSize: 12),
+                      const TextStyle(color: Colors.white54, fontSize: 12),
                     ),
                   ],
                 ),
               ),
             ],
           ),
-
-          // NEW Feature: Render inline metadata options if it is an Artist vest item
           if (isArtist && artistDetails != null) ...[
             const SizedBox(height: 12),
             const Divider(color: Colors.white10, height: 1),
@@ -639,13 +656,11 @@ class _SoundHiveVestScreenState extends ConsumerState<SoundHiveVestScreen>
                 Text(
                   'Split: ${artistDetails.revenueSplitInvestor.toStringAsFixed(0)}% to Investors',
                   style:
-                      const TextStyle(color: Colors.purpleAccent, fontSize: 11),
+                  const TextStyle(color: Colors.purpleAccent, fontSize: 11),
                 ),
               ],
             ),
             const SizedBox(height: 6),
-
-            // Linear Progress Track Indicator showing Funding Target Progress
             Row(
               children: [
                 Expanded(
@@ -661,7 +676,7 @@ class _SoundHiveVestScreenState extends ConsumerState<SoundHiveVestScreen>
                 ),
                 const SizedBox(width: 8),
                 Text(
-                  '${(artistDetails.fundingProgress * 100).toStringAsFixed(0)}%',
+                  '${artistDetails.fundingProgressPercentage.toStringAsFixed(0)}%',
                   style: const TextStyle(
                       color: Colors.white70,
                       fontSize: 11,
@@ -669,24 +684,21 @@ class _SoundHiveVestScreenState extends ConsumerState<SoundHiveVestScreen>
                 ),
               ],
             ),
-
-            // Render Inline Music Snippet Player Control if audio URL exists
             if (artistDetails.previewAudioUrl != null) ...[
               const SizedBox(height: 8),
               GestureDetector(
                 onTap: () {
                   setState(() {
                     if (_currentlyPlayingId == investment.id) {
-                      _currentlyPlayingId = null; // Toggle off / pause track
+                      _currentlyPlayingId = null;
                     } else {
-                      _currentlyPlayingId =
-                          investment.id; // Play selected track node
+                      _currentlyPlayingId = investment.id;
                     }
                   });
                 },
                 child: Container(
                   padding:
-                      const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                  const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                   decoration: BoxDecoration(
                     color: Colors.white.withOpacity(0.05),
                     borderRadius: BorderRadius.circular(6),
@@ -869,11 +881,11 @@ class _SoundHiveVestScreenState extends ConsumerState<SoundHiveVestScreen>
             height: 100,
             child: (investment.vest?.images.isNotEmpty ?? false)
                 ? Image.network(
-                    investment.vest!.images.first,
-                    fit: BoxFit.cover,
-                    errorBuilder: (context, error, stackTrace) =>
-                        _buildImagePlaceholder(),
-                  )
+              investment.vest!.images.first,
+              fit: BoxFit.cover,
+              errorBuilder: (context, error, stackTrace) =>
+                  _buildImagePlaceholder(),
+            )
                 : _buildImagePlaceholder(),
           ),
           const SizedBox(width: 10),
@@ -922,7 +934,6 @@ class _SoundHiveVestScreenState extends ConsumerState<SoundHiveVestScreen>
   }
 }
 
-// ========== ADD THIS PERSISTENT DELEGATE TO YOUR FILE ==========
 class _SliverTabBarDelegate extends SliverPersistentHeaderDelegate {
   final TabBar tabBar;
 
@@ -937,8 +948,7 @@ class _SliverTabBarDelegate extends SliverPersistentHeaderDelegate {
   Widget build(
       BuildContext context, double shrinkOffset, bool overlapsContent) {
     return Container(
-      color: const Color(
-          0xFF0C051F), // Matches screen's background color perfectly
+      color: const Color(0xFF0C051F),
       child: tabBar,
     );
   }

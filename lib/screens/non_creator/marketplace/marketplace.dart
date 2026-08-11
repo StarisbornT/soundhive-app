@@ -29,6 +29,7 @@ import '../../../model/creator_model.dart';
 import '../../../model/market_orders_service_model.dart';
 import '../../../model/user_model.dart';
 import '../../../services/block_service.dart';
+import '../../../services/creator_profile_loader.dart';
 import '../../../utils/app_colors.dart';
 import '../../creator/profile/setup_screen.dart';
 import '../ai/ai_conversation_list.dart';
@@ -3138,7 +3139,7 @@ class _CreativesSectionState extends State<CreativesSection> {
                     context,
                     MaterialPageRoute(
                       builder: (context) =>
-                          CreatorProfile(creator: creator),
+                          CreatorProfileLoader(creatorId: creator.id),
                     ),
                   ),
                   // Long-press to block the creator
@@ -3161,7 +3162,7 @@ class _CreativesSectionState extends State<CreativesSection> {
                   child: Utils.buildCreativeCard(
                     context,
                     name: creatorName,
-                    role: creator.jobTitle,
+                    role: creator.jobTitle ?? "",
                     rating: Utils.getOverallRating(creator).toStringAsFixed(1),
                     profileImage: creator.user?.image ?? '',
                     firstName: creator.businessName ??

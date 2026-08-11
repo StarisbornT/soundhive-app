@@ -7,6 +7,7 @@ import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:soundhive2/lib/dashboard_provider/user_provider.dart';
 import '../../model/apiresponse_model.dart';
 import '../../model/bvn_response_model.dart';
+import '../../model/can_review_response.dart';
 import '../../services/loader_service.dart';
 import '../provider.dart';
 
@@ -46,6 +47,216 @@ class ApiResponseProvider extends StateNotifier<AsyncValue<void>> {
       rethrow;
     } finally {
       LoaderService.hideLoader(context);
+    }
+  }
+
+  Future<ApiResponseModel> addExperience({
+    required BuildContext context,
+    required Map<dynamic, dynamic> payload
+  }) async {
+    state = const AsyncValue.loading();
+    try {
+      LoaderService.showLoader(context);
+      final response = await _dio.post(
+        '/creator/experience',
+        data: jsonEncode(payload),
+      );
+
+      if (response.statusCode == 201) {
+        state = const AsyncValue.data(null);
+        return ApiResponseModel.fromJson(response.data);
+      } else {
+        throw Exception(response.data['message'] ?? 'Something went wrong');
+      }
+    } catch (error, stackTrace) {
+      state = AsyncValue.error(error, stackTrace);
+      rethrow;
+    } finally {
+      LoaderService.hideLoader(context);
+    }
+  }
+  Future<ApiResponseModel> addSkill({
+    required BuildContext context,
+    required Map<dynamic, dynamic> payload
+  }) async {
+    state = const AsyncValue.loading();
+    try {
+      LoaderService.showLoader(context);
+      final response = await _dio.post(
+        '/creator/skills',
+        data: jsonEncode(payload),
+      );
+
+      if (response.statusCode == 201) {
+        state = const AsyncValue.data(null);
+        return ApiResponseModel.fromJson(response.data);
+      } else {
+        throw Exception(response.data['message'] ?? 'Something went wrong');
+      }
+    } catch (error, stackTrace) {
+      state = AsyncValue.error(error, stackTrace);
+      rethrow;
+    } finally {
+      LoaderService.hideLoader(context);
+    }
+  }
+  Future<ApiResponseModel> updateExperience({
+    required BuildContext context,
+    required Map<dynamic, dynamic> payload,
+    required int id
+  }) async {
+    state = const AsyncValue.loading();
+    try {
+      LoaderService.showLoader(context);
+      final response = await _dio.put(
+        '/creator/experience/$id',
+        data: jsonEncode(payload),
+      );
+
+      if (response.statusCode == 201) {
+        state = const AsyncValue.data(null);
+        return ApiResponseModel.fromJson(response.data);
+      } else {
+        throw Exception(response.data['message'] ?? 'Something went wrong');
+      }
+    } catch (error, stackTrace) {
+      state = AsyncValue.error(error, stackTrace);
+      rethrow;
+    } finally {
+      LoaderService.hideLoader(context);
+    }
+  }
+  Future<ApiResponseModel> updateAvailability({
+    required BuildContext context,
+    required Map<dynamic, dynamic> payload,
+  }) async {
+    state = const AsyncValue.loading();
+    try {
+      LoaderService.showLoader(context);
+      final response = await _dio.post(
+        '/update/availability',
+        data: jsonEncode(payload),
+      );
+
+      if (response.statusCode == 200) {
+        state = const AsyncValue.data(null);
+        return ApiResponseModel.fromJson(response.data);
+      } else {
+        throw Exception(response.data['message'] ?? 'Something went wrong');
+      }
+    } catch (error, stackTrace) {
+      state = AsyncValue.error(error, stackTrace);
+      rethrow;
+    } finally {
+      LoaderService.hideLoader(context);
+    }
+  }
+  Future<ApiResponseModel> deleteExperience({
+    required BuildContext context,
+    required int id
+  }) async {
+    state = const AsyncValue.loading();
+    try {
+      LoaderService.showLoader(context);
+      final response = await _dio.delete(
+        '/creator/experience/$id',
+      );
+
+      if (response.statusCode == 201) {
+        state = const AsyncValue.data(null);
+        return ApiResponseModel.fromJson(response.data);
+      } else {
+        throw Exception(response.data['message'] ?? 'Something went wrong');
+      }
+    } catch (error, stackTrace) {
+      state = AsyncValue.error(error, stackTrace);
+      rethrow;
+    } finally {
+      LoaderService.hideLoader(context);
+    }
+  }
+  Future<ApiResponseModel> deleteSkill({
+    required BuildContext context,
+    required int id
+  }) async {
+    state = const AsyncValue.loading();
+    try {
+      LoaderService.showLoader(context);
+      final response = await _dio.delete(
+        '/creator/skills/$id',
+      );
+
+      if (response.statusCode == 201) {
+        state = const AsyncValue.data(null);
+        return ApiResponseModel.fromJson(response.data);
+      } else {
+        throw Exception(response.data['message'] ?? 'Something went wrong');
+      }
+    } catch (error, stackTrace) {
+      state = AsyncValue.error(error, stackTrace);
+      rethrow;
+    } finally {
+      LoaderService.hideLoader(context);
+    }
+  }
+  Future<ApiResponseModel> addPortfolioItem({
+    required BuildContext context,
+    required File mediaFile,
+    required void Function(double progress) onProgress,
+  }) async {
+    state = const AsyncValue.loading();
+    try {
+      // LoaderService.showLoader(context);
+      final formData = FormData.fromMap({
+        'media': await MultipartFile.fromFile(
+          mediaFile.path,
+          filename: mediaFile.path.split('/').last,
+        ),
+      });
+      final response = await _dio.post(
+        '/creator/portfolio',
+        data: formData,
+        onSendProgress: (sent, total) {
+          if (total > 0) onProgress(sent / total);
+        },
+      );
+
+      if (response.statusCode == 201) {
+        state = const AsyncValue.data(null);
+        return ApiResponseModel.fromJson(response.data);
+      } else {
+        throw Exception(response.data['message'] ?? 'Something went wrong');
+      }
+    } catch (error, stackTrace) {
+      state = AsyncValue.error(error, stackTrace);
+      rethrow;
+    } finally {
+      // LoaderService.hideLoader(context);
+    }
+  }
+  Future<ApiResponseModel> deletePortfolioItem({
+    required BuildContext context,
+    required int id,
+  }) async {
+    state = const AsyncValue.loading();
+    try {
+      // LoaderService.showLoader(context);
+
+      final response = await _dio.delete(
+        '/creator/portfolio/$id',
+      );
+
+      if (response.statusCode == 201) {
+        state = const AsyncValue.data(null);
+        return ApiResponseModel.fromJson(response.data);
+      } else {
+        throw Exception(response.data['message'] ?? 'Something went wrong');
+      }
+    } catch (error, stackTrace) {
+      state = AsyncValue.error(error, stackTrace);
+      rethrow;
+    } finally {
+      // LoaderService.hideLoader(context);
     }
   }
   Future<ApiResponseModel> uploadCreatorVideo({
@@ -1305,6 +1516,26 @@ class ApiResponseProvider extends StateNotifier<AsyncValue<void>> {
       }
     } catch (error, stackTrace) {
       state = AsyncValue.error(error, stackTrace);
+      rethrow; // Let the caller handle the error
+    } finally {
+      LoaderService.hideLoader(context);
+    }
+  }
+
+  Future<CanReviewResponse> canReview({
+    required BuildContext context,
+    required int bookingId,
+  }) async {
+    try {
+      LoaderService.showLoader(context);
+      final response = await _dio.get('/reviews/can/$bookingId');
+
+      if (response.statusCode == 200) {
+        return CanReviewResponse.fromJson(response.data);
+      } else {
+        throw Exception(response.data['message'] ?? 'Something went wrong');
+      }
+    } catch (error, stackTrace) {
       rethrow; // Let the caller handle the error
     } finally {
       LoaderService.hideLoader(context);
