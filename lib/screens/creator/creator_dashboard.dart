@@ -235,7 +235,7 @@ class CreatorDashboard extends ConsumerWidget {
                           ),
                         );
                       }),
-                      _buildDrawerItem(icon: 'images/artist.png', text: 'Artist Arena', onTap: () {
+                      _buildDrawerItem(icon: 'images/artist.png', text: 'SoundHive', onTap: () {
                         if(user.artist != null) {
                           Navigator.push(
                             context,

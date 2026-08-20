@@ -75,8 +75,9 @@ class _CreatorPortfolioState extends ConsumerState<CreatorPortfolio> {
             // Title and Price Section
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 16),
-              child: Row(
+              child: Column(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
                     service.serviceName,
@@ -135,33 +136,6 @@ class _CreatorPortfolioState extends ConsumerState<CreatorPortfolio> {
 
             if (service.serviceAudio != null) ...[
               AudioPlayerWidget(audioUrl: service.serviceAudio ?? ""),
-            ],
-
-            // --- NEW: creator credibility block, before Book/Offer ---
-            // Surfaces trust badges + a portfolio strip + a link to the
-            // full creator profile, so the decision to book is informed
-            // by who the creator is, not just this one service listing.
-            if (hasCreator) ...[
-              CreatorTrustBlock(
-                creatorName: creator.businessName ??
-                    "${creator.user?.firstName ?? ''} ${creator.user?.lastName ?? ''}".trim(),
-                creatorImage: creator.user?.image,
-                badges: extras!.trustBadges,
-                portfolioPreview: extras.portfolio,
-                ratingDistribution: extras.ratingDistribution,
-                onViewProfile: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(builder: (_) => CreatorProfile(creator: creator)),
-                  );
-                },
-              ),
-              if (extras.ratingDistribution.totalReviews > 0)
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 20),
-                  child: RatingBreakdown(distribution: extras.ratingDistribution, compact: true),
-                ),
-              const SizedBox(height: 12),
             ],
 
             // Book Button
