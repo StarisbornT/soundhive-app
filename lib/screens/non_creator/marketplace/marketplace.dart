@@ -27,6 +27,7 @@ import '../../../lib/provider.dart';
 import '../../../main.dart';
 import '../../../model/creator_model.dart';
 import '../../../model/market_orders_service_model.dart';
+import '../../../model/service_model.dart';
 import '../../../model/user_model.dart';
 import '../../../services/block_service.dart';
 import '../../../services/creator_profile_loader.dart';
@@ -2277,7 +2278,7 @@ class _MarketplaceState extends ConsumerState<Marketplace>
     );
   }
 
-  Widget _buildServicesGrid(List<MarketOrder> services,
+  Widget _buildServicesGrid(List<ServiceItem> services,
       ThemeData theme, bool isDark, WidgetRef ref) {
     final servicesNotifier =
     ref.read(getMarketplaceServiceProvider.notifier);
@@ -2367,7 +2368,7 @@ class _MarketplaceState extends ConsumerState<Marketplace>
   // ── Service grid card with report/block menu ───────────────────────────────
 
   Widget _buildServiceItem(
-      MarketOrder item, ThemeData theme, bool isDark) {
+      ServiceItem item, ThemeData theme, bool isDark) {
     return GestureDetector(
       onTap: () => Navigator.push(
         context,
@@ -2539,7 +2540,7 @@ class _MarketplaceState extends ConsumerState<Marketplace>
   // ── Horizontal "More services" list with report/block menu ────────────────
 
   Widget _buildMoreServicesList(
-      List<MarketOrder> services, ThemeData theme, bool isDark) {
+      List<ServiceItem> services, ThemeData theme, bool isDark) {
     return SizedBox(
       height: 240,
       child: ListView.builder(

@@ -6,22 +6,25 @@ import 'package:soundhive2/components/rounded_button.dart';
 import 'package:soundhive2/lib/dashboard_provider/checkOfferProvider.dart';
 import 'package:soundhive2/screens/non_creator/wallet/wallet.dart';
 import 'package:soundhive2/utils/utils.dart';
+import '../../../components/creator_profile_widgets.dart';
 import '../../../components/label_text.dart';
 import '../../../components/success.dart';
 import '../../../components/widgets.dart';
 import 'package:soundhive2/lib/dashboard_provider/apiresponseprovider.dart';
 import 'package:soundhive2/lib/dashboard_provider/user_provider.dart';
 import 'package:soundhive2/lib/dashboard_provider/getActiveInvestmentProvider.dart';
+import 'package:soundhive2/lib/dashboard_provider/creatorProvider.dart';
 import '../../../model/active_investment_model.dart';
 import '../../../model/apiresponse_model.dart';
-import '../../../model/market_orders_service_model.dart';
+import '../../../model/creator_model.dart';
+import '../../../model/creator_profile_models.dart';
 import '../../../model/offerFromUserModel.dart';
+import '../../../model/service_model.dart';
 import '../../../model/user_model.dart';
 import '../../../services/creator_profile_loader.dart';
 import '../../../utils/alert_helper.dart';
 import '../../../utils/app_colors.dart';
 import '../../../utils/no_phone_number_validator.dart';
-import '../../creator/profile/profile_screen.dart';
 import '../../dashboard/marketplace/markplace_recept.dart';
 import '../../dashboard/verification_webview.dart';
 import 'creator.dart';
@@ -30,7 +33,7 @@ final withdrawStateProvider = StateProvider<bool>((ref) => false);
 
 
 class MarketplaceDetails extends ConsumerStatefulWidget {
-  final MarketOrder service;
+  final ServiceItem service;
   final MemberCreatorResponse user;
   const MarketplaceDetails(
       {super.key, required this.service, required this.user});
@@ -40,7 +43,8 @@ class MarketplaceDetails extends ConsumerStatefulWidget {
       _MarketplaceDetailsScreenState();
 }
 
-class _MarketplaceDetailsScreenState extends ConsumerState<MarketplaceDetails> {
+class _MarketplaceDetailsScreenState extends ConsumerState<MarketplaceDetails>
+    with SingleTickerProviderStateMixin {
   int _currentStep = 0;
   String? selectedPaymentOption;
   late List<DateTime> availabilityDates = [];
@@ -49,6 +53,15 @@ class _MarketplaceDetailsScreenState extends ConsumerState<MarketplaceDetails> {
   // Terms of Service state
   bool _termsAccepted = false;
   bool _showTermsError = false;
+
+  // Full creator profile (for the mandatory overview step)
+  CreatorData? _creatorData;
+  bool _creatorLoading = true;
+  String? _creatorError;
+  CreatorProfileExtras? _extras;
+  late final TabController _profileTabController;
+
+  static const _profileTabs = ['Overview', 'Portfolio', 'Experience', 'Skills', 'Reviews'];
 
   String _formatDate(String dateString) {
     try {
@@ -62,9 +75,47 @@ class _MarketplaceDetailsScreenState extends ConsumerState<MarketplaceDetails> {
   @override
   void initState() {
     super.initState();
+    _profileTabController = TabController(length: _profileTabs.length, vsync: this);
+
     WidgetsBinding.instance.addPostFrameCallback((_) {
       ref.read(checkOfferProvider.notifier).checkOffer(widget.service.id);
+      _fetchCreator();
     });
+  }
+
+  @override
+  void dispose() {
+    _profileTabController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _fetchCreator() async {
+    final creatorId = widget.service.user?.creator?.id;
+    if (creatorId == null) {
+      setState(() {
+        _creatorLoading = false;
+        _creatorError = 'Creator profile unavailable';
+      });
+      return;
+    }
+
+    try {
+      final creator = await ref
+          .read(creatorProvider.notifier)
+          .getCreatorById(creatorId);
+      if (!mounted) return;
+      setState(() {
+        _creatorData = creator;
+        _extras = CreatorProfileExtras.fromCreator(creator);
+        _creatorLoading = false;
+      });
+    } catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _creatorError = 'Could not load creator profile';
+        _creatorLoading = false;
+      });
+    }
   }
 
   void _showCounterOfferDialog(OfferFromUser offer, ThemeData theme, bool isDark) {
@@ -359,6 +410,7 @@ class _MarketplaceDetailsScreenState extends ConsumerState<MarketplaceDetails> {
         ),
       ),
       body: SingleChildScrollView(
+        key: ValueKey(_currentStep),
         padding: const EdgeInsets.all(16.0),
         child: _buildStepContent(theme, isDark),
       ),
@@ -370,12 +422,277 @@ class _MarketplaceDetailsScreenState extends ConsumerState<MarketplaceDetails> {
       case 0:
         return _buildDetailsStep(theme, isDark);
       case 1:
-        return _buildConfirmationStep(theme, isDark);
+        if (_profileTabController.index != 0) {
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            if (mounted) _profileTabController.animateTo(0);
+          });
+        }
+        return _buildCreatorOverviewStep(theme, isDark);
       case 2:
+        return _buildConfirmationStep(theme, isDark);
+      case 3:
         return _buildTermsStep(theme, isDark);
       default:
         return const SizedBox.shrink();
     }
+  }
+  Widget _buildCreatorOverviewStep(ThemeData theme, bool isDark) {
+    if (_creatorLoading) {
+      return const SizedBox(
+        height: 400,
+        child: Center(child: CircularProgressIndicator()),
+      );
+    }
+
+    if (_creatorError != null || _creatorData == null) {
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const SizedBox(height: 40),
+          Center(
+            child: Text(
+              _creatorError ?? 'Something went wrong',
+              style: TextStyle(color: theme.colorScheme.error),
+            ),
+          ),
+          const SizedBox(height: 20),
+          RoundedButton(
+            title: 'Continue',
+            color: AppColors.BUTTONCOLOR,
+            borderWidth: 0,
+            borderRadius: 25.0,
+            onPressed: () => setState(() => _currentStep++),
+          ),
+        ],
+      );
+    }
+
+    final creator = _creatorData!;
+    final extras = _extras!;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'About your creator',
+          style: TextStyle(
+            color: theme.colorScheme.onSurface,
+            fontSize: 22,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+        const SizedBox(height: 4),
+        Text(
+          'Take a moment to review their work and reviews before booking.',
+          style: TextStyle(
+            color: theme.colorScheme.onSurface.withOpacity(0.7),
+            fontSize: 13,
+          ),
+        ),
+        const SizedBox(height: 16),
+
+        // Header: avatar, name, rating, trust badges
+        Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            CircleAvatar(
+              radius: 32,
+              backgroundColor: AppColors.BUTTONCOLOR.withOpacity(0.6),
+              backgroundImage: creator.user?.image != null
+                  ? NetworkImage(creator.user!.image!)
+                  : null,
+              child: creator.user?.image == null
+                  ? Text(
+                (creator.user?.firstName.isNotEmpty ?? false)
+                    ? creator.user!.firstName[0].toUpperCase()
+                    : '?',
+                style: const TextStyle(fontSize: 24, color: Colors.white),
+              )
+                  : null,
+            ),
+            const SizedBox(width: 14),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    creator.businessName ??
+                        "${creator.user?.firstName ?? ''} ${creator.user?.lastName ?? ''}".trim(),
+                    style: TextStyle(
+                      color: theme.colorScheme.onSurface,
+                      fontSize: 16,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Row(
+                    children: [
+                      const Icon(Icons.star, color: Colors.amber, size: 16),
+                      const SizedBox(width: 4),
+                      Text(
+                        '${Utils.getOverallRating(creator).toStringAsFixed(1)} overall rating',
+                        style: TextStyle(
+                          color: theme.colorScheme.onSurface.withOpacity(0.7),
+                          fontSize: 12,
+                        ),
+                      ),
+                    ],
+                  ),
+                  if (extras.trustBadges.isNotEmpty) ...[
+                    const SizedBox(height: 8),
+                    TrustBadgeRow(badges: extras.trustBadges),
+                  ],
+                ],
+              ),
+            ),
+          ],
+        ),
+
+        const SizedBox(height: 20),
+        TabBar(
+          controller: _profileTabController,
+          isScrollable: true,
+          labelColor: AppColors.BUTTONCOLOR,
+          unselectedLabelColor: theme.colorScheme.onSurface.withOpacity(0.6),
+          indicatorColor: AppColors.BUTTONCOLOR,
+          labelStyle: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
+          tabs: _profileTabs.map((t) => Tab(text: t)).toList(),
+        ),
+        const Divider(height: 1),
+        SizedBox(
+          height: 420,
+          child: TabBarView(
+            controller: _profileTabController,
+            children: [
+              // Overview
+              SingleChildScrollView(
+                padding: const EdgeInsets.symmetric(vertical: 16),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      creator.bio ?? '',
+                      style: TextStyle(
+                        color: theme.colorScheme.onSurface.withOpacity(0.75),
+                        fontSize: 13,
+                        height: 1.5,
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    Row(
+                      children: [
+                        Icon(Icons.location_on_outlined,
+                            color: theme.colorScheme.onSurface.withOpacity(0.7), size: 18),
+                        const SizedBox(width: 8),
+                        Text(
+                          creator.location ?? '',
+                          style: TextStyle(
+                            color: theme.colorScheme.onSurface.withOpacity(0.7),
+                            fontSize: 13,
+                          ),
+                        ),
+                      ],
+                    ),
+                    if (extras.availability != null) ...[
+                      const SizedBox(height: 16),
+                      AvailabilityCard(info: extras.availability!),
+                    ],
+                  ],
+                ),
+              ),
+              // Portfolio
+              SingleChildScrollView(
+                padding: const EdgeInsets.symmetric(vertical: 16),
+                child: PortfolioGrid(items: extras.portfolio, previewCount: 6),
+              ),
+              // Experience
+              SingleChildScrollView(
+                padding: const EdgeInsets.symmetric(vertical: 16),
+                child: ExperienceTimeline(entries: extras.experience),
+              ),
+              // Skills
+              SingleChildScrollView(
+                padding: const EdgeInsets.symmetric(vertical: 16),
+                child: SkillChips(skills: extras.skills),
+              ),
+              // Reviews
+              SingleChildScrollView(
+                padding: const EdgeInsets.symmetric(vertical: 16),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    RatingBreakdown(distribution: extras.ratingDistribution),
+                    const SizedBox(height: 16),
+                    if (creator.reviews.isEmpty)
+                      Text(
+                        'No reviews yet',
+                        style: TextStyle(color: theme.colorScheme.onSurface.withOpacity(0.6)),
+                      )
+                    else
+                      ...creator.reviews.take(3).map((r) => ReviewItem(review: r)),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+
+        const SizedBox(height: 20),
+        Row(
+          children: [
+            Expanded(
+              child: OutlinedButton(
+                onPressed: () => setState(() => _currentStep--),
+                style: OutlinedButton.styleFrom(
+                  padding: const EdgeInsets.symmetric(vertical: 14),
+                  side: BorderSide(color: theme.dividerColor),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(25)),
+                ),
+                child: Text('Back', style: TextStyle(color: theme.colorScheme.onSurface)),
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: RoundedButton(
+                title: 'Continue',
+                color: AppColors.BUTTONCOLOR,
+                borderWidth: 0,
+                borderRadius: 25.0,
+                onPressed: () => setState(() => _currentStep++),
+              ),
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+  // ── Helper Badges for Delivery Days & Revisions ────────────────────
+  Widget _buildServiceInfoBadge(IconData icon, String text, ThemeData theme, bool isDark) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+      decoration: BoxDecoration(
+        color: isDark ? const Color(0xFF1A191E) : Colors.grey[200],
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(
+          color: theme.colorScheme.onSurface.withOpacity(0.1),
+        ),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 14, color: AppColors.BUTTONCOLOR),
+          const SizedBox(width: 6),
+          Text(
+            text,
+            style: TextStyle(
+              color: theme.colorScheme.onSurface.withOpacity(0.8),
+              fontSize: 12,
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+        ],
+      ),
+    );
   }
 
   Widget _buildDetailsStep(ThemeData theme, bool isDark) {
@@ -402,6 +719,27 @@ class _MarketplaceDetailsScreenState extends ConsumerState<MarketplaceDetails> {
         _buildPriceDisplay(theme),
 
         const SizedBox(height: 8),
+        // Delivery Days & Revisions Badges
+        Wrap(
+          spacing: 8,
+          runSpacing: 8,
+          children: [
+            _buildServiceInfoBadge(
+              Icons.schedule,
+              '${widget.service.deliveryDays ?? 0} Days Delivery',
+              theme,
+              isDark,
+            ),
+            _buildServiceInfoBadge(
+              Icons.sync,
+              '${widget.service.revisions ?? 0} Revisions',
+              theme,
+              isDark,
+            ),
+          ],
+        ),
+
+        const SizedBox(height: 12),
         GestureDetector(
           onTap: () {
             final creator = widget.service.user?.creator;
@@ -491,7 +829,7 @@ class _MarketplaceDetailsScreenState extends ConsumerState<MarketplaceDetails> {
         ),
         const SizedBox(height: 8),
         Text(
-          widget.service.serviceDescription,
+          widget.service.serviceDescription ?? "",
           style: TextStyle(
             color: theme.colorScheme.onSurface.withValues(alpha: 0.7),
             fontSize: 14,

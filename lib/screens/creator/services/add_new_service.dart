@@ -46,6 +46,8 @@ class _AddNewServiceScreenState extends ConsumerState<AddNewServiceScreen> {
 
   final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
   final TextEditingController rateController = TextEditingController();
+  final TextEditingController deliveryDaysController = TextEditingController();
+  final TextEditingController revisionsController = TextEditingController();
   final PortfolioData portfolioData = PortfolioData();
   final TextEditingController serviceNameController = TextEditingController();
   final TextEditingController serviceDescriptionController = TextEditingController();
@@ -130,7 +132,7 @@ class _AddNewServiceScreenState extends ConsumerState<AddNewServiceScreen> {
         onLoadMore: _loadMoreCategories,
         isLoadingMoreNotifier: _categoryLoadingMoreNotifier,
         hasMoreNotifier: _categoryHasMoreNotifier,
-        onSelected: (id, name) async {          // <-- make async
+        onSelected: (id, name) async {
           setState(() {
             categoryController.text = name;
             selectedCategoryId = id;
@@ -140,9 +142,8 @@ class _AddNewServiceScreenState extends ConsumerState<AddNewServiceScreen> {
             _subcategoryHasMoreNotifier.value = false;
           });
 
-          // Await the fetch then sync into the notifier
           await ref.read(subcategoryProvider.notifier).getSubCategory(int.parse(id));
-          _syncSubCategories();                 // <-- this was missing
+          _syncSubCategories();
         },
       ),
     );
@@ -159,7 +160,7 @@ class _AddNewServiceScreenState extends ConsumerState<AddNewServiceScreen> {
       backgroundColor: Colors.transparent,
       builder: (_) => PaginatedPickerSheet(
         title: 'Select Cluster',
-        itemsNotifier: _subCategoriesNotifier, // <-- notifier instead of snapshot
+        itemsNotifier: _subCategoriesNotifier,
         toPickerItem: (s) => PickerItem(id: s.id.toString(), label: s.name),
         searchController: _subcategorySearchController,
         onSearch: _onSubcategorySearch,
@@ -187,6 +188,8 @@ class _AddNewServiceScreenState extends ConsumerState<AddNewServiceScreen> {
     _categorySearchController.dispose();
     _subcategorySearchController.dispose();
     rateController.dispose();
+    deliveryDaysController.dispose();
+    revisionsController.dispose();
     portfolioData.dispose();
     super.dispose();
   }
@@ -244,8 +247,6 @@ class _AddNewServiceScreenState extends ConsumerState<AddNewServiceScreen> {
     );
   }
 
-  // ── Everything below is unchanged from your original ───────────────
-
   int _currentStep = 0;
 
   void _nextStep() {
@@ -267,6 +268,14 @@ class _AddNewServiceScreenState extends ConsumerState<AddNewServiceScreen> {
       case 1:
         if (rateController.text.isEmpty) {
           _showError("Rate is required");
+          return false;
+        }
+        if (deliveryDaysController.text.isEmpty) {
+          _showError("Delivery days are required");
+          return false;
+        }
+        if (revisionsController.text.isEmpty) {
+          _showError("Revisions are required");
           return false;
         }
         return true;
@@ -409,7 +418,7 @@ class _AddNewServiceScreenState extends ConsumerState<AddNewServiceScreen> {
       'resource_type': resourceType,
     });
     final response = await Dio().post(
-      'https://api.cloudinary.com/v1_1/djutcezwz/$resourceType/upload',
+      'https://api.cloudinary.com/v1_1/dfwvgagmk/$resourceType/upload',
       data: formData,
     );
     if (response.statusCode != 200) {
@@ -432,6 +441,8 @@ class _AddNewServiceScreenState extends ConsumerState<AddNewServiceScreen> {
       "service_name": serviceNameController.text,
       "service_description": serviceDescriptionController.text,
       "rate": rateController.text.replaceAll(",", ""),
+      "delivery_days": int.parse(deliveryDaysController.text.trim()),
+      "revisions": int.parse(revisionsController.text.trim()),
       "cover_image": portfolioData.coverUrl,
       "service_image": portfolioImage ?? '',
       "service_audio": portfolioAudio ?? '',
@@ -498,7 +509,7 @@ class _AddNewServiceScreenState extends ConsumerState<AddNewServiceScreen> {
         ),
         const SizedBox(height: 20),
         PortfolioUploadSection(
-          title: serviceNameController.text,
+          title: "Portfolio",
           coverImageNotifier: portfolioData.coverNotifier,
           imageFileNotifier: portfolioData.imageNotifier,
           audioFileNotifier: portfolioData.audioNotifier,
@@ -515,12 +526,12 @@ class _AddNewServiceScreenState extends ConsumerState<AddNewServiceScreen> {
       children: [
         const SizedBox(height: 24),
         const Text(
-          'What are your rates?',
+          'Service Pricing & Terms',
           style: TextStyle(fontSize: 16, fontWeight: FontWeight.w400, color: Colors.white),
         ),
         const SizedBox(height: 20),
         CurrencyInputField(
-          label: serviceNameController.text,
+          label: 'Rate',
           suffixText: 'per project',
           controller: rateController,
           onChanged: (value) => print('Input changed to: $value'),
@@ -530,6 +541,20 @@ class _AddNewServiceScreenState extends ConsumerState<AddNewServiceScreen> {
             }
             return null;
           },
+        ),
+        const SizedBox(height: 16),
+        LabeledTextField(
+          label: 'Delivery Days',
+          controller: deliveryDaysController,
+          hintText: "e.g., 3",
+          keyboardType: TextInputType.number,
+        ),
+        const SizedBox(height: 16),
+        LabeledTextField(
+          label: 'Revisions Allowed',
+          controller: revisionsController,
+          hintText: "e.g., 2 (0 for none)",
+          keyboardType: TextInputType.number,
         ),
       ],
     );

@@ -8,7 +8,7 @@ import '../../../components/creator_profile_widgets.dart';
 import '../../../components/video_preview_player.dart';
 import '../../../model/creator_model.dart';
 import '../../../model/creator_profile_models.dart';
-import '../../../model/market_orders_service_model.dart';
+import '../../../model/service_model.dart';
 import '../../../utils/utils.dart';
 import 'creator_portfolio.dart';
 
@@ -350,7 +350,7 @@ class _CreatorProfileState extends ConsumerState<CreatorProfile>
     return 4;
   }
 
-  void _onServiceTap(MarketOrder service) {
+  void _onServiceTap(ServiceItem service) {
     Navigator.push(
       context,
       MaterialPageRoute(builder: (context) => CreatorPortfolio(service: service)),
@@ -406,7 +406,7 @@ class _CreatorProfileState extends ConsumerState<CreatorProfile>
       String imageUrl,
       String title,
       String price,
-      MarketOrder service,
+      ServiceItem service,
       ThemeData theme,
       bool isDark,
       ) {

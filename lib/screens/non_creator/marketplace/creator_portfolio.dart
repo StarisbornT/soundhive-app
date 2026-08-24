@@ -7,6 +7,7 @@ import '../../../components/widgets.dart';
 import 'package:soundhive2/lib/dashboard_provider/user_provider.dart';
 import '../../../model/creator_profile_models.dart';
 import '../../../model/market_orders_service_model.dart';
+import '../../../model/service_model.dart';
 import '../../../utils/utils.dart';
 import '../wallet/wallet.dart';
 import 'creator.dart';
@@ -30,7 +31,7 @@ import 'marketplace_details.dart';
 // ---------------------------------------------------------------------
 
 class CreatorPortfolio extends ConsumerStatefulWidget {
-  final MarketOrder service;
+  final ServiceItem service;
   const CreatorPortfolio({super.key, required this.service});
 
   @override
@@ -72,7 +73,7 @@ class _CreatorPortfolioState extends ConsumerState<CreatorPortfolio> {
               ),
             ),
 
-            // Title and Price Section
+            // Title and Price Section  
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 16),
               child: Column(

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:soundhive2/model/investment_model.dart';
 
 import '../../../model/artists_model.dart';
+import 'mixtape_coming_soon_screen.dart';
 
 /// Stage 1 — Overview.
 ///
@@ -24,6 +25,11 @@ import '../../../model/artists_model.dart';
 ///
 /// `status` is rendered as a verified badge — this is an ASSUMPTION
 /// pending confirmation (see conversation), not a confirmed mapping.
+///
+/// "Listen to snippets / Artist mixtape" button: song upload + snippet
+/// playback has no backend support yet (phase two). Rather than hide the
+/// entry point, tapping it opens [MixtapeComingSoonScreen] so users know
+/// the feature is on the way instead of the button doing nothing.
 class OverviewStage extends StatelessWidget {
   final Investment investment;
   const OverviewStage({super.key, required this.investment});
@@ -31,6 +37,9 @@ class OverviewStage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final ArtistItem? artist = investment.artistDetails?.artist;
+    final String displayName = artist?.username.isNotEmpty == true
+        ? artist!.username
+        : investment.beneficiaryName;
 
     return SingleChildScrollView(
       padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
@@ -43,9 +52,7 @@ class OverviewStage extends StatelessWidget {
             children: [
               Flexible(
                 child: Text(
-                  artist?.username.isNotEmpty == true
-                      ? artist!.username
-                      : investment.beneficiaryName,
+                  displayName,
                   style: const TextStyle(
                     color: Colors.white,
                     fontSize: 22,
@@ -66,6 +73,9 @@ class OverviewStage extends StatelessWidget {
             investment.investmentName,
             style: const TextStyle(color: Colors.white54, fontSize: 14),
           ),
+          const SizedBox(height: 16),
+
+          _buildMixtapeButton(context, displayName),
           const SizedBox(height: 20),
 
           // Genre / bio / monthly listeners / followers all render only
@@ -84,6 +94,33 @@ class OverviewStage extends StatelessWidget {
             style: TextStyle(color: Colors.white70, fontSize: 13, height: 1.4),
           ),
         ],
+      ),
+    );
+  }
+
+  Widget _buildMixtapeButton(BuildContext context, String displayName) {
+    return SizedBox(
+      width: double.infinity,
+      child: OutlinedButton.icon(
+        onPressed: () {
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => MixtapeComingSoonScreen(artistName: displayName),
+            ),
+          );
+        },
+        icon: const Icon(Icons.headphones_rounded, color: Colors.purpleAccent, size: 18),
+        label: const Text(
+          'Listen to snippets · Artist mixtape',
+          style: TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.w600),
+        ),
+        style: OutlinedButton.styleFrom(
+          padding: const EdgeInsets.symmetric(vertical: 12),
+          side: BorderSide(color: Colors.purpleAccent.withValues(alpha: 0.4)),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(25)),
+          backgroundColor: Colors.white.withValues(alpha: 0.03),
+        ),
       ),
     );
   }
@@ -112,7 +149,7 @@ class OverviewStage extends StatelessWidget {
                 decoration: BoxDecoration(
                   gradient: LinearGradient(
                     colors: [
-                      Colors.purple.withOpacity(0.35),
+                      Colors.purple.withValues(alpha: 0.35),
                       const Color(0xFF1A102F),
                     ],
                     begin: Alignment.topLeft,
@@ -154,7 +191,7 @@ class OverviewStage extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.04),
+        color: Colors.white.withValues(alpha: 0.04),
         borderRadius: BorderRadius.circular(10),
       ),
       child: const Row(

@@ -3,6 +3,7 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import '../../model/market_orders_service_model.dart';
+import '../../model/service_model.dart';
 import '../provider.dart';
 
 final getMarketplaceServiceProvider = StateNotifierProvider<GetMyOrdersAssetNotifier, AsyncValue<MarketOrdersPaginatedModel>>((ref) {
@@ -15,7 +16,7 @@ class GetMyOrdersAssetNotifier extends StateNotifier<AsyncValue<MarketOrdersPagi
   final Dio _dio;
   final FlutterSecureStorage _storage;
 
-  List<MarketOrder> _allServices = [];
+  List<ServiceItem> _allServices = [];
   int _currentPage = 1;
   bool _isLastPage = false;
   bool _isLoadingMore = false;
@@ -29,7 +30,7 @@ class GetMyOrdersAssetNotifier extends StateNotifier<AsyncValue<MarketOrdersPagi
 
   GetMyOrdersAssetNotifier(this._dio, this._storage) : super(const AsyncValue.loading());
 
-  List<MarketOrder> get allServices => _allServices;
+  List<ServiceItem> get allServices => _allServices;
   bool get isLastPage => _isLastPage;
   bool get isLoadingMore => _isLoadingMore;
 
