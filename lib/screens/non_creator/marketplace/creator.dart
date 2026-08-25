@@ -96,12 +96,25 @@ class _CreatorProfileState extends ConsumerState<CreatorProfile>
             TabBar(
               controller: _tabController,
               isScrollable: true,
+              tabAlignment: TabAlignment.start,   // <-- important, see note below
+              padding: EdgeInsets.zero,           // remove TabBar's own outer padding
+              labelPadding: const EdgeInsets.only(right: 24), // space between tabs, none on the left
               labelColor: AppColors.BUTTONCOLOR,
               unselectedLabelColor: theme.colorScheme.onSurface.withOpacity(0.6),
               indicatorColor: AppColors.BUTTONCOLOR,
+              indicatorSize: TabBarIndicatorSize.label, // makes the underline hug the text width, not the padded cell
               labelStyle: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
               tabs: _tabs.map((t) => Tab(text: t)).toList(),
             ),
+            // TabBar(
+            //   controller: _tabController,
+            //   isScrollable: true,
+            //   labelColor: AppColors.BUTTONCOLOR,
+            //   unselectedLabelColor: theme.colorScheme.onSurface.withOpacity(0.6),
+            //   indicatorColor: AppColors.BUTTONCOLOR,
+            //   labelStyle: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
+            //   tabs: _tabs.map((t) => Tab(text: t)).toList(),
+            // ),
             const Divider(height: 1),
             Expanded(
               child: TabBarView(

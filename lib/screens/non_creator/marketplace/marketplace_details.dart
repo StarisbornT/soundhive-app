@@ -552,9 +552,13 @@ class _MarketplaceDetailsScreenState extends ConsumerState<MarketplaceDetails>
         TabBar(
           controller: _profileTabController,
           isScrollable: true,
+          tabAlignment: TabAlignment.start,   // <-- important, see note below
+          padding: EdgeInsets.zero,           // remove TabBar's own outer padding
+          labelPadding: const EdgeInsets.only(right: 24), // space between tabs, none on the left
           labelColor: AppColors.BUTTONCOLOR,
           unselectedLabelColor: theme.colorScheme.onSurface.withOpacity(0.6),
           indicatorColor: AppColors.BUTTONCOLOR,
+          indicatorSize: TabBarIndicatorSize.label, // makes the underline hug the text width, not the padded cell
           labelStyle: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
           tabs: _profileTabs.map((t) => Tab(text: t)).toList(),
         ),
