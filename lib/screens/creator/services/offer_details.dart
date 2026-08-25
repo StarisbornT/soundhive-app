@@ -11,6 +11,7 @@ import '../../../model/apiresponse_model.dart';
 import '../../../model/getOfferFromUserProvider.dart';
 import '../../../utils/alert_helper.dart';
 import '../../../utils/app_colors.dart';
+import '../../../utils/no_phone_number_validator.dart';
 import '../../../utils/utils.dart';
 
 class OfferDetailScreen extends ConsumerStatefulWidget {
@@ -78,6 +79,7 @@ class _OfferDetailScreenState extends ConsumerState<OfferDetailScreen> {
             TextFormField(
               controller: _rejectionReasonController,
               style: const TextStyle(color: Colors.white),
+              validator: NoPhoneNumberValidator.validate,
               decoration: InputDecoration(
                 hintText: 'Provide a reason for the user...',
                 hintStyle: const TextStyle(color: Colors.white54),
@@ -158,7 +160,7 @@ class _OfferDetailScreenState extends ConsumerState<OfferDetailScreen> {
   }
 
   void _showCounterOfferDialog() {
-    final originalAmount = widget.offer.convertedAmount ?? 0;
+    final originalAmount = double.tryParse(widget.offer.convertedAmount?.toString() ?? '0') ?? 0.0;
     final suggestedAmount = (originalAmount * 1.1).toStringAsFixed(2);
     _counterAmountController.text = suggestedAmount;
 
@@ -214,6 +216,7 @@ class _OfferDetailScreenState extends ConsumerState<OfferDetailScreen> {
               TextFormField(
                 controller: _counterMessageController,
                 style: const TextStyle(color: Colors.white),
+                validator: NoPhoneNumberValidator.validate,
                 decoration: InputDecoration(
                   labelText: 'Message (Optional)',
                   labelStyle: const TextStyle(color: Colors.white70),

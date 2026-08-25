@@ -235,24 +235,24 @@ class CreatorDashboard extends ConsumerWidget {
                           ),
                         );
                       }),
-                      _buildDrawerItem(icon: 'images/artist.png', text: 'Artist Arena', onTap: () {
-                        if(user.artist != null) {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (context) =>  ArtistProfileScreen(user: userData),
-                            ),
-                          );
-                        }else {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (context) =>  ArtistArena(user: userData),
-                            ),
-                          );
-                        }
-
-                      }),
+                      // _buildDrawerItem(icon: 'images/artist.png', text: 'SoundHive', onTap: () {
+                      //   if(user.artist != null) {
+                      //     Navigator.push(
+                      //       context,
+                      //       MaterialPageRoute(
+                      //         builder: (context) =>  ArtistProfileScreen(user: userData),
+                      //       ),
+                      //     );
+                      //   }else {
+                      //     Navigator.push(
+                      //       context,
+                      //       MaterialPageRoute(
+                      //         builder: (context) =>  ArtistArena(user: userData),
+                      //       ),
+                      //     );
+                      //   }
+                      //
+                      // }),
                       _buildDrawerItem(icon: 'images/artist.png', text: 'Chats', onTap: () {
                         Navigator.push(
                           context,

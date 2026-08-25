@@ -151,6 +151,54 @@ class User {
       artist: json['artist'] != null ? Artist.fromJson(json['artist']) : null,
     );
   }
+
+  // ADD THIS toJson METHOD
+  Map<String, dynamic> toJson() {
+    return {
+      'id': id,
+      'first_name': firstName,
+      'last_name': lastName,
+      'dob': dob,
+      'phone_number': phoneNumber,
+      'pin': pin,
+      'image': image,
+      'role': role,
+      'email': email,
+      'email_verified_at': emailVerifiedAt,
+      'bvn': bvn,
+      'nin': nin,
+      'gender': gender,
+      'surname': surname,
+      'face_image': faceImage,
+      'middle_name': middleName,
+      'name_on_card': nameOnCard,
+      'lga_of_origin': lgaOfOrigin,
+      'state_of_origin': stateOfOrigin,
+      'lga_of_capture': lgaOfCapture,
+      'state_of_capture': stateOfCapture,
+      'lga_of_residence': lgaOfResidence,
+      'state_of_residence': stateOfResidence,
+      'phone_number1': phoneNumber1,
+      'phone_number2': phoneNumber2,
+      'marital_status': maritalStatus,
+      'enroll_bank_code': enrollBankCode,
+      'enroll_user_name': enrollUserName,
+      'product_reference': productReference,
+      'watchlisted': watchlisted,
+      'enrollment_date': enrollmentDate,
+      'branch_name': branchName,
+      'landmarks': landmarks,
+      'additional_info1': additionalInfo1,
+      'bvn_reference': bvnReference,
+      'accepted_terms': acceptedTerms,
+      'created_at': createdAt,
+      'updated_at': updatedAt,
+      'interests': interests,
+      'creator': creator?.toJson(),
+      'wallet': wallet?.toJson(),
+      'artist': artist?.toJson(),
+    };
+  }
 }
 
 
@@ -190,6 +238,21 @@ class Artist {
       updatedAt: json['updated_at'] ?? '',
     );
   }
+
+  // ADD THIS toJson METHOD
+  Map<String, dynamic> toJson() {
+    return {
+      'id': id,
+      'user_id': userId,
+      'username': userName,
+      'profile_photo': profilePhoto,
+      'cover_photo': coverPhoto,
+      'status': status,
+      'followers': followers,
+      'created_at': createdAt,
+      'updated_at': updatedAt,
+    };
+  }
 }
 
 class Wallet {
@@ -206,6 +269,7 @@ class Wallet {
   final String currency;
   final String dollarBalance;
   final bool hasActivatedDollarWallet;
+
   Wallet({
     required this.id,
     required this.userId,
@@ -220,7 +284,7 @@ class Wallet {
     required this.escrowBalance,
     required this.dollarBalance,
     required this.hasActivatedDollarWallet
-});
+  });
 
   factory Wallet.fromJson(Map<String, dynamic> json) {
     return Wallet(
@@ -239,4 +303,24 @@ class Wallet {
       hasActivatedDollarWallet: json['has_activated_dollar_wallet'] ?? false,
     );
   }
+
+  // ADD THIS toJson METHOD
+  Map<String, dynamic> toJson() {
+    return {
+      'id': id,
+      'user_id': userId,
+      'bank_name': bankName,
+      'account_number': accountNumber,
+      'account_name': accountName,
+      'balance': balance,
+      'created_at': createdAt,
+      'updated_at': updatedAt,
+      'escrow_balance': escrowBalance,
+      'amount_earned': amountEarned,
+      'currency': currency,
+      'dollar_balance': dollarBalance,
+      'has_activated_dollar_wallet': hasActivatedDollarWallet,
+    };
+  }
 }
+

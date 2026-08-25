@@ -1,19 +1,17 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
-
 import 'package:soundhive2/lib/dashboard_provider/notification_api_provider.dart';
 import 'package:soundhive2/model/user_model.dart';
 import 'package:soundhive2/screens/creator/creator_dashboard.dart';
-import 'package:soundhive2/screens/creator/services/services.dart';
 import 'package:soundhive2/screens/non_creator/marketplace/marketplace_details.dart';
 import 'package:soundhive2/screens/non_creator/non_creator.dart';
 import 'package:soundhive2/lib/dashboard_provider/user_provider.dart';
 import 'package:soundhive2/lib/navigator_provider.dart';
 import '../../model/active_investment_model.dart';
-import '../../model/market_orders_service_model.dart';
 import '../../model/notification_model.dart';
 import '../../model/offerFromUserModel.dart';
+import '../../model/service_model.dart';
 import '../../utils/app_colors.dart';
 import '../creator/services/offer_details.dart';
 import '../non_creator/marketplace/mark_as_completed.dart';
@@ -333,7 +331,7 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
         if (notification.data['service'] != null) {
           // Convert Map to OfferFromUser object
           final offerData = notification.data['service'];
-          final offer = MarketOrder.fromMap(offerData);
+          final offer = ServiceItem.fromMap(offerData);
 
           Navigator.push(
             context,
@@ -349,16 +347,6 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
           print('Offer data not available in notification');
         }
         break;
-      case 'new_offer':
-        Navigator.push(
-          context,
-          MaterialPageRoute(
-            builder: (context) => ServiceScreen(
-              user: user,
-            ),
-          ),
-        );
-        break;
-    }
+      }
   }
 }

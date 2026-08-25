@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:soundhive2/model/artist_song_model.dart';
+import 'package:soundhive2/model/user_model.dart';
 import 'package:soundhive2/screens/non_creator/streaming/play_music.dart';
 import 'package:soundhive2/screens/non_creator/streaming/song_helper.dart';
 
@@ -11,8 +12,12 @@ import '../../../components/rounded_button.dart';
 import 'package:soundhive2/lib/dashboard_provider/getAllSongsProvider.dart';
 import 'package:soundhive2/lib/audio_player_provider.dart';
 import 'package:soundhive2/lib/dashboard_provider/getPlayListProvider.dart';
+import 'package:soundhive2/lib/dashboard_provider/user_provider.dart';
 import '../../../model/playlist_model.dart';
 import '../../../utils/app_colors.dart';
+import '../../creator/artist_arena/aritst_arena.dart';
+import '../../creator/artist_arena/artist_profile_screen.dart';
+
 
 class Track {
   final String title;
@@ -34,7 +39,6 @@ class Streaming extends ConsumerStatefulWidget {
   @override
   ConsumerState<Streaming> createState() => _StreamingState();
 }
-
 
 class _StreamingState extends ConsumerState<Streaming> {
   final TextEditingController _searchController = TextEditingController();
@@ -64,6 +68,7 @@ class _StreamingState extends ConsumerState<Streaming> {
     "Gospel", "Metal", "Rock", "Hip-Pop", "Reggae",
     "Country", "Classical", "Jazz", "Blues", "Afrofusion", "Agro Beat", "Juju", "Other Genres"
   ];
+
   void _onSearchChanged(String value) {
     if (_debounce?.isActive ?? false) _debounce!.cancel();
 
@@ -79,6 +84,111 @@ class _StreamingState extends ConsumerState<Streaming> {
     {'label': 'Reggae',    'emoji': '🌿'},
     {'label': 'Jazz',      'emoji': '🎷'},
   ];
+
+  // Navigation method for Artist Arena
+  void _navigateToArtistArena(MemberCreatorResponse userData) {
+    if (userData == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Please log in to access Artist Arena'),
+          backgroundColor: AppColors.BUTTONCOLOR,
+        ),
+      );
+      return;
+    }
+
+    // Check if user is an artist
+    if (userData.user?.artist != null) {
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (context) => ArtistProfileScreen(user: userData),
+        ),
+      );
+    } else {
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (context) => ArtistArena(user: userData),
+        ),
+      );
+    }
+  }
+
+  // Build Artist Arena Card
+  Widget _buildArtistArenaCard(ThemeData theme, bool isDark, MemberCreatorResponse userData) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 16),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [
+            AppColors.BUTTONCOLOR.withOpacity(0.15),
+            AppColors.BUTTONCOLOR.withOpacity(0.05),
+          ],
+        ),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: AppColors.BUTTONCOLOR.withOpacity(0.2),
+          width: 1,
+        ),
+      ),
+      child: InkWell(
+        onTap: () => _navigateToArtistArena(userData),
+        borderRadius: BorderRadius.circular(12),
+        child: Row(
+          children: [
+            Container(
+              width: 50,
+              height: 50,
+              decoration: BoxDecoration(
+                color: AppColors.BUTTONCOLOR.withOpacity(0.2),
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: Icon(
+                userData.user?.artist != null ? Icons.mic : Icons.person_add,
+                color: AppColors.BUTTONCOLOR,
+                size: 30,
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    userData.user?.artist != null ? 'Your Artist Dashboard' : 'Become an Artist',
+                    style: TextStyle(
+                      color: theme.colorScheme.onSurface,
+                      fontSize: 16,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    userData.user?.artist != null
+                        ? 'Manage your music, view stats, and connect with fans'
+                        : 'Upload your music and start your journey as an artist',
+                    style: TextStyle(
+                      color: theme.colorScheme.onSurface.withOpacity(0.6),
+                      fontSize: 12,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            Icon(
+              Icons.arrow_forward_ios,
+              color: theme.colorScheme.onSurface.withOpacity(0.4),
+              size: 16,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
 
   Widget _buildGenreChips(ThemeData theme, bool isDark) {
     return SizedBox(
@@ -188,102 +298,9 @@ class _StreamingState extends ConsumerState<Streaming> {
             ),
           ),
         ),
-        // const SizedBox(width: 10.0),
-        // Container(
-        //   decoration: BoxDecoration(
-        //     color: isDark ? AppColors.BACKGROUNDCOLOR : Colors.grey[100],
-        //     borderRadius: BorderRadius.circular(12),
-        //     border: Border.all(color: theme.dividerColor),
-        //   ),
-        //   child: TextButton.icon(
-        //     onPressed: () => _showTypeFilterBottomSheet(theme, isDark),
-        //     icon: Icon(
-        //       Icons.filter_list,
-        //       color: theme.colorScheme.onSurface,
-        //     ),
-        //     label: Text(
-        //       'Filter',
-        //       style: TextStyle(
-        //         color: theme.colorScheme.onSurface.withOpacity(0.6),
-        //         fontSize: 12,
-        //       ),
-        //     ),
-        //   ),
-        // ),
       ],
     );
   }
-
-  // void _showTypeFilterBottomSheet(ThemeData theme, bool isDark) {
-  //   showModalBottomSheet(
-  //     context: context,
-  //     backgroundColor: theme.cardColor,
-  //     shape: const RoundedRectangleBorder(
-  //       borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
-  //     ),
-  //     builder: (context) {
-  //       return Padding(
-  //         padding: const EdgeInsets.all(16.0),
-  //         child: Column(
-  //           mainAxisSize: MainAxisSize.min,
-  //           crossAxisAlignment: CrossAxisAlignment.start,
-  //           children: [
-  //             Text(
-  //               'Select Song Type',
-  //               style: TextStyle(
-  //                 color: theme.colorScheme.onSurface,
-  //                 fontSize: 16,
-  //                 fontWeight: FontWeight.bold,
-  //               ),
-  //             ),
-  //             const SizedBox(height: 12),
-  //             Wrap(
-  //               spacing: 8,
-  //               children: types.map((type) {
-  //                 final isSelected = selectedType == type;
-  //                 return ChoiceChip(
-  //                   label: Text(
-  //                     type,
-  //                     style: TextStyle(
-  //                       color: isSelected
-  //                           ? Colors.white
-  //                           : theme.colorScheme.onSurface.withOpacity(0.8),
-  //                     ),
-  //                   ),
-  //                   selected: isSelected,
-  //                   selectedColor: AppColors.BUTTONCOLOR,
-  //                   backgroundColor: isDark
-  //                       ? const Color(0xFF2C2C2C)
-  //                       : Colors.grey[200],
-  //                   onSelected: (_) {
-  //                     Navigator.pop(context);
-  //                     setState(() => selectedType = type);
-  //                     ref.read(getAllSongsProvider.notifier).getAllSongs(type: type);
-  //                   },
-  //                 );
-  //               }).toList(),
-  //             ),
-  //             const SizedBox(height: 8),
-  //             if (selectedType != null)
-  //               TextButton(
-  //                 onPressed: () {
-  //                   Navigator.pop(context);
-  //                   setState(() => selectedType = null);
-  //                   ref.read(getAllSongsProvider.notifier).getAllSongs();
-  //                 },
-  //                 child: Text(
-  //                   'Clear Filter',
-  //                   style: TextStyle(
-  //                     color: theme.colorScheme.onSurface.withOpacity(0.7),
-  //                   ),
-  //                 ),
-  //               ),
-  //           ],
-  //         ),
-  //       );
-  //     },
-  //   );
-  // }
 
   Widget _buildTrackItem(SongItemData song, ThemeData theme, bool isDark) {
     return Padding(
@@ -326,13 +343,6 @@ class _StreamingState extends ConsumerState<Streaming> {
               ),
             ],
           ),
-          // trailing: IconButton(
-          //   icon: Icon(
-          //     Icons.more_vert,
-          //     color: theme.colorScheme.onSurface.withOpacity(0.6),
-          //   ),
-          //   onPressed: () => _showSongOptions(song, theme, isDark),
-          // ),
           onTap: () {
             final songsState = ref.read(getAllSongsProvider);
             List<SongItemData>? playlist;
@@ -456,14 +466,7 @@ class _StreamingState extends ConsumerState<Streaming> {
   }
 
   void _navigateToArtistProfile(SongItemData song) {
-    // Navigator.push(
-    //   context,
-    //   MaterialPageRoute(
-    //     builder: (context) => ArtistProfile(
-    //       artistId: int.parse(song.artistId),
-    //     ),
-    //   ),
-    // );
+    // Navigate to artist profile from song
   }
 
   void _showCreatePlaylistBottomSheet(ThemeData theme, bool isDark) {
@@ -539,16 +542,7 @@ class _StreamingState extends ConsumerState<Streaming> {
 
     return GestureDetector(
       onTap: () {
-        // Navigator.push(
-        //   context,
-        //   MaterialPageRoute(
-        //     builder: (context) => PlayMusic(
-        //       song: currentSong,
-        //       playlist: audioState,
-        //       fromMiniPlayer: true,
-        //     ),
-        //   ),
-        // );
+        // Navigate to full player
       },
       child: Padding(
         padding: const EdgeInsets.symmetric(vertical: 16.0),
@@ -643,6 +637,9 @@ class _StreamingState extends ConsumerState<Streaming> {
     final isDark = theme.brightness == Brightness.dark;
     final songsState = ref.watch(getAllSongsProvider);
 
+    // Get user data from provider - adjust based on your user provider
+    final userData = ref.watch(userProvider).value; // Change this to your actual user provider
+
     Widget buildDiscoverSection(DeepFreezerModel songModel) {
       final tracks = songModel.data;
 
@@ -663,7 +660,6 @@ class _StreamingState extends ConsumerState<Streaming> {
       return Column(
         children: [
           ...tracks.map((song) => _buildTrackItem(song, theme, isDark)),
-
           if (songModel.hasMore)
             Padding(
               padding: const EdgeInsets.all(16),
@@ -686,14 +682,32 @@ class _StreamingState extends ConsumerState<Streaming> {
           ),
           onPressed: () => Navigator.pop(context),
         ),
+        // Optional: Add a small badge in AppBar
+        actions: [
+          if (userData?.user?.artist != null)
+            Container(
+              margin: const EdgeInsets.only(right: 16),
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+              decoration: BoxDecoration(
+                color: AppColors.BUTTONCOLOR,
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: const Text(
+                'Artist',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 10,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ),
+        ],
       ),
-
       body: ListView(
         controller: _scrollController,
         padding: const EdgeInsets.symmetric(horizontal: 10),
         children: [
           const SizedBox(height: 10),
-
           Text(
             'SoundHive - Stream Music',
             style: TextStyle(
@@ -702,21 +716,17 @@ class _StreamingState extends ConsumerState<Streaming> {
               color: theme.colorScheme.onSurface,
             ),
           ),
-
           const SizedBox(height: 10),
-
           Image.asset('images/music_banner.png'),
-
           const SizedBox(height: 10),
+
+          // Artist Arena Card - Added here
+          _buildArtistArenaCard(theme, isDark, userData!),
 
           _buildSearchAndFilter(theme, isDark),
-
           const SizedBox(height: 12),
-
           _buildGenreChips(theme, isDark),
-
           const SizedBox(height: 10),
-
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
@@ -730,9 +740,7 @@ class _StreamingState extends ConsumerState<Streaming> {
               ),
             ],
           ),
-
           const SizedBox(height: 10),
-
           songsState.when(
             data: (songModel) => buildDiscoverSection(songModel),
             loading: () => Center(
@@ -753,11 +761,9 @@ class _StreamingState extends ConsumerState<Streaming> {
               ),
             ),
           ),
-
           const SizedBox(height: 80),
         ],
       ),
-
       bottomNavigationBar: _buildMiniPlayer(theme, isDark),
     );
   }
