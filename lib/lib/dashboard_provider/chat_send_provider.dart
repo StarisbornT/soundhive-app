@@ -5,7 +5,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:soundhive2/model/chat_send_model.dart';
 
-import '../../model/active_investment_model.dart';
 import '../provider.dart';
 final chatSendProvider = StateNotifierProvider<ChatSendNotifier, AsyncValue<ChatSendModel>>((ref) {
   final dio = ref.watch(dioProvider);

@@ -1,6 +1,7 @@
 import 'dart:convert';
 
-import 'market_orders_service_model.dart';
+import 'package:soundhive2/model/service_model.dart';
+
 
 class OfferFromUserModel {
   final bool status;
@@ -100,10 +101,12 @@ class OfferFromUser {
   final String userId;
   final String amount;
   final String status;
+  final String? message;
+  final String? rejectionReason;
   final String createdAt;
   final String updatedAt;
   final BookingUser? user;
-  final MarketOrder? service;
+  final ServiceItem? service;
   final dynamic convertedAmount;
   final String? counterAmount;
   final String? counterCurrency;
@@ -121,6 +124,8 @@ class OfferFromUser {
     required this.updatedAt,
     this.service,
     this.user,
+    this.message,
+    this.rejectionReason,
     this.counterAmount,
     this.counterCurrency,
     this.counterMessage,
@@ -133,11 +138,13 @@ class OfferFromUser {
       serviceId: map['service_id']?.toString() ?? '',
       userId: map['user_id']?.toString() ?? '',
       status: map['status'] ?? '',
+      message: map['message'] ?? '',
+      rejectionReason: map['rejection_reason'] ?? '',
       createdAt: map['created_at'] ?? '',
       updatedAt: map['updated_at'] ?? '',
       amount: map['amount'],
       convertedAmount: map['converted_amount'] ?? 0.0,
-      service: map['service'] != null ? MarketOrder.fromMap(map['service']) : null,
+      service: map['service'] != null ? ServiceItem.fromMap(map['service']) : null,
       user: map['user'] != null ? BookingUser.fromMap(map['user']) : null,
       counterAmount: map['counter_amount']?.toString(),
       counterCurrency: map['counter_currency'],

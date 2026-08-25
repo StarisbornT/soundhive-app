@@ -15,6 +15,8 @@ import '../catalogue.dart';
 
 
 class AddService extends ConsumerStatefulWidget {
+  const AddService({super.key});
+
   @override
   ConsumerState<AddService> createState() => _AddServiceScreenState();
 }
@@ -271,24 +273,24 @@ class _AddServiceScreenState extends ConsumerState<AddService> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(
+              const Text(
                 'Add Service to Catalogue',
-                style: const TextStyle(
+                style: TextStyle(
                   color: Colors.white,
                   fontSize: 24,
                   fontWeight: FontWeight.w400,
                 ),
               ),
-              SizedBox(height: 20,),
-              Text(
+              const SizedBox(height: 20,),
+              const Text(
                 'Kindly complete the information below to add service to your catalogue.',
-                style: const TextStyle(
+                style: TextStyle(
                   color: Colors.white,
                   fontSize: 14,
                   fontWeight: FontWeight.w400,
                 ),
               ),
-              SizedBox(height: 40,),
+              const SizedBox(height: 40,),
               AssetTypeDropdown(
                 selectedValue: _selectedAssetType,
                 items: _assetTypes,
@@ -356,7 +358,7 @@ class _AddServiceScreenState extends ConsumerState<AddService> {
               ),
               RoundedButton(
                 title: 'Submit for Review',
-                color: Color(0xFF4D3490),
+                color: const Color(0xFF4D3490),
                 borderRadius: 24,
                 onPressed: () {
                   print('Clicking');
@@ -379,7 +381,7 @@ class _AddServiceScreenState extends ConsumerState<AddService> {
           Text(label, style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.white)),
           TextFormField(
             controller: controller,
-            style: TextStyle(color: Colors.white),
+            style: const TextStyle(color: Colors.white),
             decoration: InputDecoration(
               hintText: hint,
               border: const OutlineInputBorder(),
@@ -399,11 +401,11 @@ class _AddServiceScreenState extends ConsumerState<AddService> {
       );
   Widget _buildUploadStatus(String text, Color color) {
     return Padding(
-      padding: EdgeInsets.symmetric(vertical: 4),
+      padding: const EdgeInsets.symmetric(vertical: 4),
       child: Row(
         children: [
           Icon(Icons.check_circle, color: color, size: 16),
-          SizedBox(width: 8),
+          const SizedBox(width: 8),
           Text(text, style: TextStyle(color: color)),
         ],
       ),
@@ -431,10 +433,10 @@ class MultiSelectAssetDropdown extends StatelessWidget {
     return InputDecorator(
       decoration: InputDecoration(
         labelText: 'Select States',
-        labelStyle: TextStyle(color: Colors.white), // Add if needed
+        labelStyle: const TextStyle(color: Colors.white), // Add if needed
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(8.0),
-          borderSide: BorderSide(color: Colors.white), // Add if needed
+          borderSide: const BorderSide(color: Colors.white), // Add if needed
         ),
         filled: true,
         fillColor: Colors.transparent,
@@ -443,13 +445,13 @@ class MultiSelectAssetDropdown extends StatelessWidget {
         onTap: () => _showSelectionDialog(context),
         child: Container(
           width: double.infinity,
-          constraints: BoxConstraints(minHeight: 40), // Ensure minimum tap target
+          constraints: const BoxConstraints(minHeight: 40), // Ensure minimum tap target
           child: Wrap(
             spacing: 4.0,
             runSpacing: 4.0,
             children: selectedItems.isEmpty
                 ? [ // Show placeholder when empty
-              Padding(
+              const Padding(
                 padding: EdgeInsets.symmetric(vertical: 8.0),
                 child: Text(
                   'Tap to select states',
@@ -460,7 +462,7 @@ class MultiSelectAssetDropdown extends StatelessWidget {
                 : selectedItems
                 .map((item) => Chip(
               label: Text(item,
-                  style: TextStyle(color: Colors.white)), // Update text color
+                  style: const TextStyle(color: Colors.white)), // Update text color
               backgroundColor: Colors.blueGrey, // Customize chip color
               onDeleted: () => onChanged(
                 selectedItems.where((i) => i != item).toList(),
@@ -477,7 +479,7 @@ class MultiSelectAssetDropdown extends StatelessWidget {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
-      backgroundColor: Color(0xFF0C051F), // Match your theme
+      backgroundColor: const Color(0xFF0C051F), // Match your theme
       builder: (context) => _MultiSelectBottomSheet(
         items: items,
         selectedItems: selectedItems.toList(),
@@ -530,8 +532,8 @@ class _MultiSelectBottomSheetState extends State<_MultiSelectBottomSheet> {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: EdgeInsets.all(16),
-      decoration: BoxDecoration(
+      padding: const EdgeInsets.all(16),
+      decoration: const BoxDecoration(
         color: Color(0xFF0C051F),
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
@@ -546,16 +548,16 @@ class _MultiSelectBottomSheetState extends State<_MultiSelectBottomSheet> {
               borderRadius: BorderRadius.circular(2),
             ),
           ),
-          SizedBox(height: 16),
+          const SizedBox(height: 16),
           TextField(
             controller: _searchController,
-            style: TextStyle(color: Colors.white),
+            style: const TextStyle(color: Colors.white),
             decoration: InputDecoration(
               labelText: 'Search states',
-              labelStyle: TextStyle(color: Colors.white70),
-              prefixIcon: Icon(Icons.search, color: Colors.white70),
-              border: OutlineInputBorder(),
-              focusedBorder: OutlineInputBorder(
+              labelStyle: const TextStyle(color: Colors.white70),
+              prefixIcon: const Icon(Icons.search, color: Colors.white70),
+              border: const OutlineInputBorder(),
+              focusedBorder: const OutlineInputBorder(
                 borderSide: BorderSide(color: Colors.white),
               ),
               filled: true,
@@ -563,21 +565,21 @@ class _MultiSelectBottomSheetState extends State<_MultiSelectBottomSheet> {
             ),
             onChanged: (value) => setState(() => _searchQuery = value),
           ),
-          SizedBox(height: 16),
+          const SizedBox(height: 16),
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               TextButton(
                 onPressed: () => setState(() => _tempSelected = []),
-                child: Text('Clear All', style: TextStyle(color: Colors.white)),
+                child: const Text('Clear All', style: TextStyle(color: Colors.white)),
               ),
               TextButton(
                 onPressed: () => setState(() => _tempSelected = List.from(widget.items)),
-                child: Text('Select All', style: TextStyle(color: Colors.white)),
+                child: const Text('Select All', style: TextStyle(color: Colors.white)),
               ),
             ],
           ),
-          SizedBox(height: 8),
+          const SizedBox(height: 8),
           Expanded(
             child: ListView.builder(
               shrinkWrap: true,
@@ -586,7 +588,7 @@ class _MultiSelectBottomSheetState extends State<_MultiSelectBottomSheet> {
                 final item = _filteredItems[index];
                 return CheckboxListTile(
                   value: _tempSelected.contains(item),
-                  title: Text(item, style: TextStyle(color: Colors.white)),
+                  title: Text(item, style: const TextStyle(color: Colors.white)),
                   activeColor: Colors.purple,
                   checkColor: Colors.white,
                   onChanged: (checked) {
@@ -602,7 +604,7 @@ class _MultiSelectBottomSheetState extends State<_MultiSelectBottomSheet> {
               },
             ),
           ),
-          SizedBox(height: 16),
+          const SizedBox(height: 16),
           Row(
             children: [
               Expanded(
@@ -617,7 +619,7 @@ class _MultiSelectBottomSheetState extends State<_MultiSelectBottomSheet> {
                     widget.onChanged(_tempSelected);
                     Navigator.pop(context);
                   },
-                  child: Padding(
+                  child: const Padding(
                     padding: EdgeInsets.symmetric(vertical: 12),
                     child: Text('Apply Selection',
                         style: TextStyle(color: Colors.white, fontSize: 16)),
@@ -639,12 +641,12 @@ class DescriptionField extends StatelessWidget {
   final String? Function(String?)? validator;
 
   const DescriptionField({
-    Key? key,
+    super.key,
     required this.controller,
     this.label = 'Tell us more about this asset',
     this.hintText = 'Describe this asset',
     this.validator,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -691,13 +693,13 @@ class AssetTypeDropdown extends StatelessWidget {
   final String? Function(String?)? validator;
 
   const AssetTypeDropdown({
-    Key? key,
+    super.key,
     required this.selectedValue,
     required this.items,
     required this.onChanged,
     required this.label,
     this.validator,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -720,7 +722,7 @@ class AssetTypeDropdown extends StatelessWidget {
           dropdownColor: const Color(0xFF0C051F),
           style: const TextStyle(color: Colors.white),
           hint: const Text('Select asset type', style: TextStyle(color: Colors.white54)),
-          value: selectedValue,
+          initialValue: selectedValue,
           items: items.map((String value) {
             return DropdownMenuItem<String>(
               value: value,

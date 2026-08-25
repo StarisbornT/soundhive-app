@@ -5,10 +5,10 @@ class LogoLoader extends StatefulWidget {
   final double size;
 
   const LogoLoader({
-    Key? key,
+    super.key,
     required this.logoPath,
     this.size = 100.0,
-  }) : super(key: key);
+  });
 
   @override
   _LogoLoaderState createState() => _LogoLoaderState();
@@ -43,7 +43,7 @@ class _LogoLoaderState extends State<LogoLoader>
           SizedBox(
             width: widget.size,
             height: widget.size,
-            child: CircularProgressIndicator(
+            child: const CircularProgressIndicator(
               strokeWidth: 3,
               color: Colors.grey, // Customize the color
             ),
@@ -52,7 +52,7 @@ class _LogoLoaderState extends State<LogoLoader>
           Container(
             width: widget.size - 20, // Slightly smaller than the loader
             height: widget.size - 20,
-            decoration: BoxDecoration(
+            decoration: const BoxDecoration(
               shape: BoxShape.circle,
               color: Colors.transparent,
             ),

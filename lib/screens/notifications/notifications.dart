@@ -1,19 +1,17 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
-
 import 'package:soundhive2/lib/dashboard_provider/notification_api_provider.dart';
 import 'package:soundhive2/model/user_model.dart';
 import 'package:soundhive2/screens/creator/creator_dashboard.dart';
-import 'package:soundhive2/screens/creator/services/services.dart';
 import 'package:soundhive2/screens/non_creator/marketplace/marketplace_details.dart';
 import 'package:soundhive2/screens/non_creator/non_creator.dart';
-import '../../lib/dashboard_provider/user_provider.dart';
-import '../../lib/navigator_provider.dart';
+import 'package:soundhive2/lib/dashboard_provider/user_provider.dart';
+import 'package:soundhive2/lib/navigator_provider.dart';
 import '../../model/active_investment_model.dart';
-import '../../model/market_orders_service_model.dart';
 import '../../model/notification_model.dart';
 import '../../model/offerFromUserModel.dart';
+import '../../model/service_model.dart';
 import '../../utils/app_colors.dart';
 import '../creator/services/offer_details.dart';
 import '../non_creator/marketplace/mark_as_completed.dart';
@@ -223,7 +221,7 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
         children: [
           if (data['amount'] != null)
             Text(
-              'Amount: ${data['currency'] ?? data['service_currency'] ?? data['original_currency']}${data['amount']}',
+              'Amount: ${data['currency'] ?? data['service_currency'] ?? data['original_currency'] ?? "NGN"}${data['amount']}',
               style: const TextStyle(fontSize: 12, fontFamily: 'Roboto',),
             ),
           if (data['property_name'] != null)
@@ -241,20 +239,6 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
     );
   }
 
-  Color _getNotificationColor(String type) {
-    switch (type) {
-      case 'transaction':
-        return AppColors.BUTTONCOLOR;
-      case 'card':
-        return AppColors.GREYCOLOR;
-      case 'alert':
-        return Colors.red;
-      case 'document':
-        return AppColors.DARKGREY;
-      default:
-        return Colors.blue;
-    }
-  }
 
   IconData _getNotificationIcon(String type) {
     switch (type) {
@@ -299,21 +283,26 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
     // Handle navigation based on notification type
     switch (notification.type) {
       case 'fund_wallet':
+      case 'wallet':
         Navigator.pushNamed(context, NonCreatorDashboard.id);
-        ref
-            .read(bottomNavigationProvider.notifier)
-            .state = 1;
+        ref.read(bottomNavigationProvider.notifier).state = 1;
+        break;
+      case 'vest':
+        Navigator.pushNamed(context, NonCreatorDashboard.id);
+        ref.read(bottomNavigationProvider.notifier).state = 2;
         break;
       case 'book':
         final data = ActiveInvestment.fromMap(notification.data['booking']);
-        Navigator.push(
-          context,
-          MaterialPageRoute(
-            builder: (context) => MarkAsCompletedScreen(
-              services: data,
+        if (data.status == "PENDING") {
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => MarkAsCompletedScreen(
+                services: data,
+              ),
             ),
-          ),
-        );
+          );
+        }
         break;
       case 'creator_booking':
         Navigator.pushNamed(context, CreatorDashboard.id);
@@ -342,7 +331,7 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
         if (notification.data['service'] != null) {
           // Convert Map to OfferFromUser object
           final offerData = notification.data['service'];
-          final offer = MarketOrder.fromMap(offerData);
+          final offer = ServiceItem.fromMap(offerData);
 
           Navigator.push(
             context,
@@ -358,16 +347,6 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
           print('Offer data not available in notification');
         }
         break;
-      case 'new_offer':
-        Navigator.push(
-          context,
-          MaterialPageRoute(
-            builder: (context) => ServiceScreen(
-              user: user,
-            ),
-          ),
-        );
-        break;
-    }
+      }
   }
 }

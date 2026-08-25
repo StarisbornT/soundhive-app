@@ -6,6 +6,7 @@ import 'package:soundhive2/screens/creator/artist_arena/artist_profile_screen.da
 import 'package:soundhive2/screens/creator/chat_screen/chats.dart';
 import 'package:soundhive2/screens/creator/profile/profile_screen.dart';
 import 'package:soundhive2/screens/creator/profile/setup_screen.dart';
+import 'package:soundhive2/screens/creator/referral/referral_screen.dart';
 import 'package:soundhive2/screens/creator/services/services.dart';
 import 'package:soundhive2/screens/non_creator/non_creator.dart';
 import 'package:soundhive2/utils/app_colors.dart';
@@ -234,24 +235,24 @@ class CreatorDashboard extends ConsumerWidget {
                           ),
                         );
                       }),
-                      _buildDrawerItem(icon: 'images/artist.png', text: 'Artist Arena', onTap: () {
-                        if(user.artist != null) {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (context) =>  ArtistProfileScreen(user: userData),
-                            ),
-                          );
-                        }else {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (context) =>  ArtistArena(user: userData),
-                            ),
-                          );
-                        }
-
-                      }),
+                      // _buildDrawerItem(icon: 'images/artist.png', text: 'SoundHive', onTap: () {
+                      //   if(user.artist != null) {
+                      //     Navigator.push(
+                      //       context,
+                      //       MaterialPageRoute(
+                      //         builder: (context) =>  ArtistProfileScreen(user: userData),
+                      //       ),
+                      //     );
+                      //   }else {
+                      //     Navigator.push(
+                      //       context,
+                      //       MaterialPageRoute(
+                      //         builder: (context) =>  ArtistArena(user: userData),
+                      //       ),
+                      //     );
+                      //   }
+                      //
+                      // }),
                       _buildDrawerItem(icon: 'images/artist.png', text: 'Chats', onTap: () {
                         Navigator.push(
                           context,
@@ -276,6 +277,12 @@ class CreatorDashboard extends ConsumerWidget {
                           ),
                         );
                       }),
+                      _buildDrawerItem(icon: 'images/calendar.png', text: 'Refer & Earn', onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(builder: (context) => const ReferralScreen()),
+                        );
+                      }),
                       _buildDrawerItem(icon:'images/settings.png', text: 'Settings', onTap: () {
                         Navigator.push(
                           context,
@@ -287,11 +294,10 @@ class CreatorDashboard extends ConsumerWidget {
                       const SizedBox(height: 20),
                       Padding(
                         padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
-                        child: Container(
-                          decoration: BoxDecoration(
-                            color: AppColors.PRIMARYCOLOR,
-                            borderRadius: BorderRadius.circular(12),
-                          ),
+                        child: Material(
+                          color: AppColors.PRIMARYCOLOR,
+                          borderRadius: BorderRadius.circular(12),
+                          clipBehavior: Clip.antiAlias,
                           child: ListTile(
                             leading: Image.asset('images/link.png'),
                             title: const Text(

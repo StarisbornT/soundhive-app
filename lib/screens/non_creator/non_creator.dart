@@ -1,4 +1,3 @@
-
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:soundhive2/screens/creator/creator_dashboard.dart';
@@ -16,6 +15,7 @@ import '../../utils/app_colors.dart';
 import '../../utils/utils.dart';
 import '../auth/login.dart';
 import '../creator/profile/setup_screen.dart';
+import '../creator/referral/referral_screen.dart';
 import '../onboarding/just_curious.dart';
 import 'marketplace/marketplace.dart';
 
@@ -78,7 +78,7 @@ class NonCreatorDashboard extends ConsumerWidget {
               children: [
                 Icon(
                   Icons.notifications_sharp,
-                  color: colors.onBackground,
+                  color: colors.onSurface,
                 ),
                 if (unreadCount > 0)
                   Positioned(
@@ -152,7 +152,7 @@ class NonCreatorDashboard extends ConsumerWidget {
                                     ),
                                   ),
                                 );
-              },
+                              },
                               child: CircleAvatar(
                                 radius: 30,
                                 backgroundColor: AppColors.BUTTONCOLOR,
@@ -173,24 +173,24 @@ class NonCreatorDashboard extends ConsumerWidget {
                             ),
                             const SizedBox(height: 10),
                             Text(
-                             user?.creator?.businessName ?? '${user?.firstName} ${user?.lastName}',
+                              user?.creator?.businessName ?? '${user?.firstName} ${user?.lastName}',
                               style: theme.textTheme.bodyLarge,
                             ),
                             const SizedBox(height: 5),
                             if(user?.creator != null)
-                            Row(
-                              children: [
-                                const Icon(Icons.star,
-                                    color: Colors.amber, size: 16),
-                                const SizedBox(width: 5),
-                                Text(
-                                  '${Utils.getOverallRating(user!.creator!)} overall rating',
-                                  style: const TextStyle(
-                                    color: Color(0xFFC5AFFF),
+                              Row(
+                                children: [
+                                  const Icon(Icons.star,
+                                      color: Colors.amber, size: 16),
+                                  const SizedBox(width: 5),
+                                  Text(
+                                    '${Utils.getOverallRating(user!.creator!)} overall rating',
+                                    style: const TextStyle(
+                                      color: Color(0xFFC5AFFF),
+                                    ),
                                   ),
-                                ),
-                              ],
-                            ),
+                                ],
+                              ),
                           ],
                         ),
                       ),
@@ -260,7 +260,7 @@ class NonCreatorDashboard extends ConsumerWidget {
                       _drawerItem(
                         context,
                         icon: 'images/wallet.png',
-                        text: 'Cre8pay - Wallet',
+                        text: 'Cre8Pay - Wallet',
                         onTap: () {
                           Navigator.pop(context);
                           ref
@@ -268,6 +268,12 @@ class NonCreatorDashboard extends ConsumerWidget {
                               .state = 1;
                         },
                       ),
+                      _drawerItem(context, icon: 'images/calendar.png', text: 'Refer & Earn', onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(builder: (context) => const ReferralScreen()),
+                        );
+                      }),
 
                       _drawerItem(
                         context,
@@ -285,25 +291,36 @@ class NonCreatorDashboard extends ConsumerWidget {
                       const SizedBox(height: 20),
                       Padding(
                         padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
-                        child: Container(
-                          decoration: BoxDecoration(
-                            color: AppColors.PRIMARYCOLOR,
-                            borderRadius: BorderRadius.circular(12),
-                          ),
+                        child: Material(
+                          color: AppColors.PRIMARYCOLOR,
+                          borderRadius: BorderRadius.circular(12),
+                          clipBehavior: Clip.antiAlias,
                           child: ListTile(
-                            leading: Image.asset('images/link.png'),
-                            title: const Text(
-                              'Want to switch to\ncreator mode?',
-                              style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
-                            ),
-                            subtitle: const Text(
-                              'Click to switch',
-                              style: TextStyle(color: Colors.white70),
-                            ),
-                              onTap: () { if(userData.user?.creator == null || userData.user?.creator!.active == false) { Navigator.push( context, MaterialPageRoute( builder: (context) => SetupScreen(user: userData,), ), ); }else { Navigator.pushReplacementNamed(context, CreatorDashboard.id); } }
+                              isThreeLine: true, // Optimizes spacing for longer subtitle text
+                              leading: Image.asset('images/link.png'),
+                              title: const Text(
+                                'Switch to Tier 2 Account',
+                                style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+                              ),
+                              subtitle: const Text(
+                                'Includes: Access Creator Mode, Cre8Vest, Cre8Pay Wallet.',
+                                style: TextStyle(color: Colors.white70, fontSize: 12),
+                              ),
+                              onTap: () {
+                                if(userData.user?.creator == null || userData.user?.creator!.active == false) {
+                                  Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                      builder: (context) => SetupScreen(user: userData,),
+                                    ),
+                                  );
+                                } else {
+                                  Navigator.pushReplacementNamed(context, CreatorDashboard.id);
+                                }
+                              }
                           ),
                         ),
-                      ),
+                      )
                     ]),
                   ),
                   SliverFillRemaining(
@@ -382,4 +399,3 @@ class NonCreatorDashboard extends ConsumerWidget {
     );
   }
 }
-

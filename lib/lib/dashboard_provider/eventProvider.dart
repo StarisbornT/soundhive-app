@@ -1,9 +1,6 @@
-import 'dart:convert';
 
 import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:flutter_secure_storage/flutter_secure_storage.dart';
-import 'package:soundhive2/model/service_model.dart';
 import '../../model/event_model.dart';
 import '../provider.dart';
 final eventProvider = StateNotifierProvider.family<EventNotifier, AsyncValue<EventResponse>, String>((ref, status) {

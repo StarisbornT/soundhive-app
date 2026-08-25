@@ -81,7 +81,7 @@ class _ResetPasswordScreenState extends State<ResetPassword> {
               subtitle: '',
               onButtonPressed: () async {
                 await widget.storage.deleteAll();
-                await Future.delayed(Duration(milliseconds: 500));
+                await Future.delayed(const Duration(milliseconds: 500));
 
                 Map<String, String> allData = await widget.storage.readAll();
                 print("Storage After Delete: $allData");
@@ -104,7 +104,7 @@ class _ResetPasswordScreenState extends State<ResetPassword> {
     }
     catch(error) {
       LoaderService.hideLoader(context);
-      if (error is DioError) {
+      if (error is DioException) {
         String errorMessage = "Failed, Please check input";
 
         if (error.response != null && error.response!.data != null) {
@@ -190,7 +190,7 @@ class _ResetPasswordScreenState extends State<ResetPassword> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(label, style: TextStyle(color: Colors.white)),
+        Text(label, style: const TextStyle(color: Colors.white)),
         const SizedBox(height: 8),
         TextField(
           obscureText: isPassword ? _isObscured : false,
@@ -228,7 +228,7 @@ class _ResetPasswordScreenState extends State<ResetPassword> {
       },
       child: Container(
         width: double.infinity,
-        padding: EdgeInsets.symmetric(vertical: 16),
+        padding: const EdgeInsets.symmetric(vertical: 16),
         decoration: BoxDecoration(
           color: color,
           borderRadius: BorderRadius.circular(30),
@@ -236,7 +236,7 @@ class _ResetPasswordScreenState extends State<ResetPassword> {
         child: Center(
           child: Text(
             text,
-            style: TextStyle(
+            style: const TextStyle(
                 fontSize: 16, fontWeight: FontWeight.bold, color: Colors.white),
           ),
         ),

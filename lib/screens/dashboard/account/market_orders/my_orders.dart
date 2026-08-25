@@ -7,8 +7,8 @@ import 'package:soundhive2/model/asset_market_response.dart';
 import 'package:soundhive2/utils/utils.dart';
 
 import 'package:soundhive2/lib/dashboard_provider/getMarketPlaceProvider.dart';
-import '../../../../lib/dashboard_provider/getMyOrdersAssetProvider.dart';
-import '../../../../lib/dashboard_provider/getMarketPlaceService.dart';
+import 'package:soundhive2/lib/dashboard_provider/getMyOrdersAssetProvider.dart';
+import 'package:soundhive2/lib/dashboard_provider/getMarketPlaceService.dart';
 import '../../../../model/asset_model.dart';
 import '../../../../model/market_orders_asset_purchase.dart';
 import '../../../../model/market_orders_service_model.dart';
@@ -20,7 +20,7 @@ import '../../../non_creator/marketplace/mark_as_completed.dart';
 class MyOrdersScreen extends ConsumerStatefulWidget {
   final User user;
 
-  MyOrdersScreen({required this.user});
+  const MyOrdersScreen({super.key, required this.user});
 
   @override
   _MarketplaceState createState() => _MarketplaceState();
@@ -30,7 +30,7 @@ class _MarketplaceState extends ConsumerState<MyOrdersScreen>
     with SingleTickerProviderStateMixin {
   @override
 Widget build(BuildContext context) {
-    return Scaffold();
+    return const Scaffold();
   }
 
   // final TextEditingController _searchController = TextEditingController();

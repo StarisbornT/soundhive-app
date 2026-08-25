@@ -21,6 +21,8 @@ class LabeledTextField extends StatelessWidget {
   final IconData? prefixIcon;
   final List<TextInputFormatter>? inputFormatters;
   final TextAlign? textAlign;
+  final String? Function(String?)? validator;          // 👈 added
+  final AutovalidateMode? autovalidateMode;             // 👈 added
 
   const LabeledTextField({
     super.key,
@@ -39,6 +41,8 @@ class LabeledTextField extends StatelessWidget {
     this.maxLines = 1,
     this.prefixIcon,
     this.textAlign,
+    this.validator,                                     // 👈 added
+    this.autovalidateMode,                               // 👈 added
   });
 
   @override
@@ -72,7 +76,7 @@ class LabeledTextField extends StatelessWidget {
           ],
         ),
         const SizedBox(height: 6),
-        TextField(
+        TextFormField(                                   // 👈 was TextField
           controller: controller,
           keyboardType: keyboardType,
           obscureText: obscureText,
@@ -81,6 +85,8 @@ class LabeledTextField extends StatelessWidget {
           textAlign: textAlign ?? TextAlign.start,
           style: TextStyle(color: theme.colorScheme.onSurface),
           inputFormatters: inputFormatters,
+          validator: validator,                           // 👈 added
+          autovalidateMode: autovalidateMode,               // 👈 added
           decoration: InputDecoration(
             prefixIcon: prefixIcon != null
                 ? Icon(
@@ -356,7 +362,7 @@ class LabeledMultiSelectField extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final _valueToLabel = {for (var item in items) item['value']!: item['label']!};
+    final valueToLabel = {for (var item in items) item['value']!: item['label']!};
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -413,7 +419,7 @@ class LabeledMultiSelectField extends StatelessWidget {
                   spacing: 6,
                   runSpacing: 6,
                   children: selectedValues.map((value) {
-                    final label = _valueToLabel[value] ?? value;
+                    final label = valueToLabel[value] ?? value;
                     return Container(
                       height: 32,
                       padding: const EdgeInsets.symmetric(
@@ -773,7 +779,7 @@ class _CurrencyInputFieldState extends ConsumerState<CurrencyInputField> {
             ),
             focusedBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(12.0),
-              borderSide: BorderSide(
+              borderSide: const BorderSide(
                 color: AppColors.BUTTONCOLOR,
                 width: 2.0,
               ),

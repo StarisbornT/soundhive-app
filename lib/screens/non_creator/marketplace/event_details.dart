@@ -9,7 +9,7 @@ import '../../../components/success.dart';
 import '../../../components/widgets.dart';
 import 'package:soundhive2/lib/dashboard_provider/apiresponseprovider.dart';
 import 'package:soundhive2/lib/dashboard_provider/user_provider.dart';
-import '../../../lib/dashboard_provider/getMyTicketProvider.dart';
+import 'package:soundhive2/lib/dashboard_provider/getMyTicketProvider.dart';
 import '../../../model/apiresponse_model.dart';
 import '../../../model/ticket_model.dart';
 import '../../../model/user_model.dart';
@@ -83,20 +83,8 @@ class _EventDetailsState extends ConsumerState<EventDetails> {
     return  Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Center(
-          child: ClipRRect(
-            borderRadius: BorderRadius.circular(10),
-            child: event.image.isNotEmpty
-                ? Image.network(
-              event.image,
-              height: 200,
-              width: double.infinity,
-              fit: BoxFit.cover,
-              errorBuilder: (context, error, stackTrace) =>
-                  Utils.buildImagePlaceholder(),
-            )
-                : Utils.buildImagePlaceholder(),
-          ),
+        NetworkImageWithLoader(
+          imageUrl: event.image,
         ),
 
         const SizedBox(height: 16),

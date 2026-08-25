@@ -3,7 +3,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:soundhive2/lib/dashboard_provider/getMarketPlaceService.dart';
 import 'package:soundhive2/model/user_model.dart';
-import 'package:soundhive2/utils/app_colors.dart';
 
 import '../../../main.dart';
 import 'marketplace_details.dart';

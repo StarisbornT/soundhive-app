@@ -4,11 +4,11 @@ import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
-import 'package:soundhive2/screens/auth/update_profile1.dart';
 import 'package:soundhive2/utils/app_colors.dart';
-
 import '../../services/loader_service.dart';
 import '../../utils/alert_helper.dart';
+import '../creator/creator_dashboard.dart';
+import '../onboarding/just_curious.dart';
 
 class TermsAndCondition extends ConsumerStatefulWidget {
   static String id = 'terms_and_condition';
@@ -59,8 +59,12 @@ class _TermsAndConditionScreenState extends ConsumerState<TermsAndCondition> {
       if (response.statusCode == 200) {
         LoaderService.hideLoader(context);
         final responseData = response.data;
-        await widget.storage.write(key: 'role', value: responseData['data']['role']);
-        Navigator.pushNamed(context, UpdateProfile1.id);
+        final role = responseData['data']['role'];
+        if(role.toLowerCase() == "creator") {
+          Navigator.pushNamed(context, CreatorDashboard.id);
+        }else {
+          Navigator.pushNamed(context, JustCurious.id);
+        }
       }
 
       else {
@@ -74,7 +78,7 @@ class _TermsAndConditionScreenState extends ConsumerState<TermsAndCondition> {
     }
     catch(error) {
       LoaderService.hideLoader(context);
-      if (error is DioError) {
+      if (error is DioException) {
         String errorMessage = "Failed, Please check input";
 
         if (error.response != null && error.response!.data != null) {
@@ -142,7 +146,9 @@ Widget build(BuildContext context) {
                     '• Cre8Vest – access investment opportunities\n'
                     '• SoundHive Streaming – stream licensed content\n'
                     '• Cre8Pay Wallet – pay and receive funds within the ecosystem\n\n'
-                    'You agree to use the App lawfully and not upload harmful, abusive, or infringing content.\n\n'
+                        'You agree to use the App lawfully and not upload harmful, abusive, or infringing content. '
+                        'Cre8hive has a zero-tolerance policy for objectionable content and abusive users. '
+                        'Violations will result in immediate content removal and permanent account termination.\n\n'
                     '2️⃣ Accounts & Security\n\n'
                     'Provide accurate information and keep your login secure. You are responsible for all activity under your account.\n\n'
                     '3️⃣ Payments & Wallet\n\n'

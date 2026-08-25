@@ -5,8 +5,8 @@ import 'package:soundhive2/components/rounded_button.dart';
 import 'package:soundhive2/screens/non_creator/streaming/streaming.dart';
 import 'package:soundhive2/utils/app_colors.dart';
 
-import '../../../lib/dashboard_provider/apiresponseprovider.dart';
-import '../../../lib/dashboard_provider/user_provider.dart';
+import 'package:soundhive2/lib/dashboard_provider/apiresponseprovider.dart';
+import 'package:soundhive2/lib/dashboard_provider/user_provider.dart';
 import '../../../model/apiresponse_model.dart';
 import '../../../utils/alert_helper.dart';
 

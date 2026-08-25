@@ -33,16 +33,29 @@ class _UpdateProfileState extends State<UpdateProfile1> {
   final TextEditingController phoneController = TextEditingController();
   final TextEditingController addressController = TextEditingController();
   final TextEditingController countryController = TextEditingController();
+  final TextEditingController referralCodeController = TextEditingController();
   List<String> selectedInterests = []; // Added to track interests
   String pin = '';
   String? identity;
 
   Future<void> loadData() async {
     String? storedIdentity = await widget.storage.read(key: 'role');
+    String? socialName = await widget.storage.read(key: 'social_name');
 
     setState(() {
       identity = storedIdentity;
     });
+
+    // Pre-fill name fields if we have them from a social sign-in
+    if (socialName != null && socialName.isNotEmpty) {
+      final parts = socialName.trim().split(RegExp(r'\s+'));
+      firstNameController.text = parts.first;
+      if (parts.length > 1) {
+        lastNameController.text = parts.skip(1).join(' ');
+      }
+      // Clean up so re-opening the screen doesn't re-apply stale data
+      await widget.storage.delete(key: 'social_name');
+    }
   }
 
   List<Map<String, String>> countries = [];
@@ -139,6 +152,11 @@ class _UpdateProfileState extends State<UpdateProfile1> {
         "phone_number": phoneController.text,
         "location": addressController.text,
       };
+
+      if (referralCodeController.text.trim().isNotEmpty) {
+        payload["referral_code"] = referralCodeController.text.trim();
+      }
+
       final options = Options(headers: {'Accept': 'application/json'});
       final response = await widget.dio.post(
           '/update/profile',
@@ -147,18 +165,29 @@ class _UpdateProfileState extends State<UpdateProfile1> {
       );
       if (response.statusCode == 200) {
         LoaderService.hideLoader(context);
-          Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder: (context) => const Success(
-                image: 'images/success_profile.png',
-                title: 'Account created successfully',
-                subtitle: '',
-              ),
-            ),
-          );
-          _nextPage();
 
+        // Surface referral feedback if a code was submitted
+        final referralData = response.data['data']?['referral'];
+        if (referralData != null && referralData['applied'] == false) {
+          showCustomAlert(
+            context: context,
+            isSuccess: false,
+            title: 'Referral code',
+            message: referralData['message'] ?? 'Could not apply referral code',
+          );
+        }
+
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => const Success(
+              image: 'images/success_profile.png',
+              title: 'Account created successfully',
+              subtitle: '',
+            ),
+          ),
+        );
+        _nextPage();
       }
       else {
         showCustomAlert(
@@ -270,6 +299,7 @@ class _UpdateProfileState extends State<UpdateProfile1> {
     phoneController.dispose();
     addressController.dispose();
     countryController.dispose();
+    referralCodeController.dispose();
     _pageController.dispose();
     super.dispose();
   }
@@ -310,6 +340,7 @@ class _UpdateProfileState extends State<UpdateProfile1> {
                   phoneController: phoneController,
                   addressController: addressController,
                   countryController: countryController,
+                  referralCodeController: referralCodeController, // add this
                   countries: countries,
                   selectedCountry: selectedCountry,
                   onCountryChanged: (value) {
@@ -347,6 +378,7 @@ class UserDetailsStep extends StatelessWidget {
   final TextEditingController dobController;
   final TextEditingController phoneController;
   final TextEditingController countryController;
+  final TextEditingController referralCodeController; // add this
   final List<Map<String, String>> countries;
   final String? selectedCountry;
   final ValueChanged<String?> onCountryChanged;
@@ -360,6 +392,7 @@ class UserDetailsStep extends StatelessWidget {
     required this.phoneController,
     required this.addressController,
     required this.countryController,
+    required this.referralCodeController, // add this
     required this.countries,
     required this.selectedCountry,
     required this.onCountryChanged,
@@ -388,8 +421,6 @@ class UserDetailsStep extends StatelessWidget {
             const SizedBox(height: 10),
             _buildTextField('Address', 'Enter Address', addressController, context),
             const SizedBox(height: 10),
-
-            // ✅ Dropdown for Countries
             LabeledSelectField(
               label: "Country",
               controller: countryController,
@@ -402,38 +433,13 @@ class UserDetailsStep extends StatelessWidget {
                 onCountryChanged(selectedValue);
               },
             ),
-            // Container(
-            //   decoration: BoxDecoration(
-            //     color: Colors.white10,
-            //     borderRadius: BorderRadius.circular(8),
-            //     border: Border.all(color: Colors.white24),
-            //   ),
-            //   child: DropdownButtonFormField<String>(
-            //     isExpanded: true,
-            //     initialValue: selectedCountry,
-            //     dropdownColor: const Color(0xFF1C1C1C),
-            //     iconEnabledColor: Colors.white70,
-            //     decoration: const InputDecoration(
-            //       border: InputBorder.none,
-            //       contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 14),
-            //     ),
-            //     hint: const Text(
-            //       'Select your country',
-            //       style: TextStyle(color: Colors.white54),
-            //     ),
-            //     items: countries.map((country) {
-            //       return DropdownMenuItem<String>(
-            //         value: country["name"],
-            //         child: Text(
-            //           country["name"]!,
-            //           style: const TextStyle(color: Colors.white),
-            //         ),
-            //       );
-            //     }).toList(),
-            //     onChanged: onCountryChanged,
-            //   ),
-            // ),
-
+            const SizedBox(height: 10),
+            _buildTextField(
+              'Referral Code (optional)',
+              'Enter referral code if you have one',
+              referralCodeController,
+              context,
+            ),
             const SizedBox(height: 20),
             Center(
               child: SizedBox(
@@ -566,7 +572,7 @@ class _InterestsStepState extends State<InterestsStep> {
                 selected: isSelected,
                 onSelected: (_) => toggleInterest(interest),
                 selectedColor: Colors.purple,
-                backgroundColor: Color(0xFF0C051F),
+                backgroundColor: const Color(0xFF0C051F),
                 labelStyle: TextStyle(
                   color: isSelected ? Colors.white : Colors.grey,
                 ),
@@ -947,7 +953,7 @@ class _PhoneNumberFieldState extends State<PhoneNumberField> {
             color: Color.fromRGBO(219, 33, 33, 0.76),
             fontSize: 12
         ),
-      ): Text(''),
+      ): const Text(''),
       // const SizedBox(height: 16),
     ]);
   }
@@ -966,7 +972,7 @@ class _PhoneNumberFieldState extends State<PhoneNumberField> {
         itemCount: countries.length,
         itemBuilder: (_, i) => ListTile(
           leading: Image.network(countries[i]['flag']!, width: 24, errorBuilder:
-              (_, __, ___) => Icon(Icons.flag)),
+              (_, __, ___) => const Icon(Icons.flag)),
           title: Text(countries[i]['name']!),
           subtitle: Text(countries[i]['dial_code']!),
           onTap: () => _selectCountry(countries[i]),

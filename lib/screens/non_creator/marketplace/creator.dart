@@ -1,14 +1,34 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
 import 'package:soundhive2/utils/app_colors.dart';
 import 'package:soundhive2/lib/dashboard_provider/get_creator_services.dart';
+import '../../../components/creator_profile_widgets.dart';
+import '../../../components/video_preview_player.dart';
 import '../../../model/creator_model.dart';
-import '../../../model/market_orders_service_model.dart';
+import '../../../model/creator_profile_models.dart';
+import '../../../model/service_model.dart';
 import '../../../utils/utils.dart';
 import 'creator_portfolio.dart';
+
+// ---------------------------------------------------------------------
+// Portfolio Overhaul — rebuilt Creator Profile
+//
+// Replaces the old single long-scroll layout with 6 tabs:
+//   Overview | Portfolio | Experience | Services | Skills | Reviews
+//
+// NOTE / ASSUMPTIONS — please adjust to match your real model/screens:
+// 1. Extra data that doesn't exist on CreatorData yet (portfolio media,
+//    experience, skills, availability, trust badges) is sourced through
+//    `CreatorProfileExtras.fromCreator(widget.creator)` — see
+//    creator_profile_models.dart for the TODOs on wiring real API fields.
+// 2. Tapping a service card still opens `CreatorPortfolio` (the Service
+//    Detail screen). Swap the destination in `_onServiceTap` if you have
+//    a dedicated booking flow.
+// 3. Grid density for the Services tab: 1 service → 1 per row, 2-4 → 2,
+//    5-9 → 3, 10+ → 4. Tweak `_serviceCrossAxisCount` as needed.
+// ---------------------------------------------------------------------
 
 class CreatorProfile extends ConsumerStatefulWidget {
   final CreatorData creator;
@@ -18,51 +38,39 @@ class CreatorProfile extends ConsumerStatefulWidget {
   ConsumerState<CreatorProfile> createState() => _CreatorProfileState();
 }
 
-class _CreatorProfileState extends ConsumerState<CreatorProfile> {
+class _CreatorProfileState extends ConsumerState<CreatorProfile>
+    with SingleTickerProviderStateMixin {
+  late final TabController _tabController;
+  late final CreatorProfileExtras _extras;
+
+  static const _tabs = ['Overview', 'Portfolio', 'Experience', 'Services', 'Skills', 'Reviews'];
+
   @override
   void initState() {
     super.initState();
+    _tabController = TabController(length: _tabs.length, vsync: this);
+    _extras = CreatorProfileExtras.fromCreator(widget.creator);
+
     WidgetsBinding.instance.addPostFrameCallback((_) async {
       if (mounted) {
-        await ref.read(getCreatorServiceProvider.notifier)
+        await ref
+            .read(getCreatorServiceProvider.notifier)
             .getCreatorService(perPage: 10, memberId: widget.creator.userId.toString());
       }
     });
   }
 
-  Widget _buildReviewSection() {
-    final theme = Theme.of(context);
-    final isDark = theme.brightness == Brightness.dark;
-    final reviews = widget.creator.reviews;
-    final count = reviews.length;
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        InkWell(
-          onTap: () {
-            Navigator.push(
-              context,
-              MaterialPageRoute(
-                builder: (_) => CreatorAllReviewsScreen(
-                  creator: widget.creator,
-                ),
-              ),
-            );
-          },
-          child: Text(
-            "View all reviews here ($count) >",
-            style: TextStyle(
-              color: isDark ? const Color(0xFFC5AFFF) : AppColors.BUTTONCOLOR,
-              fontSize: 12,
-              decoration: TextDecoration.underline,
-            ),
-          ),
-        ),
-        const SizedBox(height: 15),
-      ],
-    );
+  @override
+  void dispose() {
+    _tabController.dispose();
+    super.dispose();
   }
+
+  double get _overallRating => Utils.getOverallRating(widget.creator);
+
+  // ---------------------------------------------------------------------
+  // BUILD
+  // ---------------------------------------------------------------------
 
   @override
   Widget build(BuildContext context) {
@@ -70,52 +78,92 @@ class _CreatorProfileState extends ConsumerState<CreatorProfile> {
     final isDark = theme.brightness == Brightness.dark;
 
     return Scaffold(
-      body: SingleChildScrollView(
-        child: Padding(
-          padding: const EdgeInsets.all(16.0),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              _buildAppBar(context, theme),
-              const SizedBox(height: 20),
-              _buildProfileHeader(theme, isDark),
-              const SizedBox(height: 30),
-              _buildAboutSection(theme),
-              const SizedBox(height: 10),
-              _buildReviewSection(),
-              // const SizedBox(height: 30),
-              // _buildSocialIcons(theme, isDark),
-              const SizedBox(height: 20),
-              _buildLocation(theme),
-              const SizedBox(height: 30),
-              _buildServicesSection(theme),
-              const SizedBox(height: 30),
-            ],
-          ),
+      body: SafeArea(
+        child: Column(
+          children: [
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  _buildAppBar(context, theme),
+                  const SizedBox(height: 12),
+                  _buildProfileHeader(theme, isDark),
+                ],
+              ),
+            ),
+            const SizedBox(height: 12),
+            TabBar(
+              controller: _tabController,
+              isScrollable: true,
+              tabAlignment: TabAlignment.start,   // <-- important, see note below
+              padding: EdgeInsets.zero,           // remove TabBar's own outer padding
+              labelPadding: const EdgeInsets.only(right: 24), // space between tabs, none on the left
+              labelColor: AppColors.BUTTONCOLOR,
+              unselectedLabelColor: theme.colorScheme.onSurface.withOpacity(0.6),
+              indicatorColor: AppColors.BUTTONCOLOR,
+              indicatorSize: TabBarIndicatorSize.label, // makes the underline hug the text width, not the padded cell
+              labelStyle: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
+              tabs: _tabs.map((t) => Tab(text: t)).toList(),
+            ),
+            // TabBar(
+            //   controller: _tabController,
+            //   isScrollable: true,
+            //   labelColor: AppColors.BUTTONCOLOR,
+            //   unselectedLabelColor: theme.colorScheme.onSurface.withOpacity(0.6),
+            //   indicatorColor: AppColors.BUTTONCOLOR,
+            //   labelStyle: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
+            //   tabs: _tabs.map((t) => Tab(text: t)).toList(),
+            // ),
+            const Divider(height: 1),
+            Expanded(
+              child: TabBarView(
+                controller: _tabController,
+                children: [
+                  _buildOverviewTab(theme),
+                  _buildPortfolioTab(theme),
+                  _buildExperienceTab(theme),
+                  _buildServicesTab(theme, isDark),
+                  _buildSkillsTab(theme),
+                  _buildReviewsTab(theme, isDark),
+                ],
+              ),
+            ),
+          ],
         ),
       ),
     );
   }
 
+  // ---------------------------------------------------------------------
+  // APP BAR
+  // ---------------------------------------------------------------------
+
   Widget _buildAppBar(BuildContext context, ThemeData theme) {
-    return Padding(
-      padding: const EdgeInsets.only(top: 40.0),
-      child: Row(
-        children: [
-          IconButton(
-            icon: Icon(Icons.arrow_back_ios,
-                color: theme.colorScheme.onSurface),
-            onPressed: () {
-              Navigator.pop(context);
-            },
-          ),
-        ],
-      ),
+    return Row(
+      children: [
+        IconButton(
+          icon: Icon(Icons.arrow_back_ios, color: theme.colorScheme.onSurface),
+          onPressed: () => Navigator.pop(context),
+        ),
+      ],
     );
   }
 
+  // ---------------------------------------------------------------------
+  // HEADER — name, avatar, rating, trust badges (shown above the tabs so
+  // they're visible regardless of which tab is active)
+  // ---------------------------------------------------------------------
+
   Widget _buildProfileHeader(ThemeData theme, bool isDark) {
+    final serviceState = ref.watch(getCreatorServiceProvider);
+    final serviceCount = serviceState.maybeWhen(
+      data: (services) => services.length,
+      orElse: () => null,
+    );
+
     return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         widget.creator.user?.image != null
             ? Container(
@@ -127,10 +175,7 @@ class _CreatorProfileState extends ConsumerState<CreatorProfile> {
               image: NetworkImage(widget.creator.user?.image ?? ''),
               fit: BoxFit.cover,
             ),
-            border: Border.all(
-              color: AppColors.BUTTONCOLOR.withOpacity(0.3),
-              width: 2,
-            ),
+            border: Border.all(color: AppColors.BUTTONCOLOR.withOpacity(0.3), width: 2),
           ),
         )
             : Container(
@@ -138,24 +183,15 @@ class _CreatorProfileState extends ConsumerState<CreatorProfile> {
           height: 80,
           decoration: BoxDecoration(
             shape: BoxShape.circle,
-            color: AppColors.BUTTONCOLOR.withOpacity(
-              isDark ? 0.8 : 0.6,
-            ),
-            border: Border.all(
-              color: AppColors.BUTTONCOLOR.withOpacity(0.3),
-              width: 2,
-            ),
+            color: AppColors.BUTTONCOLOR.withOpacity(isDark ? 0.8 : 0.6),
+            border: Border.all(color: AppColors.BUTTONCOLOR.withOpacity(0.3), width: 2),
           ),
           alignment: Alignment.center,
           child: Text(
             widget.creator.user!.firstName.isNotEmpty
                 ? widget.creator.user!.firstName[0].toUpperCase()
                 : "?",
-            style: const TextStyle(
-              fontSize: 40,
-              fontWeight: FontWeight.bold,
-              color: Colors.white,
-            ),
+            style: const TextStyle(fontSize: 40, fontWeight: FontWeight.bold, color: Colors.white),
           ),
         ),
         const SizedBox(width: 15),
@@ -164,49 +200,74 @@ class _CreatorProfileState extends ConsumerState<CreatorProfile> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-               widget.creator.businessName ?? "${widget.creator.user?.firstName} ${widget.creator.user?.lastName}",
-                style: TextStyle(
-                  color: theme.colorScheme.onSurface,
-                  fontSize: 18,
-                  fontWeight: FontWeight.w400,
-                ),
+                widget.creator.businessName ??
+                    "${widget.creator.user?.firstName} ${widget.creator.user?.lastName}",
+                style: TextStyle(color: theme.colorScheme.onSurface, fontSize: 18, fontWeight: FontWeight.w400),
                 overflow: TextOverflow.ellipsis,
               ),
-              const SizedBox(height: 5),
+              const SizedBox(height: 4),
               Text(
-                widget.creator.jobTitle ?? '',
-                style: TextStyle(
-                  color: theme.colorScheme.onSurface.withOpacity(0.7),
-                  fontSize: 12,
-                ),
+                widget.creator.jobTitle ?? "",
+                style: TextStyle(color: theme.colorScheme.onSurface.withOpacity(0.7), fontSize: 12),
                 overflow: TextOverflow.ellipsis,
               ),
-              const SizedBox(height: 5),
-              Text(
-                '10 services • 200 clients',
-                style: TextStyle(
-                  color: theme.colorScheme.onSurface.withOpacity(0.7),
-                  fontSize: 12,
-                ),
-              ),
-              const SizedBox(height: 5),
+              const SizedBox(height: 6),
               Row(
                 children: [
                   const Icon(Icons.star, color: Colors.amber, size: 16),
                   const SizedBox(width: 5),
                   Text(
-                    '${Utils.getOverallRating(widget.creator).toStringAsFixed(1)} overall rating',
-                    style: TextStyle(
-                      color: theme.colorScheme.onSurface.withOpacity(0.7),
-                      fontSize: 12,
-                    ),
+                    '${_overallRating.toStringAsFixed(1)} overall rating',
+                    style: TextStyle(color: theme.colorScheme.onSurface.withOpacity(0.7), fontSize: 12),
                   ),
+                  if (serviceCount != null) ...[
+                    const SizedBox(width: 10),
+                    Text(
+                      '· $serviceCount ${serviceCount == 1 ? 'service' : 'services'}',
+                      style: TextStyle(color: theme.colorScheme.onSurface.withOpacity(0.7), fontSize: 12),
+                    ),
+                  ],
                 ],
               ),
+              if (_extras.trustBadges.isNotEmpty) ...[
+                const SizedBox(height: 8),
+                TrustBadgeRow(badges: _extras.trustBadges),
+              ],
             ],
           ),
         ),
       ],
+    );
+  }
+
+  // ---------------------------------------------------------------------
+  // TAB 1 — OVERVIEW: about, location, availability, ratings summary
+  // ---------------------------------------------------------------------
+
+  Widget _buildOverviewTab(ThemeData theme) {
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          _buildAboutSection(theme),
+          const SizedBox(height: 20),
+          _buildLocation(theme),
+          if (_extras.availability != null) ...[
+            const SizedBox(height: 20),
+            AvailabilityCard(info: _extras.availability!),
+          ],
+          if (_extras.ratingDistribution.totalReviews > 0) ...[
+            const SizedBox(height: 24),
+            Text(
+              'Ratings',
+              style: TextStyle(color: theme.colorScheme.onSurface, fontSize: 14, fontWeight: FontWeight.w400),
+            ),
+            const SizedBox(height: 12),
+            RatingBreakdown(distribution: _extras.ratingDistribution, compact: true),
+          ],
+        ],
+      ),
     );
   }
 
@@ -215,129 +276,142 @@ class _CreatorProfileState extends ConsumerState<CreatorProfile> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          'About ${widget.creator.businessName?.isNotEmpty == true
-              ? widget.creator.businessName!
-              : "${widget.creator.user?.firstName ?? ''} ${widget.creator.user?.lastName ?? ''}".trim()}',
-          style: TextStyle(
-            color: theme.colorScheme.onSurface,
-            fontSize: 14,
-            fontWeight: FontWeight.w400,
-          ),
+          'About ${widget.creator.businessName?.isNotEmpty == true ? widget.creator.businessName! : "${widget.creator.user?.firstName ?? ''} ${widget.creator.user?.lastName ?? ''}".trim()}',
+          style: TextStyle(color: theme.colorScheme.onSurface, fontSize: 14, fontWeight: FontWeight.w400),
         ),
-
         const SizedBox(height: 10),
         Text(
-          widget.creator.bio ?? '',
-          style: TextStyle(
-            color: theme.colorScheme.onSurface.withOpacity(0.7),
-            fontSize: 12,
-            height: 1.5,
-          ),
+          widget.creator.bio ?? "",
+          style: TextStyle(color: theme.colorScheme.onSurface.withOpacity(0.7), fontSize: 12, height: 1.5),
         ),
       ],
-    );
-  }
-
-  Widget _buildSocialIcons(ThemeData theme, bool isDark) {
-    return Row(
-      children: [
-        _buildSocialIcon(FontAwesomeIcons.x, theme, isDark),
-        const SizedBox(width: 15),
-        _buildSocialIcon(Icons.facebook, theme, isDark),
-        const SizedBox(width: 15),
-        _buildSocialIcon(FontAwesomeIcons.instagram, theme, isDark),
-      ],
-    );
-  }
-
-  Widget _buildSocialIcon(IconData icon, ThemeData theme, bool isDark) {
-    return Container(
-      padding: const EdgeInsets.all(10),
-      decoration: BoxDecoration(
-        color: isDark ? Colors.white12 : Colors.grey[200],
-        borderRadius: BorderRadius.circular(8),
-      ),
-      child: Icon(icon,
-          color: isDark ? Colors.white : Colors.grey[700],
-          size: 24),
     );
   }
 
   Widget _buildLocation(ThemeData theme) {
     return Row(
       children: [
-        Icon(Icons.location_on_outlined,
-            color: theme.colorScheme.onSurface.withOpacity(0.7),
-            size: 20),
+        Icon(Icons.location_on_outlined, color: theme.colorScheme.onSurface.withOpacity(0.7), size: 20),
         const SizedBox(width: 10),
         Text(
-          widget.creator.location ?? '',
-          style: TextStyle(
-            color: theme.colorScheme.onSurface.withOpacity(0.7),
-            fontSize: 14,
-          ),
+          widget.creator.location ?? "",
+          style: TextStyle(color: theme.colorScheme.onSurface.withOpacity(0.7), fontSize: 14),
         ),
       ],
     );
   }
 
-  Widget _buildServicesSection(ThemeData theme) {
-    final serviceState = ref.watch(getCreatorServiceProvider);
-    final isDark = theme.brightness == Brightness.dark;
+  // ---------------------------------------------------------------------
+  // TAB 2 — PORTFOLIO: verified work grid (See all / +N more) + video
+  // ---------------------------------------------------------------------
 
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          'Services',
-          style: TextStyle(
-            color: theme.colorScheme.onSurface,
-            fontSize: 14,
-            fontWeight: FontWeight.w400,
-          ),
-        ),
-        const SizedBox(height: 20),
-        serviceState.when(
-          data: (services) {
-            if (services.isEmpty) {
-              return Text(
-                "No services available",
-                style: TextStyle(color: theme.colorScheme.onSurface.withOpacity(0.6)),
-              );
-            }
+  Widget _buildPortfolioTab(ThemeData theme) {
+    final videoUrl = widget.creator.videoUrl;
+    final hasVideo = videoUrl != null && videoUrl.isNotEmpty;
 
-            return SizedBox(
-              height: 200,
-              child: ListView.builder(
-                scrollDirection: Axis.horizontal,
-                itemCount: services.length,
-                itemBuilder: (context, index) {
-                  final service = services[index];
-
-                  return Padding(
-                    padding: EdgeInsets.only(left: index == 0 ? 0 : 20),
-                    child: _buildServiceCard(
-                      service.serviceImage ?? '',
-                      service.serviceName,
-                      ref.formatUserCurrency(service.convertedRate),
-                      service,
-                      theme,
-                      isDark,
-                    ),
-                  );
-                },
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          PortfolioGrid(
+            items: _extras.portfolio,
+            previewCount: 6,
+            crossAxisCount: 3,
+            onSeeAll: _extras.portfolio.isEmpty
+                ? null
+                : () => Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (_) => CreatorFullPortfolioScreen(items: _extras.portfolio),
               ),
+            ),
+          ),
+          if (hasVideo) ...[
+            const SizedBox(height: 24),
+            Text(
+              'Video Portfolio',
+              style: TextStyle(color: theme.colorScheme.onSurface, fontSize: 14, fontWeight: FontWeight.w400),
+            ),
+            const SizedBox(height: 15),
+            VideoPreviewPlayer(key: ValueKey(videoUrl), videoUrl: videoUrl),
+          ],
+        ],
+      ),
+    );
+  }
+
+  // ---------------------------------------------------------------------
+  // TAB 3 — EXPERIENCE: timeline of previous projects / clients / achievements
+  // ---------------------------------------------------------------------
+
+  Widget _buildExperienceTab(ThemeData theme) {
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(16),
+      child: ExperienceTimeline(entries: _extras.experience),
+    );
+  }
+
+  // ---------------------------------------------------------------------
+  // TAB 4 — SERVICES (unchanged grid of bookable service cards)
+  // ---------------------------------------------------------------------
+
+  int _serviceCrossAxisCount(int count) {
+    if (count <= 1) return 1;
+    if (count <= 4) return 2;
+    if (count <= 9) return 3;
+    return 4;
+  }
+
+  void _onServiceTap(ServiceItem service) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(builder: (context) => CreatorPortfolio(service: service)),
+    );
+  }
+
+  Widget _buildServicesTab(ThemeData theme, bool isDark) {
+    final serviceState = ref.watch(getCreatorServiceProvider);
+
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(16),
+      child: serviceState.when(
+        data: (services) {
+          if (services.isEmpty) {
+            return Text(
+              "No services available",
+              style: TextStyle(color: theme.colorScheme.onSurface.withOpacity(0.6)),
             );
-          },
-          error: (err, stack) => Text(
-            "Error: $err",
-            style: TextStyle(color: theme.colorScheme.error),
-          ),
-          loading: () => Center(
-            child: CircularProgressIndicator(color: theme.colorScheme.primary),
-          ),
-        ),
-      ],
+          }
+
+          final crossAxisCount = _serviceCrossAxisCount(services.length);
+
+          return GridView.builder(
+            shrinkWrap: true,
+            physics: const NeverScrollableScrollPhysics(),
+            itemCount: services.length,
+            gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+              crossAxisCount: crossAxisCount,
+              mainAxisSpacing: 15,
+              crossAxisSpacing: 15,
+              childAspectRatio: 0.95,
+            ),
+            itemBuilder: (context, index) {
+              final service = services[index];
+              return _buildServiceCard(
+                service.serviceImage ?? '',
+                service.serviceName,
+                ref.formatUserCurrency(service.convertedRate),
+                service,
+                theme,
+                isDark,
+              );
+            },
+          );
+        },
+        error: (err, stack) => Text("Error: $err", style: TextStyle(color: theme.colorScheme.error)),
+        loading: () => Center(child: CircularProgressIndicator(color: theme.colorScheme.primary)),
+      ),
     );
   }
 
@@ -345,119 +419,166 @@ class _CreatorProfileState extends ConsumerState<CreatorProfile> {
       String imageUrl,
       String title,
       String price,
-      MarketOrder service,
+      ServiceItem service,
       ThemeData theme,
       bool isDark,
       ) {
-    return Container(
-      width: 300,
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(15),
-        image: DecorationImage(
-          image: NetworkImage(imageUrl),
-          fit: BoxFit.cover,
-          colorFilter: ColorFilter.mode(
-            Colors.black.withOpacity(0.4),
-            BlendMode.darken,
+    return InkWell(
+      borderRadius: BorderRadius.circular(15),
+      onTap: () => _onServiceTap(service),
+      child: Container(
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(15),
+          image: DecorationImage(
+            image: NetworkImage(imageUrl),
+            fit: BoxFit.cover,
+            colorFilter: ColorFilter.mode(Colors.black.withOpacity(0.4), BlendMode.darken),
+          ),
+        ),
+        child: Padding(
+          padding: const EdgeInsets.all(10.0),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.end,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                title,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.w400),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                price,
+                style: GoogleFonts.roboto(
+                  textStyle: const TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.w400),
+                ),
+              ),
+            ],
           ),
         ),
       ),
-      child: Stack(
+    );
+  }
+
+  // ---------------------------------------------------------------------
+  // TAB 5 — SKILLS
+  // ---------------------------------------------------------------------
+
+  Widget _buildSkillsTab(ThemeData theme) {
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(16),
+      child: SkillChips(skills: _extras.skills),
+    );
+  }
+
+  // ---------------------------------------------------------------------
+  // TAB 6 — REVIEWS: multi-category breakdown + individual review list
+  // ---------------------------------------------------------------------
+
+  Widget _buildReviewsTab(ThemeData theme, bool isDark) {
+    final reviews = widget.creator.reviews;
+
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Positioned(
-            top: 10,
-            right: 10,
-            child: ElevatedButton(
-              onPressed: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => CreatorPortfolio(service: service),
+          RatingBreakdown(distribution: _extras.ratingDistribution),
+          const SizedBox(height: 20),
+          if (reviews.isEmpty)
+            Text(
+              'No reviews yet',
+              style: TextStyle(color: theme.colorScheme.onSurface.withOpacity(0.6)),
+            )
+          else ...[
+            ...reviews.take(3).map((r) => ReviewItem(review: r)),
+            if (reviews.length > 3)
+              InkWell(
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (_) => CreatorAllReviewsScreen(creator: widget.creator)),
+                  );
+                },
+                child: Text(
+                  "View all reviews (${reviews.length}) >",
+                  style: TextStyle(
+                    color: isDark ? const Color(0xFFC5AFFF) : AppColors.BUTTONCOLOR,
+                    fontSize: 12,
+                    decoration: TextDecoration.underline,
                   ),
-                );
-              },
-              style: ElevatedButton.styleFrom(
-                backgroundColor: isDark
-                    ? const Color(0xFF1A1429)
-                    : AppColors.BUTTONCOLOR.withOpacity(0.9),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(20),
-                ),
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-              ),
-              child: const Text(
-                'View portfolio',
-                style: TextStyle(
-                  color: Colors.white,
-                  fontSize: 12,
                 ),
               ),
-            ),
-          ),
-          Positioned(
-            bottom: 15,
-            left: 15,
-            right: 15,
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Flexible(
-                  child: Text(
-                    title,
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 14,
-                      fontWeight: FontWeight.w400,
-                    ),
-                  ),
-                ),
-                Text(
-                  price,
-                  style: GoogleFonts.roboto(
-                    textStyle: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 14,
-                      fontWeight: FontWeight.w400,
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
+          ],
         ],
       ),
     );
   }
 }
+
+// ---------------------------------------------------------------------
+// Full portfolio gallery — destination for "See all" / "+N more"
+// ---------------------------------------------------------------------
+
+class CreatorFullPortfolioScreen extends StatelessWidget {
+  final List<PortfolioItem> items;
+  const CreatorFullPortfolioScreen({super.key, required this.items});
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: Text('Portfolio (${items.length})', style: const TextStyle(color: Colors.white)),
+        iconTheme: const IconThemeData(color: Colors.white),
+      ),
+      body: GridView.builder(
+        padding: const EdgeInsets.all(16),
+        itemCount: items.length,
+        gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+          crossAxisCount: 3,
+          mainAxisSpacing: 8,
+          crossAxisSpacing: 8,
+          childAspectRatio: 1,
+        ),
+        itemBuilder: (context, index) {
+          final item = items[index];
+          return ClipRRect(
+            borderRadius: BorderRadius.circular(10),
+            child: Stack(
+              fit: StackFit.expand,
+              children: [
+                Image.network(item.thumbnailUrl, fit: BoxFit.cover),
+                if (item.isVideo)
+                  const Center(child: Icon(Icons.play_circle_fill, color: Colors.white, size: 28)),
+              ],
+            ),
+          );
+        },
+      ),
+    );
+  }
+}
+
+// ---------------------------------------------------------------------
+// AvailabilityCalendar, ReviewItem, CreatorAllReviewsScreen — unchanged
+// from the original file, kept here so this file is a drop-in replacement.
+// ---------------------------------------------------------------------
+
 class AvailabilityCalendar extends StatefulWidget {
   final CreatorData creator;
   final Function(DateTime)? onDateSelected;
 
-  const AvailabilityCalendar({
-    super.key,
-    required this.creator,
-    this.onDateSelected,
-  });
+  const AvailabilityCalendar({super.key, required this.creator, this.onDateSelected});
 
   @override
   State<AvailabilityCalendar> createState() => _AvailabilityCalendarState();
 }
+
 class _AvailabilityCalendarState extends State<AvailabilityCalendar> {
-  DateTime _currentMonth = DateTime(2025, 6, 1); // Starting with June 2025
+  DateTime _currentMonth = DateTime(2025, 6, 1);
   DateTime? _selectedDate;
   final List<DateTime> _availableDates = [];
-
-  @override
-  void initState() {
-    super.initState();
-    // Convert string dates from API to DateTime objects
-    // _availableDates = widget.creator.availabilityCalendar
-    //     ?.map((dateStr) => DateTime.parse(dateStr))
-    //     .toList() ??
-    //     [];
-  }
 
   void _previousMonth() {
     setState(() {
@@ -487,26 +608,14 @@ class _AvailabilityCalendarState extends State<AvailabilityCalendar> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text(
-          'Availability calendar',
-          style: TextStyle(
-            color: Colors.white,
-            fontSize: 14,
-            fontWeight: FontWeight.w400,
-          ),
-        ),
+        const Text('Availability calendar',
+            style: TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.w400)),
         const SizedBox(height: 20),
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            Text(
-              DateFormat('MMMM yyyy').format(_currentMonth),
-              style: const TextStyle(
-                color: Colors.white,
-                fontSize: 14,
-                fontWeight: FontWeight.w400,
-              ),
-            ),
+            Text(DateFormat('MMMM yyyy').format(_currentMonth),
+                style: const TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.w400)),
             Row(
               children: [
                 IconButton(
@@ -534,9 +643,8 @@ class _AvailabilityCalendarState extends State<AvailabilityCalendar> {
       children: [
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceAround,
-          children: weekdays.map((day) =>
-              Text(day, style: const TextStyle(color: Colors.white70, fontSize: 12))
-          ).toList(),
+          children:
+          weekdays.map((day) => Text(day, style: const TextStyle(color: Colors.white70, fontSize: 12))).toList(),
         ),
         const SizedBox(height: 10),
         GridView.builder(
@@ -550,7 +658,6 @@ class _AvailabilityCalendarState extends State<AvailabilityCalendar> {
           ),
           itemCount: startingWeekday - 1 + daysInMonth,
           itemBuilder: (context, index) {
-            // Empty cells for days before the 1st of the month
             if (index < startingWeekday - 1) {
               return const SizedBox.shrink();
             }
@@ -615,7 +722,6 @@ class ReviewItem extends StatelessWidget {
     final month = date.month.toString().padLeft(2, '0');
     final year = date.year;
 
-    // Format time
     int hour = date.hour;
     final minute = date.minute.toString().padLeft(2, '0');
     final ampm = hour >= 12 ? 'pm' : 'am';
@@ -625,7 +731,6 @@ class ReviewItem extends StatelessWidget {
 
     return "$day/$month/$year, $hour:$minute$ampm";
   }
-
 
   @override
   Widget build(BuildContext context) {
@@ -638,19 +743,14 @@ class ReviewItem extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // ---- USER + RATING ROW ----
           Row(
             children: [
               CircleAvatar(
                 backgroundColor: AppColors.PRIMARYCOLOR,
-                backgroundImage: review.user?.image != null
-                    ? NetworkImage(review.user!.image!)
-                    : null,
+                backgroundImage: review.user?.image != null ? NetworkImage(review.user!.image!) : null,
                 child: review.user?.image == null
-                    ? Text(
-                  review.user?.firstName.substring(0, 1) ?? "?",
-                  style: const TextStyle(fontSize: 20, color: Colors.white),
-                )
+                    ? Text(review.user?.firstName.substring(0, 1) ?? "?",
+                    style: const TextStyle(fontSize: 20, color: Colors.white))
                     : null,
               ),
               const SizedBox(width: 10),
@@ -660,10 +760,8 @@ class ReviewItem extends StatelessWidget {
                   style: const TextStyle(color: Colors.white),
                 ),
               ),
-
             ],
           ),
-
           const SizedBox(height: 8),
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -677,41 +775,30 @@ class ReviewItem extends StatelessWidget {
               Text(
                 formatReviewDate(review.createdAt),
                 style: const TextStyle(fontSize: 12, color: Color(0xFF7C7C88)),
-              )
-
+              ),
             ],
           ),
           const SizedBox(height: 8),
-          // ---- REVIEW TEXT ----
           Text(
-            review.reviewText ?? "",
+            review.reviewText,
             style: const TextStyle(color: Colors.white70, fontSize: 12),
           ),
-
           const SizedBox(height: 8),
-
-          // ---- TAGS ----
           Wrap(
             spacing: 8,
             children: review.tags
                 .map(
                   (t) => Container(
-                padding:
-                const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                 decoration: BoxDecoration(
                   color: Colors.white12,
                   borderRadius: BorderRadius.circular(20),
                 ),
-                child: Text(
-                  t.tag,
-                  style:
-                  const TextStyle(color: Colors.white70, fontSize: 11),
-                ),
+                child: Text(t.tag, style: const TextStyle(color: Colors.white70, fontSize: 11)),
               ),
             )
                 .toList(),
           ),
-
           if (review.media != null) ...[
             const SizedBox(height: 12),
             ClipRRect(
@@ -738,22 +825,14 @@ class CreatorAllReviewsScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-     
       appBar: AppBar(
-       
-        title: Text(
-          "Reviews (${creator.reviews.length})",
-          style: const TextStyle(color: Colors.white),
-        ),
+        title: Text("Reviews (${creator.reviews.length})", style: const TextStyle(color: Colors.white)),
         iconTheme: const IconThemeData(color: Colors.white),
       ),
       body: ListView(
         padding: const EdgeInsets.all(16),
-        children: creator.reviews
-            .map((r) => ReviewItem(review: r))
-            .toList(),
+        children: creator.reviews.map((r) => ReviewItem(review: r)).toList(),
       ),
     );
   }
 }
-

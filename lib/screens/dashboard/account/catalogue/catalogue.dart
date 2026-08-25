@@ -14,6 +14,8 @@ import '../../../../model/service_model.dart';
 import '../../../../utils/utils.dart';
 import 'asset/add_assets.dart';
 class CatalogueScreen extends ConsumerStatefulWidget {
+  const CatalogueScreen({super.key});
+
 
   @override
   _CatalogoueScreenState createState() => _CatalogoueScreenState();
@@ -70,6 +72,8 @@ class _CatalogoueScreenState extends ConsumerState<CatalogueScreen> with TickerP
             padding: const EdgeInsets.symmetric(horizontal: 20.0),
             child: assetState.when(
               data: (assetResponse) {
+                return null;
+              
                 // return serviceState.when(
                 //   data: (serviceResponse) {
                 //     final allAssets = assetResponse.data;
@@ -204,12 +208,12 @@ class _CatalogoueScreenState extends ConsumerState<CatalogueScreen> with TickerP
       children: [
         Container(
           alignment: Alignment.topLeft,
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 16),
+          child: const Padding(
+            padding: EdgeInsets.symmetric(horizontal: 16.0, vertical: 16),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text(
+                Text(
                   'Catalogue',
                   style: TextStyle(
                     color: Colors.white,

@@ -17,10 +17,10 @@ final assetsProvider = StateNotifierProvider<AssetsNotifier, AsyncValue<AssetRes
 class AssetsNotifier extends StateNotifier<AsyncValue<AssetResponse>> {
   final Dio _dio;
   final FlutterSecureStorage _storage;
-  int _currentPage = 1;
-  int _totalPages = 1;
+  final int _currentPage = 1;
+  final int _totalPages = 1;
   String currentStatus = '';
-  List<Asset> _allAssets = [];
+  final List<Asset> _allAssets = [];
 
 
 

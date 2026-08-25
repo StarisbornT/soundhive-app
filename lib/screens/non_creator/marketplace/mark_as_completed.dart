@@ -19,6 +19,8 @@ import '../../../components/success.dart';
 import 'package:soundhive2/lib/dashboard_provider/apiresponseprovider.dart';
 import '../../../model/apiresponse_model.dart';
 import '../../../utils/alert_helper.dart';
+import '../../../utils/review_type.dart';
+import 'creator.dart';
 
 class MarkAsCompletedScreen extends ConsumerStatefulWidget {
   final ActiveInvestment services;
@@ -60,7 +62,7 @@ class _MarkAsCompletedScreenState extends ConsumerState<MarkAsCompletedScreen> {
     final avatarLetter =
     serviceUser?.creator?.businessName?.isNotEmpty == true
         ? serviceUser!.creator!.businessName!.characters.first.toUpperCase()
-        : (serviceUser?.firstName?.isNotEmpty == true
+        : (serviceUser?.firstName.isNotEmpty == true
         ? serviceUser!.firstName.characters.first.toUpperCase()
         : "?");
 
@@ -116,32 +118,54 @@ class _MarkAsCompletedScreenState extends ConsumerState<MarkAsCompletedScreen> {
                   children: [
                     Row(
                       children: [
-                        serviceUser?.image != null && serviceUser!.image!.isNotEmpty
-                            ? Container(
-                          width: 30,
-                          height: 30,
-                          decoration: BoxDecoration(
-                            shape: BoxShape.circle,
-                            image: DecorationImage(
-                              image: NetworkImage(serviceUser.image!),
-                              fit: BoxFit.cover,
+                        if (serviceUser?.image != null && serviceUser!.image!.isNotEmpty) GestureDetector(
+                          onTap: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => CreatorProfile(
+                                  creator: serviceUser.creator!,
+                                ),
+                              ),
+                            );
+                          },
+                          child: Container(
+                            width: 30,
+                            height: 30,
+                            decoration: BoxDecoration(
+                              shape: BoxShape.circle,
+                              image: DecorationImage(
+                                image: NetworkImage(serviceUser.image!),
+                                fit: BoxFit.cover,
+                              ),
                             ),
                           ),
-                        )
-                            : Container(
-                          width: 30,
-                          height: 30,
-                          decoration: BoxDecoration(
-                            shape: BoxShape.circle,
-                            color: theme.colorScheme.primary,
-                          ),
-                          alignment: Alignment.center,
-                          child: Text(
-                            avatarLetter,
-                            style: TextStyle(
-                              fontSize: 10,
-                              fontWeight: FontWeight.bold,
-                              color: theme.colorScheme.onPrimary,
+                        ) else GestureDetector(
+                          onTap: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => CreatorProfile(
+                                  creator: serviceUser!.creator!,
+                                ),
+                              ),
+                            );
+                          },
+                          child: Container(
+                            width: 30,
+                            height: 30,
+                            decoration: BoxDecoration(
+                              shape: BoxShape.circle,
+                              color: theme.colorScheme.primary,
+                            ),
+                            alignment: Alignment.center,
+                            child: Text(
+                              avatarLetter,
+                              style: TextStyle(
+                                fontSize: 10,
+                                fontWeight: FontWeight.bold,
+                                color: theme.colorScheme.onPrimary,
+                              ),
                             ),
                           ),
                         ),
@@ -150,13 +174,25 @@ class _MarkAsCompletedScreenState extends ConsumerState<MarkAsCompletedScreen> {
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              Text(
-                                displayName,
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                                style: TextStyle(
-                                  color: theme.colorScheme.onSurface,
-                                  fontWeight: FontWeight.w600,
+                              GestureDetector(
+                                onTap: () {
+                                  Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                      builder: (context) => CreatorProfile(
+                                        creator: serviceUser!.creator!,
+                                      ),
+                                    ),
+                                  );
+                        },
+                                child: Text(
+                                  displayName,
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: TextStyle(
+                                    color: theme.colorScheme.onSurface,
+                                    fontWeight: FontWeight.w600,
+                                  ),
                                 ),
                               ),
                               Row(
@@ -165,7 +201,7 @@ class _MarkAsCompletedScreenState extends ConsumerState<MarkAsCompletedScreen> {
                                   const SizedBox(width: 4),
                                   Text(
                                     serviceUser?.creator != null
-                                        ? Utils.getOverallRating(serviceUser!.creator!).toString()
+                                        ? Utils.getOverallRating(serviceUser!.creator!).toStringAsFixed(1)
                                         : "0",
                                     style: TextStyle(
                                       color: theme.colorScheme.onSurface.withOpacity(0.7),
@@ -409,10 +445,12 @@ class _MarkAsCompletedScreenState extends ConsumerState<MarkAsCompletedScreen> {
         borderRadius: BorderRadius.vertical(top: Radius.circular(22)),
       ),
       builder: (BuildContext context) {
-        return _ReviewBottomSheetContent(
+        return ReviewBottomSheetContent(
           submitInvestment: _submitInvestment,
-          services: widget.services,
+          bookingId: widget.services.id,
+          reviewType: ReviewType.creativeService, // creator reviewing the client
         );
+
       },
     );
   }
@@ -690,50 +728,42 @@ class _MarkAsCompletedScreenState extends ConsumerState<MarkAsCompletedScreen> {
   }
 }
 
-class _ReviewBottomSheetContent extends ConsumerStatefulWidget {
+
+class ReviewBottomSheetContent extends ConsumerStatefulWidget {
   final Function submitInvestment;
-  final ActiveInvestment services;
-  const _ReviewBottomSheetContent({
+  final int bookingId;
+  final ReviewType reviewType;
+
+  const ReviewBottomSheetContent({
+    super.key,
     required this.submitInvestment,
-    required this.services,
+    required this.bookingId,
+    required this.reviewType,
   });
 
   @override
-  ConsumerState<_ReviewBottomSheetContent> createState() =>
+  ConsumerState<ReviewBottomSheetContent> createState() =>
       _ReviewBottomSheetContentState();
 }
 
-class _ReviewBottomSheetContentState extends ConsumerState<_ReviewBottomSheetContent> {
+class _ReviewBottomSheetContentState extends ConsumerState<ReviewBottomSheetContent> {
   final TextEditingController reviewController = TextEditingController();
   final ValueNotifier<File?> _imageNotifier = ValueNotifier<File?>(null);
   double rating = 0;
   List<String> selectedTags = [];
-
-  final List<String> tags = [
-    "Professional",
-    "Great Communication",
-    "Timely",
-    "Highly Skilled",
-    "Value for Money",
-  ];
-
   String? _uploadedImageUrl;
+
+  List<String> get tags => widget.reviewType.tags;
 
   Future<void> _uploadMediaToCloudinary() async {
     final imageFile = _imageNotifier.value;
+    if (imageFile == null) return;
 
-    if (imageFile == null) {
-      throw Exception('Image or utility bill is missing');
-    }
-
-    // Upload both images
-    final imageUrl = await _uploadFileToCloudinary(
+    _uploadedImageUrl = await _uploadFileToCloudinary(
       file: imageFile,
       resourceType: 'image',
       preset: 'soundhive',
     );
-
-    _uploadedImageUrl = imageUrl; // For ID image
   }
 
   Future<String> _uploadFileToCloudinary({
@@ -759,139 +789,68 @@ class _ReviewBottomSheetContentState extends ConsumerState<_ReviewBottomSheetCon
     return response.data['secure_url'] as String;
   }
 
-  Future<bool> _isValidLocalPath(String path) async {
-    final tempDir = await getTemporaryDirectory();
-    final tempPath = tempDir.path;
-    // Check if the path is in the app's temporary directory or a valid URI
-    return path.startsWith(tempPath) ||
-        path.startsWith('/data') ||
-        path.startsWith('file://') ||
-        path.startsWith('content://');
-  }
-
   void _submitForm() async {
-    print('🔄 Starting submission');
-
-    // Check if widget is still mounted
     if (!mounted) return;
 
-    // Validate required fields
     if (rating == 0) {
-      if (mounted) {
-        showCustomAlert(
-          context: context,
-          isSuccess: false,
-          title: 'Error',
-          message: 'Please provide a rating',
-        );
-      }
+      showCustomAlert(context: context, isSuccess: false, title: 'Error', message: 'Please provide a rating');
       return;
     }
-
     if (reviewController.text.trim().isEmpty) {
-      if (mounted) {
-        showCustomAlert(
-          context: context,
-          isSuccess: false,
-          title: 'Error',
-          message: 'Please write a review',
-        );
-      }
+      showCustomAlert(context: context, isSuccess: false, title: 'Error', message: 'Please write a review');
       return;
     }
-
     if (selectedTags.isEmpty) {
-      if (mounted) {
-        showCustomAlert(
-          context: context,
-          isSuccess: false,
-          title: 'Error',
-          message: 'Please select at least one tag',
-        );
-      }
+      showCustomAlert(context: context, isSuccess: false, title: 'Error', message: 'Please select at least one tag');
       return;
     }
 
     try {
       if (_imageNotifier.value != null) {
-        final imageFile = _imageNotifier.value!;
-       
-
-        // Upload both files
         await _uploadMediaToCloudinary();
       }
 
-      // Submit to backend
       final response = await _submitToBackend();
-
       if (!mounted) return;
 
       if (response.status) {
-        // Close the bottom sheet
         Navigator.pop(context);
-
-        // Call the submitInvestment callback
         widget.submitInvestment();
       } else {
-        // Show error if review submission failed
-        if (mounted) {
-          showCustomAlert(
-            context: context,
-            isSuccess: false,
-            title: 'Error',
-            message: response.message,
-          );
-        }
+        showCustomAlert(context: context, isSuccess: false, title: 'Error', message: response.message);
       }
     } catch (error) {
-      print('FULL ERROR DETAILS: $error');
-
       if (!mounted) return;
 
       String errorMessage = 'An unexpected error occurred';
-
       if (error is DioException) {
         if (error.response?.data != null) {
           try {
-            final apiResponse = ApiResponseModel.fromJson(error.response?.data);
-            errorMessage = apiResponse.message;
-          } catch (e) {
+            errorMessage = ApiResponseModel.fromJson(error.response?.data).message;
+          } catch (_) {
             errorMessage = 'Failed to parse error message';
           }
         } else {
           errorMessage = error.message ?? 'Network error occurred';
         }
-      } else if (error is String) {
-        errorMessage = error;
       }
 
-      if (mounted) {
-        showCustomAlert(
-          context: context,
-          isSuccess: false,
-          title: 'Error',
-          message: errorMessage,
-        );
-      }
+      showCustomAlert(context: context, isSuccess: false, title: 'Error', message: errorMessage);
     }
   }
 
   Future<ApiResponseModel> _submitToBackend() async {
-    // Get the creator ID safely
-    String? creatorId = widget.services.service?.userId.toString();
-
+    // No creator_id here — backend derives reviewee + type from booking_id + auth user.
     final response = await ref.read(apiresponseProvider.notifier).makeReview(
       context: context,
       payload: {
-        "creator_id": creatorId,
-        "booking_id": widget.services.id,
+        "booking_id": widget.bookingId,
         "rating": rating.toInt(),
         "review_text": reviewController.text.trim(),
         "tags": selectedTags,
         "media_url": _uploadedImageUrl,
       },
     );
-
     return response;
   }
 
@@ -902,8 +861,8 @@ class _ReviewBottomSheetContentState extends ConsumerState<_ReviewBottomSheetCon
 
     return DraggableScrollableSheet(
       expand: false,
-      initialChildSize: 0.85, // Reduced from 0.92 to prevent overflow
-      maxChildSize: 0.92,     // Reduced from 0.95
+      initialChildSize: 0.85,
+      maxChildSize: 0.92,
       minChildSize: 0.5,
       builder: (_, scrollController) {
         return Container(
@@ -916,73 +875,43 @@ class _ReviewBottomSheetContentState extends ConsumerState<_ReviewBottomSheetCon
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // Close indicator
                 Center(
                   child: Container(
                     width: 40,
                     height: 4,
-                    decoration: BoxDecoration(
-                      color: theme.dividerColor,
-                      borderRadius: BorderRadius.circular(2),
-                    ),
+                    decoration: BoxDecoration(color: theme.dividerColor, borderRadius: BorderRadius.circular(2)),
                   ),
                 ),
                 const SizedBox(height: 16),
-
-                // Title section
-                Text(
-                  "Hurray🎉!!! Drop a review",
-                  style: TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.w400,
-                    color: theme.colorScheme.onSurface,
-                  ),
-                ),
+                Text("Hurray🎉!!! Drop a review",
+                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.w400, color: theme.colorScheme.onSurface)),
                 const SizedBox(height: 6),
-                Text(
-                  "Kindly tell us your experience with this service provider",
-                  style: TextStyle(
-                      color: theme.colorScheme.onSurface.withOpacity(0.7),
-                      fontSize: 14
-                  ),
-                ),
+                Text(widget.reviewType.subtitle,
+                    style: TextStyle(color: theme.colorScheme.onSurface.withOpacity(0.7), fontSize: 14)),
                 const SizedBox(height: 20),
-
-                // Scrollable content
                 Expanded(
                   child: SingleChildScrollView(
                     controller: scrollController,
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        // ⭐ Rating Section
                         Row(
-                          mainAxisAlignment: MainAxisAlignment.start,
-                          children: List.generate(
-                            5,
-                                (index) => IconButton(
-                              onPressed: () {
-                                setState(() => rating = index + 1.0);
-                              },
-                              icon: Icon(
-                                index < rating ? Icons.star : Icons.star_border,
-                                size: 32,
-                                color: index < rating ? Colors.amber : theme.colorScheme.onSurface.withOpacity(0.3),
-                              ),
+                          children: List.generate(5, (index) => IconButton(
+                            onPressed: () => setState(() => rating = index + 1.0),
+                            icon: Icon(
+                              index < rating ? Icons.star : Icons.star_border,
+                              size: 32,
+                              color: index < rating ? Colors.amber : theme.colorScheme.onSurface.withOpacity(0.3),
                             ),
-                          ),
+                          )),
                         ),
                         const SizedBox(height: 10),
-
-                        // 📝 Review Text Field
                         Container(
                           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                           decoration: BoxDecoration(
                             color: isDark ? Colors.black45 : Colors.grey[100],
                             borderRadius: BorderRadius.circular(10),
-                            border: Border.all(
-                              color: theme.dividerColor,
-                            ),
+                            border: Border.all(color: theme.dividerColor),
                           ),
                           child: TextField(
                             controller: reviewController,
@@ -990,62 +919,37 @@ class _ReviewBottomSheetContentState extends ConsumerState<_ReviewBottomSheetCon
                             style: TextStyle(color: theme.colorScheme.onSurface),
                             decoration: InputDecoration(
                               hintText: "Enter your review",
-                              hintStyle: TextStyle(
-                                  color: theme.colorScheme.onSurface.withOpacity(0.5)
-                              ),
+                              hintStyle: TextStyle(color: theme.colorScheme.onSurface.withOpacity(0.5)),
                               border: InputBorder.none,
                             ),
                           ),
                         ),
                         const SizedBox(height: 25),
-
-                        // 🏷 TAGS
                         Text(
-                          "Select at least one of the tags below that best describes the service provider's performance.",
-                          style: TextStyle(
-                              color: theme.colorScheme.onSurface.withOpacity(0.7),
-                              fontSize: 13
-                          ),
+                          "Select at least one of the tags below that best describes your experience.",
+                          style: TextStyle(color: theme.colorScheme.onSurface.withOpacity(0.7), fontSize: 13),
                         ),
                         const SizedBox(height: 15),
-
                         Wrap(
                           spacing: 10,
                           runSpacing: 12,
                           children: tags.map((tag) {
                             final isSelected = selectedTags.contains(tag);
                             return GestureDetector(
-                              onTap: () {
-                                setState(() {
-                                  if (isSelected) {
-                                    selectedTags.remove(tag);
-                                  } else {
-                                    selectedTags.add(tag);
-                                  }
-                                });
-                              },
+                              onTap: () => setState(() {
+                                isSelected ? selectedTags.remove(tag) : selectedTags.add(tag);
+                              }),
                               child: Container(
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 14,
-                                  vertical: 10,
-                                ),
+                                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
                                 decoration: BoxDecoration(
                                   borderRadius: BorderRadius.circular(20),
-                                  color: isSelected
-                                      ? theme.colorScheme.primary
-                                      : Colors.transparent,
-                                  border: Border.all(
-                                    color: isSelected
-                                        ? theme.colorScheme.primary
-                                        : theme.dividerColor,
-                                  ),
+                                  color: isSelected ? theme.colorScheme.primary : Colors.transparent,
+                                  border: Border.all(color: isSelected ? theme.colorScheme.primary : theme.dividerColor),
                                 ),
                                 child: Text(
                                   tag,
                                   style: TextStyle(
-                                    color: isSelected
-                                        ? theme.colorScheme.onPrimary
-                                        : theme.colorScheme.onSurface.withOpacity(0.7),
+                                    color: isSelected ? theme.colorScheme.onPrimary : theme.colorScheme.onSurface.withOpacity(0.7),
                                     fontSize: 12,
                                   ),
                                 ),
@@ -1054,26 +958,16 @@ class _ReviewBottomSheetContentState extends ConsumerState<_ReviewBottomSheetCon
                           }).toList(),
                         ),
                         const SizedBox(height: 30),
-
-                        // 📸 Upload Media
                         ImagePickerComponent(
                           labelText: 'Media (Optional)',
                           imageNotifier: _imageNotifier,
                           hintText: 'Upload Media',
-                          validator: (value) {
-                            if (value == null) {
-                              return ' image is required';
-                            }
-                            return null;
-                          },
                         ),
                         const SizedBox(height: 30),
                       ],
                     ),
                   ),
                 ),
-
-                // 📩 Submit Button (Fixed at bottom)
                 SizedBox(
                   width: double.infinity,
                   child: ElevatedButton(
@@ -1082,14 +976,9 @@ class _ReviewBottomSheetContentState extends ConsumerState<_ReviewBottomSheetCon
                       backgroundColor: theme.colorScheme.primary,
                       foregroundColor: theme.colorScheme.onPrimary,
                       padding: const EdgeInsets.symmetric(vertical: 16),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(25),
-                      ),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(25)),
                     ),
-                    child: const Text(
-                      "Submit review",
-                      style: TextStyle(fontSize: 16),
-                    ),
+                    child: const Text("Submit review", style: TextStyle(fontSize: 16)),
                   ),
                 ),
               ],
@@ -1100,4 +989,3 @@ class _ReviewBottomSheetContentState extends ConsumerState<_ReviewBottomSheetCon
     );
   }
 }
-

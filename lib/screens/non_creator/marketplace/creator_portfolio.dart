@@ -1,35 +1,55 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
 import '../../../components/audio_player.dart';
+import '../../../components/creator_profile_widgets.dart';
 import '../../../components/rounded_button.dart';
-import '../../../lib/dashboard_provider/user_provider.dart';
+import '../../../components/widgets.dart';
+import 'package:soundhive2/lib/dashboard_provider/user_provider.dart';
+import '../../../model/creator_profile_models.dart';
 import '../../../model/market_orders_service_model.dart';
-import '../../../utils/app_colors.dart';
+import '../../../model/service_model.dart';
 import '../../../utils/utils.dart';
 import '../wallet/wallet.dart';
+import 'creator.dart';
 import 'marketplace_details.dart';
 
+// ---------------------------------------------------------------------
+// Service Detail page.
+//
+// Spec 6.1 — the same creator credibility block (verified work, videos,
+// previous projects, client reviews, trust badges) that lives on the
+// Creator Profile now also has to appear here, right before the user
+// commits to an offer/booking — and this applies to ANY service listing
+// (videographers, event production, etc.), not just artist profiles.
+//
+// ASSUMPTION: `MarketOrder` exposes a `creator` field (type `CreatorData`,
+// nullable) pointing back to the person/business offering the service.
+// If your model names this differently (e.g. `provider`, `owner`),
+// rename `service.creator` below to match. If a service can be listed
+// without an attached creator record, the trust block is simply skipped
+// (see `_hasCreator`) rather than breaking the page.
+// ---------------------------------------------------------------------
+
 class CreatorPortfolio extends ConsumerStatefulWidget {
-  final MarketOrder service;
+  final ServiceItem service;
   const CreatorPortfolio({super.key, required this.service});
 
   @override
   ConsumerState<CreatorPortfolio> createState() => _CreatorPortfolioState();
-
 }
 
 class _CreatorPortfolioState extends ConsumerState<CreatorPortfolio> {
   @override
   Widget build(BuildContext context) {
-    // Get screen size for responsive layout
     final size = MediaQuery.of(context).size;
-
-    final service= widget.service;
+    final service = widget.service;
     final user = ref.watch(userProvider);
 
+    final creator = service.user?.creator;
+    final hasCreator = creator != null;
+    final extras = hasCreator ? CreatorProfileExtras.fromCreator(creator) : null;
+
     return Scaffold(
-     
       body: SingleChildScrollView(
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -40,109 +60,72 @@ class _CreatorPortfolioState extends ConsumerState<CreatorPortfolio> {
               child: Stack(
                 fit: StackFit.expand,
                 children: [
-                  Image.network(
-                    service.serviceImage,
-                    fit: BoxFit.cover,
-                    errorBuilder: (context, error, stackTrace) =>
-                    const Center(child: Icon(Icons.error)),
-                  ),
+                  NetworkImageWithLoader(imageUrl: service.serviceImage),
                   Positioned(
                     top: 40,
                     left: 20,
                     child: IconButton(
-                      icon: const Icon(Icons.arrow_back_ios,
-                          color: Colors.white),
-                      onPressed: () {
-                        Navigator.pop(context);
-                      },
+                      icon: const Icon(Icons.arrow_back_ios, color: Colors.white),
+                      onPressed: () => Navigator.pop(context),
                     ),
                   ),
                 ],
               ),
             ),
 
-            // Title and Price Section
+            // Title and Price Section  
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 16),
-              child: Row(
+              child: Column(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
                     service.serviceName,
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 18,
-                      fontWeight: FontWeight.w400,
-                    ),
+                    style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.w400),
                   ),
                   Text(
                     ref.formatUserCurrency(service.convertedRate),
-                    style: const TextStyle(
-                        color: Colors.white,
-                        fontSize: 14,
-                        fontWeight: FontWeight.w400,
-                    ),
+                    style: const TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.w400),
                   ),
                 ],
               ),
             ),
 
-            // Portfolio Section
+            // Service-level portfolio image (existing behavior, unchanged)
             const Padding(
               padding: EdgeInsets.only(left: 10, top: 16),
               child: Text(
                 'Portfolio',
-                style: TextStyle(
-                  color: Colors.white,
-                  fontSize: 14,
-                  fontWeight: FontWeight.w400,
-                ),
+                style: TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.w400),
               ),
             ),
             Padding(
-            padding: const EdgeInsets.symmetric(vertical: 16),
-            child: Container(
-              width: size.width,
-              height: 200,
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(20),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withOpacity(0.2),
-                    blurRadius: 10,
-                    offset: const Offset(0, 5),
-                  ),
-                ],
-              ),
-              child: ClipRRect(
-                borderRadius: BorderRadius.circular(20),
-                child: Image.network(
-                  service.coverImage,
-                  fit: BoxFit.cover,
-                  errorBuilder: (context, error, stackTrace) =>
-                  const Center(child: Icon(Icons.error)),
+              padding: const EdgeInsets.symmetric(vertical: 16),
+              child: Container(
+                width: size.width,
+                height: 200,
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(20),
+                  boxShadow: [
+                    BoxShadow(color: Colors.black.withOpacity(0.2), blurRadius: 10, offset: const Offset(0, 5)),
+                  ],
                 ),
+                child: NetworkImageWithLoader(imageUrl: service.coverImage),
               ),
             ),
-          ),
 
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
               child: Container(
                 padding: const EdgeInsets.all(20),
-                decoration: BoxDecoration(
-                  color: Colors.transparent,
-                  borderRadius: BorderRadius.circular(16),
-                ),
+                decoration: BoxDecoration(color: Colors.transparent, borderRadius: BorderRadius.circular(16)),
                 child: Row(
                   children: [
                     Expanded(
                       child: Text(
                         service.link ?? 'No Link',
-                        style: const TextStyle(
-                          color: Colors.white70,
-                          fontSize: 16,
-                        ),
+                        style: const TextStyle(color: Colors.white70, fontSize: 16),
                         overflow: TextOverflow.ellipsis,
                       ),
                     ),
@@ -152,37 +135,30 @@ class _CreatorPortfolioState extends ConsumerState<CreatorPortfolio> {
               ),
             ),
 
-            if(service.serviceAudio != null) ...[
+            if (service.serviceAudio != null) ...[
               AudioPlayerWidget(audioUrl: service.serviceAudio ?? ""),
             ],
 
-
-
             // Book Button
             RoundedButton(
-              title:  user.value?.user?.wallet == null ?
-              "Activate your wallet"
-                  :  'Book',
+              title: user.value?.user?.wallet == null ? "Activate your wallet" : 'Book',
               onPressed: () {
                 final user = ref.watch(userProvider);
-                if(user.value?.user?.wallet == null) {
+                if (user.value?.user?.wallet == null) {
                   Navigator.push(
                     context,
-                    MaterialPageRoute(
-                      builder: (context) =>  WalletScreen(user: user.value!.user!,),
-                    ),
+                    MaterialPageRoute(builder: (context) => WalletScreen(user: user.value!.user!)),
                   );
-                }
-                else {
+                } else {
                   Navigator.push(
                     context,
                     MaterialPageRoute(
-                      builder: (context) =>  MarketplaceDetails(user: user.value!, service: service,),
+                      builder: (context) => MarketplaceDetails(user: user.value!, service: service),
                     ),
                   );
                 }
               },
-              color:const Color(0xFF4D3490),
+              color: const Color(0xFF4D3490),
               borderWidth: 0,
               borderRadius: 25.0,
             ),

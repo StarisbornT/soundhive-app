@@ -11,6 +11,7 @@
 .svn/
 .swiftpm/
 migrate_working_dir/
+**/android/.gradle/
 
 # IntelliJ related
 *.iml
@@ -29,6 +30,7 @@ migrate_working_dir/
 .dart_tool/
 .flutter-plugins
 .flutter-plugins-dependencies
+.env.production
 .pub-cache/
 .pub/
 /build/
