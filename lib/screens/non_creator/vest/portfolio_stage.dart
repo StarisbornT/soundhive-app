@@ -1,30 +1,29 @@
 import 'package:flutter/material.dart';
 import 'package:soundhive2/model/investment_model.dart';
 
+import '../../../model/artists_model.dart';
+
 /// Stage 2 — Portfolio: "why is this artist worth investing in".
 ///
 /// Spec asks for: songs, press, engagement, awards, collaborators, videos.
 ///
-/// Confirmed available today: the single [VestSong] tied to this vest
-/// (title + preview audio), via `artistDetails.song`.
+/// Now available and rendered with real data:
+///   - discography  -> artist.songs, eager-loaded via
+///                     artistDetails.song.artist.songs on the vest
+///                     endpoints; placeholder/demo rows are filtered out
+///                     client-side (see ArtistItem.publishedDiscography)
+///   - collaborators -> derived from featured_artists across the real
+///                     discography (ArtistItem.collaborators) — this is
+///                     an artist-level aggregate now, not per-song
 ///
-/// NOT available on the current model/API response:
-///   - a real discography list -> Artists::songs() exists on the backend
-///     but isn't returned on this endpoint; would need e.g.
-///     `artist_details.song.artist.songs` eager-loaded, or a dedicated
-///     `GET /artists/{id}/songs` call from this screen
-///   - press mentions          -> no table/field anywhere
-///   - engagement metrics       -> only lifetime `plays` exists on Songs,
-///                                and it isn't exposed on VestSong yet
-///   - awards                   -> no table/field anywhere
-///   - collaborators             -> `featured_artists` exists per-song on
-///                                the Songs model but isn't surfaced on
-///                                VestSong; and it's per-song, not an
-///                                artist-level "worked with" list
-///   - videos                   -> no table/field anywhere
-///
-/// Each missing section below is a collapsed "coming soon" row rather
-/// than invented content.
+/// Still genuinely unavailable — no table, no ingestion path anywhere in
+/// the app for any of these, so these stay as a clear "not yet" notice
+/// rather than fabricated content:
+///   - press mentions
+///   - engagement metrics beyond monthly listeners (which now lives on
+///     the Overview stage) — no per-song breakdown exists
+///   - awards
+///   - videos
 class PortfolioStage extends StatefulWidget {
   final Investment investment;
   const PortfolioStage({super.key, required this.investment});
@@ -40,6 +39,9 @@ class _PortfolioStageState extends State<PortfolioStage> {
   Widget build(BuildContext context) {
     final artistDetails = widget.investment.artistDetails;
     final song = artistDetails?.song;
+    final artist = artistDetails?.artist;
+    final discography = artist?.publishedDiscography ?? [];
+    final collaborators = artist?.collaborators ?? [];
 
     return SingleChildScrollView(
       padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
@@ -60,37 +62,106 @@ class _PortfolioStageState extends State<PortfolioStage> {
           if (song != null) _buildFeaturedSongCard(song, artistDetails),
           if (song != null) const SizedBox(height: 20),
 
-          _buildComingSoonSection(
-            icon: Icons.newspaper_outlined,
-            title: 'Press',
-            note: 'Press mentions will appear here once available on the artist profile.',
+          if (discography.isNotEmpty) ...[
+            _buildDiscographySection(discography),
+            const SizedBox(height: 20),
+          ],
+
+          if (collaborators.isNotEmpty) ...[
+            _buildCollaboratorsSection(collaborators),
+            const SizedBox(height: 20),
+          ],
+
+          // _buildComingSoonSection(
+          //   icon: Icons.newspaper_outlined,
+          //   title: 'Press',
+          //   note: 'Press mentions will appear here once available on the artist profile.',
+          // ),
+          // const SizedBox(height: 12),
+          // _buildComingSoonSection(
+          //   icon: Icons.emoji_events_outlined,
+          //   title: 'Awards',
+          //   note: 'Awards and recognitions will appear here once available.',
+          // ),
+          // const SizedBox(height: 12),
+          // _buildComingSoonSection(
+          //   icon: Icons.play_circle_outline,
+          //   title: 'Videos',
+          //   note: 'Video content will appear here once available.',
+          // ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildDiscographySection(List<ArtistSong> songs) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'Discography · ${songs.length} track${songs.length == 1 ? '' : 's'}',
+          style: const TextStyle(color: Colors.white, fontSize: 15, fontWeight: FontWeight.w600),
+        ),
+        const SizedBox(height: 10),
+        ...songs.map((s) => _buildDiscographyRow(s)),
+      ],
+    );
+  }
+
+  Widget _buildDiscographyRow(ArtistSong song) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 8),
+      child: Row(
+        children: [
+          ClipRRect(
+            borderRadius: BorderRadius.circular(6),
+            child: SizedBox(
+              width: 40,
+              height: 40,
+              child: song.coverPhoto.isNotEmpty
+                  ? Image.network(
+                song.coverPhoto,
+                fit: BoxFit.cover,
+                errorBuilder: (_, __, ___) => Container(color: Colors.grey[850]),
+              )
+                  : Container(color: Colors.grey[850]),
+            ),
           ),
-          const SizedBox(height: 12),
-          _buildComingSoonSection(
-            icon: Icons.trending_up,
-            title: 'Engagement',
-            note: 'Play counts and engagement stats will appear here once exposed on this endpoint.',
-          ),
-          const SizedBox(height: 12),
-          _buildComingSoonSection(
-            icon: Icons.emoji_events_outlined,
-            title: 'Awards',
-            note: 'Awards and recognitions will appear here once available.',
-          ),
-          const SizedBox(height: 12),
-          _buildComingSoonSection(
-            icon: Icons.group_outlined,
-            title: 'Collaborators',
-            note: 'Notable collaborators will appear here once surfaced on the vest song.',
-          ),
-          const SizedBox(height: 12),
-          _buildComingSoonSection(
-            icon: Icons.play_circle_outline,
-            title: 'Videos',
-            note: 'Video content will appear here once available.',
+          const SizedBox(width: 10),
+          Expanded(
+            child: Text(
+              song.title,
+              style: const TextStyle(color: Colors.white, fontSize: 13),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+            ),
           ),
         ],
       ),
+    );
+  }
+
+  Widget _buildCollaboratorsSection(List<String> collaborators) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Text(
+          'Collaborators',
+          style: TextStyle(color: Colors.white, fontSize: 15, fontWeight: FontWeight.w600),
+        ),
+        const SizedBox(height: 10),
+        Wrap(
+          spacing: 8,
+          runSpacing: 8,
+          children: collaborators
+              .map((name) => Chip(
+            label: Text(name, style: const TextStyle(color: Colors.white, fontSize: 12)),
+            backgroundColor: Colors.white.withValues(alpha: 0.06),
+            side: BorderSide.none,
+          ))
+              .toList(),
+        ),
+      ],
     );
   }
 
