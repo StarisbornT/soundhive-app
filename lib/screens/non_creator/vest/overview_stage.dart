@@ -9,22 +9,17 @@ import 'mixtape_coming_soon_screen.dart';
 /// Spec asks for: profile picture, verified badge, genre, short bio,
 /// monthly listeners, followers.
 ///
-/// Confirmed available today on [ArtistItem]: profilePhoto, coverPhoto,
-/// username, status.
 ///
-/// NOT available on the current model/API response — rendered
-/// conditionally so nothing fabricated ever reaches the user:
-///   - genre            -> needs a field on artists (or a shared taxonomy)
-///   - bio               -> needs a text column on artists
-///   - monthly listeners -> needs a time-windowed play metric; only a
-///                          lifetime `plays` figure exists today, and it's
-///                          not even exposed on ArtistItem yet
-///   - followers          -> exists on the Artists backend model but is
-///                          NOT present on the ArtistItem model as given;
-///                          add it to ArtistItem.fromMap once confirmed
+/// All six now come from the API: profilePhoto/coverPhoto/username/status
+/// were already there; genre, bio, followers and monthlyListeners were
+/// added to `ArtistItem` alongside the `artists.genre`/`artists.bio`
+/// migration and the `Artists::monthly_listeners` accessor. `followers`
+/// is rendered but flagged in artists_model.dart as an unconfirmed
+/// column — double check it before shipping if that hasn't happened yet.
 ///
-/// `status` is rendered as a verified badge — this is an ASSUMPTION
-/// pending confirmation (see conversation), not a confirmed mapping.
+/// `status` is still rendered as a verified badge — this was already an
+/// ASSUMPTION pending confirmation before this change and remains one;
+/// not something this pass resolved.
 ///
 /// "Listen to snippets / Artist mixtape" button: song upload + snippet
 /// playback has no backend support yet (phase two). Rather than hide the
@@ -40,6 +35,9 @@ class OverviewStage extends StatelessWidget {
     final String displayName = artist?.username.isNotEmpty == true
         ? artist!.username
         : investment.beneficiaryName;
+
+    final bool hasGenre = artist?.genre?.trim().isNotEmpty == true;
+    final bool hasBio = artist?.bio?.trim().isNotEmpty == true;
 
     return SingleChildScrollView(
       padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
@@ -69,20 +67,35 @@ class OverviewStage extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 4),
+          if (hasGenre) ...[
+            Text(
+              artist!.genre!,
+              style: const TextStyle(
+                color: Colors.purpleAccent,
+                fontSize: 13,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+            const SizedBox(height: 4),
+          ],
           Text(
             investment.investmentName,
             style: const TextStyle(color: Colors.white54, fontSize: 14),
           ),
           const SizedBox(height: 16),
 
+          _buildStatsRow(artist),
+          const SizedBox(height: 20),
+
+          if (hasBio) ...[
+            _buildBioSection(artist!.bio!),
+            const SizedBox(height: 20),
+          ],
+
           _buildMixtapeButton(context, displayName),
           const SizedBox(height: 20),
 
-          // Genre / bio / monthly listeners / followers all render only
-          // when present so the card never shows fabricated placeholders.
-          _buildComingSoonNotice(),
-
-          const SizedBox(height: 24),
+          const SizedBox(height: 4),
           const Text(
             'Why this stage matters',
             style: TextStyle(color: Colors.white, fontSize: 15, fontWeight: FontWeight.w600),
@@ -95,6 +108,73 @@ class OverviewStage extends StatelessWidget {
           ),
         ],
       ),
+    );
+  }
+
+  Widget _buildStatsRow(ArtistItem? artist) {
+    return Row(
+      children: [
+        Expanded(
+          child: _buildStatBlock(
+            label: 'Followers',
+            value: _formatCount(artist?.followers ?? 0),
+          ),
+        ),
+        const SizedBox(width: 12),
+        Expanded(
+          child: _buildStatBlock(
+            label: 'Monthly listeners',
+            value: _formatCount(artist?.monthlyListeners ?? 0),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildStatBlock({required String label, required String value}) {
+    return Container(
+      padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 14),
+      decoration: BoxDecoration(
+        color: Colors.white.withValues(alpha: 0.04),
+        borderRadius: BorderRadius.circular(10),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            value,
+            style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold),
+          ),
+          const SizedBox(height: 2),
+          Text(
+            label,
+            style: const TextStyle(color: Colors.white38, fontSize: 11),
+          ),
+        ],
+      ),
+    );
+  }
+
+  String _formatCount(int value) {
+    if (value >= 1000000) return '${(value / 1000000).toStringAsFixed(1)}M';
+    if (value >= 1000) return '${(value / 1000).toStringAsFixed(1)}K';
+    return value.toString();
+  }
+
+  Widget _buildBioSection(String bio) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Text(
+          'About',
+          style: TextStyle(color: Colors.white, fontSize: 15, fontWeight: FontWeight.w600),
+        ),
+        const SizedBox(height: 8),
+        Text(
+          bio,
+          style: const TextStyle(color: Colors.white70, fontSize: 13, height: 1.4),
+        ),
+      ],
     );
   }
 
@@ -180,28 +260,6 @@ class OverviewStage extends StatelessWidget {
                 )
                     : const Icon(Icons.person, color: Colors.white54, size: 32),
               ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildComingSoonNotice() {
-    return Container(
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.04),
-        borderRadius: BorderRadius.circular(10),
-      ),
-      child: const Row(
-        children: [
-          Icon(Icons.info_outline, color: Colors.white38, size: 16),
-          SizedBox(width: 8),
-          Expanded(
-            child: Text(
-              'Genre, bio, monthly listeners and followers will appear here once the artist profile API includes them.',
-              style: TextStyle(color: Colors.white38, fontSize: 11),
             ),
           ),
         ],
