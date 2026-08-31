@@ -256,7 +256,7 @@ class _VestDetailsScreenState extends ConsumerState<VestDetailsScreen> {
                         overflow: TextOverflow.ellipsis,
                       ),
                       Text(
-                        artistDetails?.song?.artist?.stageName ?? artistDetails?.song?.artist?.name ?? 'SoundHive Artist',
+                        artistDetails?.song?.artist?.username ?? 'SoundHive Artist',
                         style: const TextStyle(color: Colors.white54, fontSize: 11),
                       ),
                     ],

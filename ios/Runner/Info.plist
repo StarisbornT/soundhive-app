@@ -21,6 +21,10 @@
     <string>153492997340-qpuqmu0llf7pig08nqokps1732sgfgcf.apps.googleusercontent.com</string>
     <key>NSLocationWhenInUseUsageDescription</key>
     <string>We use your location to show you creators near you.</string>
+    <key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
+    <string>We use your location to show you creators near you.</string>
+    <key>NSLocationAlwaysUsageDescription</key>
+    <string>We use your location to show you creators near you.</string>
     <key>CFBundleURLTypes</key>
 
     <array>

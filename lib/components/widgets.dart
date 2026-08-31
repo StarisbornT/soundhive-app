@@ -574,11 +574,12 @@ class CalendarBottomSheet extends StatefulWidget {
 class _CalendarBottomSheetState extends State<CalendarBottomSheet> {
   late DateTime _currentMonth;
   final Set<DateTime> _selectedDates = {};
+  late final DateTime _today;
 
   @override
   void initState() {
     super.initState();
-    // Initialize current month to today's month or the month of the first selected date
+    _today = _normalizeDate(DateTime.now());
     _currentMonth = DateTime.now();
     if (widget.initialSelectedDates.isNotEmpty) {
       _selectedDates.addAll(widget.initialSelectedDates.map(_normalizeDate));
@@ -591,8 +592,21 @@ class _CalendarBottomSheetState extends State<CalendarBottomSheet> {
     return DateTime(date.year, date.month, date.day);
   }
 
+  bool _isPast(DateTime date) {
+    return _normalizeDate(date).isBefore(_today);
+  }
+
+  // Whether the left chevron should be usable — don't allow navigating
+  // to a month that's entirely in the past.
+  bool get _canGoToPreviousMonth {
+    final previousMonth = DateTime(_currentMonth.year, _currentMonth.month - 1, 1);
+    final lastDayOfPreviousMonth = DateTime(_currentMonth.year, _currentMonth.month, 0);
+    return !lastDayOfPreviousMonth.isBefore(_today);
+  }
+
   // Toggles the selection state of a date
   void _toggleDateSelection(DateTime date) {
+    if (_isPast(date)) return; // guard against programmatic calls too
     setState(() {
       final normalizedDate = _normalizeDate(date);
       if (_selectedDates.contains(normalizedDate)) {
@@ -626,13 +640,20 @@ class _CalendarBottomSheetState extends State<CalendarBottomSheet> {
           Row(
             children: [
               IconButton(
-                icon: const Icon(Icons.chevron_left, color: Color(0xFF656566)),
-                onPressed: () {
+                icon: Icon(
+                  Icons.chevron_left,
+                  color: _canGoToPreviousMonth
+                      ? const Color(0xFF656566)
+                      : const Color(0xFF656566).withOpacity(0.3),
+                ),
+                onPressed: _canGoToPreviousMonth
+                    ? () {
                   setState(() {
                     _currentMonth = DateTime(
                         _currentMonth.year, _currentMonth.month - 1, 1);
                   });
-                },
+                }
+                    : null,
               ),
               IconButton(
                 icon: const Icon(Icons.chevron_right, color: Color(0xFF656566)),
@@ -669,7 +690,7 @@ class _CalendarBottomSheetState extends State<CalendarBottomSheet> {
             day,
             textAlign: TextAlign.center,
             style: const TextStyle(
-              color: Colors.white54, // Faded color for weekdays
+              color: Colors.white54,
               fontWeight: FontWeight.w400,
               fontSize: 12,
             ),
@@ -684,28 +705,26 @@ class _CalendarBottomSheetState extends State<CalendarBottomSheet> {
     final bool isSelected = _isDateSelected(date);
     final bool isCurrentMonth =
         date.month == _currentMonth.month && date.year == _currentMonth.year;
+    final bool isPast = _isPast(date);
+    final bool isSelectable = isCurrentMonth && !isPast;
 
     return GestureDetector(
-      onTap: isCurrentMonth
-          ? () => _toggleDateSelection(date)
-          : null, // Only allow selection for current month days
+      onTap: isSelectable ? () => _toggleDateSelection(date) : null,
       child: Container(
         margin: const EdgeInsets.all(4),
         decoration: BoxDecoration(
-          color: isSelected
-              ? AppColors.BUTTONCOLOR
-              : Colors.transparent, // Highlight selected dates
+          color: isSelected ? AppColors.BUTTONCOLOR : Colors.transparent,
           shape: BoxShape.circle,
         ),
         alignment: Alignment.center,
         child: Text(
           date.day.toString(),
           style: TextStyle(
-            color: isCurrentMonth
-                ? (isSelected
-                    ? Colors.white
-                    : Colors.white) // White for current month days
-                : Colors.white38, // Faded for days outside current month
+            color: !isCurrentMonth
+                ? Colors.white38 // outside current month
+                : (isPast
+                ? Colors.white24 // past day within current month
+                : Colors.white), // selectable day
             fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
             fontSize: 14,
           ),
@@ -717,45 +736,38 @@ class _CalendarBottomSheetState extends State<CalendarBottomSheet> {
   // Builds the main calendar grid
   Widget _buildCalendarGrid() {
     final DateTime firstDayOfMonth =
-        DateTime(_currentMonth.year, _currentMonth.month, 1);
+    DateTime(_currentMonth.year, _currentMonth.month, 1);
     final int daysInMonth =
         DateTime(_currentMonth.year, _currentMonth.month + 1, 0).day;
-    final int firstWeekday =
-        firstDayOfMonth.weekday % 7; // 0 for Sunday, 1 for Monday, etc.
+    final int firstWeekday = firstDayOfMonth.weekday % 7;
 
     List<Widget> dayCells = [];
 
-    // Add empty cells for days before the 1st of the month
     for (int i = 0; i < firstWeekday; i++) {
-      // Calculate date for previous month's day
       final DateTime prevMonthDay =
-          firstDayOfMonth.subtract(Duration(days: firstWeekday - i));
+      firstDayOfMonth.subtract(Duration(days: firstWeekday - i));
       dayCells.add(_buildDayCell(prevMonthDay));
     }
 
-    // Add cells for days of the current month
     for (int i = 1; i <= daysInMonth; i++) {
       final DateTime date =
-          DateTime(_currentMonth.year, _currentMonth.month, i);
+      DateTime(_currentMonth.year, _currentMonth.month, i);
       dayCells.add(_buildDayCell(date));
     }
 
-    // Add empty cells for days after the last day of the month to fill the last row
-    final int remainingCells =
-        42 - dayCells.length; // Max 6 rows * 7 days = 42 cells
+    final int remainingCells = 42 - dayCells.length;
     for (int i = 1; i <= remainingCells; i++) {
       final DateTime nextMonthDay =
-          DateTime(_currentMonth.year, _currentMonth.month, daysInMonth + i);
+      DateTime(_currentMonth.year, _currentMonth.month, daysInMonth + i);
       dayCells.add(_buildDayCell(nextMonthDay));
     }
 
     return GridView.builder(
       shrinkWrap: true,
-      physics:
-          const NeverScrollableScrollPhysics(), // Disable scrolling for the grid itself
+      physics: const NeverScrollableScrollPhysics(),
       gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
         crossAxisCount: 7,
-        childAspectRatio: 1.0, // Make cells square
+        childAspectRatio: 1.0,
       ),
       itemCount: dayCells.length,
       itemBuilder: (context, index) => dayCells[index],
@@ -766,14 +778,13 @@ class _CalendarBottomSheetState extends State<CalendarBottomSheet> {
   Widget build(BuildContext context) {
     return Container(
       decoration: const BoxDecoration(
-        color: Color(0xFF1A191E), // Dark background color from image
+        color: Color(0xFF1A191E),
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
       padding: const EdgeInsets.all(20.0),
       child: Column(
-        mainAxisSize: MainAxisSize.min, // Wrap content
+        mainAxisSize: MainAxisSize.min,
         children: [
-          // Drag handle (optional, common for bottom sheets)
           Container(
             height: 4,
             width: 40,
@@ -783,8 +794,6 @@ class _CalendarBottomSheetState extends State<CalendarBottomSheet> {
             ),
           ),
           const SizedBox(height: 16),
-
-          // "Select Date(s)" header
           const Align(
             alignment: Alignment.centerLeft,
             child: Text(
@@ -797,16 +806,14 @@ class _CalendarBottomSheetState extends State<CalendarBottomSheet> {
             ),
           ),
           const SizedBox(height: 8),
-
-          // Selected dates display (e.g., 17/06/2025, 18/06/2025)
           Align(
             alignment: Alignment.centerLeft,
             child: Text(
               _selectedDates.isEmpty
                   ? 'No dates selected'
                   : _selectedDates
-                      .map((d) => DateFormat('dd/MM/yyyy').format(d))
-                      .join(', '),
+                  .map((d) => DateFormat('dd/MM/yyyy').format(d))
+                  .join(', '),
               style: const TextStyle(
                 color: Color(0xFFC5AFFF),
                 fontSize: 14,
@@ -814,57 +821,41 @@ class _CalendarBottomSheetState extends State<CalendarBottomSheet> {
             ),
           ),
           const SizedBox(height: 16),
-          const Divider(color: Colors.white12), // Divider line
+          const Divider(color: Colors.white12),
           const SizedBox(height: 16),
-
-          // Month navigation
           _buildMonthHeader(),
           const SizedBox(height: 8),
-
-          // Weekdays row
           _buildWeekdaysRow(),
           const SizedBox(height: 8),
-
-          // Calendar grid
           _buildCalendarGrid(),
           const SizedBox(height: 24),
-
-          // Action Buttons
           Row(
             children: [
               Expanded(
                 child: OutlinedButton(
                   onPressed: () {
-                    Navigator.of(context)
-                        .pop(null); // Pop with null if cancelled
+                    Navigator.of(context).pop(null);
                   },
                   style: OutlinedButton.styleFrom(
-                    foregroundColor: Colors.white, // Text color
-                    side:
-                        const BorderSide(color: Colors.white54), // Border color
+                    foregroundColor: Colors.white,
+                    side: const BorderSide(color: Colors.white54),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(100),
                     ),
                     padding: const EdgeInsets.symmetric(vertical: 16),
                   ),
-                  child: const Text(
-                    'Cancel',
-                    style: TextStyle(fontSize: 16),
-                  ),
+                  child: const Text('Cancel', style: TextStyle(fontSize: 16)),
                 ),
               ),
               const SizedBox(width: 16),
               Expanded(
                 child: ElevatedButton(
                   onPressed: () {
-                    // Sort the selected dates before returning
                     final sortedDates = _selectedDates.toList()..sort();
-                    Navigator.of(context)
-                        .pop(sortedDates); // Pop with selected dates
+                    Navigator.of(context).pop(sortedDates);
                   },
                   style: ElevatedButton.styleFrom(
-                    backgroundColor:
-                        AppColors.BUTTONCOLOR, // Purple button color
+                    backgroundColor: AppColors.BUTTONCOLOR,
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(100),
                     ),

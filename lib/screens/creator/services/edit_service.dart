@@ -29,7 +29,11 @@ import 'add_new_service.dart';
 
 class EditServiceScreen extends ConsumerStatefulWidget {
   final ServiceItem service;
-  const EditServiceScreen({super.key, required this.service});
+
+  const EditServiceScreen({
+    super.key,
+    required this.service,
+  });
 
   @override
   ConsumerState<EditServiceScreen> createState() => _EditServiceScreenState();
@@ -44,12 +48,13 @@ class _EditServiceScreenState extends ConsumerState<EditServiceScreen> {
   final ValueNotifier<bool> _subcategoryLoadingMoreNotifier = ValueNotifier(false);
   final ValueNotifier<bool> _subcategoryHasMoreNotifier = ValueNotifier(false);
 
-  Category? selectedService;
   String? selectedCategoryId;
   String? selectedSubCategoryId;
 
   final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
   final TextEditingController rateController = TextEditingController();
+  final TextEditingController deliveryDaysController = TextEditingController();
+  final TextEditingController revisionsController = TextEditingController();
   final PortfolioData portfolioData = PortfolioData();
   final TextEditingController serviceNameController = TextEditingController();
   final TextEditingController serviceDescriptionController = TextEditingController();
@@ -67,77 +72,10 @@ class _EditServiceScreenState extends ConsumerState<EditServiceScreen> {
   void initState() {
     super.initState();
     _prefillFormData();
+
     WidgetsBinding.instance.addPostFrameCallback((_) async {
-      // Auto-sync subcategories whenever provider state changes
-      ref.listenManual(subcategoryProvider, (_, next) {
-        next.whenData((_) => _syncSubCategories());
-      });
-
-      // Load all category pages until we find the matching one
-      await _loadCategoriesUntilFound(widget.service.categoryId);
-
-      // Now set category and trigger subcategory load
-      await _setCategoryAndSubcategory();
+      await _initCategoryAndSubselection();
     });
-  }
-
-  /// Keeps loading category pages until the service's category is found
-  Future<void> _loadCategoriesUntilFound(dynamic categoryId) async {
-    await ref.read(categoryProvider.notifier).getCategory();
-    _syncCategories();
-
-    while (true) {
-      final found = _servicesNotifier.value.any(
-            (cat) => cat.id.toString() == categoryId.toString(),
-      );
-      if (found) break;
-
-      final hasMore = ref.read(categoryProvider).value?.data.nextPageUrl != null;
-      if (!hasMore) break;
-
-      await ref.read(categoryProvider.notifier).loadMore();
-      _syncCategories();
-    }
-  }
-
-  Future<void> _setCategoryAndSubcategory() async {
-    final service = widget.service;
-
-    final category = _servicesNotifier.value.firstWhere(
-          (cat) => cat.id.toString() == service.categoryId.toString(), // ensure toString on both sides
-      orElse: () => Category(
-        id: 0, name: '', createdAt: '', updatedAt: '',
-        servicesCount: '', creatorCount: '',
-      ),
-    );
-
-    if (category.id == 0) return;
-
-    if (mounted) {
-      setState(() {
-        categoryController.text = category.name;
-        selectedCategoryId = category.id.toString();
-      });
-    }
-
-    await ref.read(subcategoryProvider.notifier).getSubCategory(
-      category.id, // use int directly, no parse needed
-    );
-
-    _syncSubCategories();
-
-    final subcategories = ref.read(subcategoryProvider).value?.data ?? [];
-    final subcategory = subcategories.firstWhere(
-          (sub) => sub.id.toString() == service.subCategoryId.toString(), // ensure toString on both sides
-      orElse: () => SubCategory(id: 0, name: '', createdAt: '', updatedAt: ''),
-    );
-
-    if (subcategory.id != 0 && mounted) {
-      setState(() {
-        subcategoryController.text = subcategory.name;
-        selectedSubCategoryId = subcategory.id.toString();
-      });
-    }
   }
 
   void _prefillFormData() {
@@ -145,6 +83,9 @@ class _EditServiceScreenState extends ConsumerState<EditServiceScreen> {
     serviceNameController.text = service.serviceName;
     serviceDescriptionController.text = service.serviceDescription ?? '';
     rateController.text = service.rate;
+    deliveryDaysController.text = service.deliveryDays?.toString() ?? '0';
+    revisionsController.text = service.revisions?.toString() ?? '0';
+
     portfolioData.coverUrl = service.coverImage;
     portfolioData.imageUrl = service.serviceImage;
     portfolioData.audioUrl = service.serviceAudio ?? '';
@@ -156,23 +97,87 @@ class _EditServiceScreenState extends ConsumerState<EditServiceScreen> {
     if (service.link != null && service.link!.isNotEmpty) selectedFormats.add('link');
     portfolioData.selectedFormats.value = selectedFormats;
 
-    selectedCategoryId = service.categoryId.toString();
-    selectedSubCategoryId = service.subCategoryId.toString();
+    selectedCategoryId = service.categoryId.toString().trim();
+    selectedSubCategoryId = service.subCategoryId.toString().trim();
+  }
+
+  Future<void> _initCategoryAndSubselection() async {
+    final targetCatId = widget.service.categoryId.toString().trim();
+    final targetSubCatId = widget.service.subCategoryId.toString().trim();
+
+    if (targetCatId.isEmpty) return;
+
+    try {
+      // 1. Reset & Fetch initial Categories
+      ref.read(categoryProvider.notifier).resetSearch();
+      await ref.read(categoryProvider.notifier).getCategory();
+      _syncCategories();
+
+      // 2. Page loop until Category is present in state
+      int maxPages = 10;
+      while (mounted && maxPages > 0) {
+        final categoryExists = _servicesNotifier.value.any(
+              (c) => c.id.toString() == targetCatId,
+        );
+        if (categoryExists) break;
+
+        final hasMore = ref.read(categoryProvider).value?.data.nextPageUrl != null;
+        if (!hasMore) break;
+
+        await ref.read(categoryProvider.notifier).loadMore();
+        _syncCategories();
+        maxPages--;
+      }
+
+      // 3. Find Category
+      final matchedCatList = _servicesNotifier.value.where(
+            (c) => c.id.toString() == targetCatId,
+      );
+
+      if (matchedCatList.isNotEmpty && mounted) {
+        final matchedCategory = matchedCatList.first;
+        setState(() {
+          categoryController.text = matchedCategory.name; // Uses category_name from JSON
+          selectedCategoryId = matchedCategory.id.toString();
+        });
+
+        // 4. Fetch Subcategories for this Category ID explicitly
+        final intCatId = int.tryParse(targetCatId) ?? matchedCategory.id;
+        await ref.read(subcategoryProvider.notifier).getSubCategory(intCatId);
+        _syncSubCategories();
+
+        // 5. Match Subcategory
+        final subcategoryData = _subCategoriesNotifier.value;
+        final matchedSubList = subcategoryData.where(
+              (s) => s.id.toString() == targetSubCatId,
+        );
+
+        if (matchedSubList.isNotEmpty && mounted) {
+          final matchedSubcategory = matchedSubList.first;
+          setState(() {
+            subcategoryController.text = matchedSubcategory.name;
+            selectedSubCategoryId = matchedSubcategory.id.toString();
+          });
+        }
+      }
+    } catch (e, stack) {
+      _logger.e("Error preselecting categories", error: e, stackTrace: stack);
+    }
   }
 
   void _syncCategories() {
-    final fetched = ref.read(categoryProvider).value?.data.data;
-    if (fetched != null) {
-      _servicesNotifier.value = fetched;
-      _categoryHasMoreNotifier.value = ref.read(categoryProvider).value?.data.nextPageUrl != null;
+    final categoryState = ref.read(categoryProvider).value;
+    if (categoryState != null) {
+      _servicesNotifier.value = List<Category>.from(categoryState.data.data);
+      _categoryHasMoreNotifier.value = categoryState.data.nextPageUrl != null;
     }
   }
 
   void _syncSubCategories() {
-    final value = ref.read(subcategoryProvider).value;
-    if (value != null) {
-      _subCategoriesNotifier.value = value.data;
-      _subcategoryHasMoreNotifier.value = value.nextPageUrl != null;
+    final subcategoryState = ref.read(subcategoryProvider).value;
+    if (subcategoryState != null) {
+      _subCategoriesNotifier.value = List<dynamic>.from(subcategoryState.data);
+      _subcategoryHasMoreNotifier.value = subcategoryState.nextPageUrl != null;
     }
   }
 
@@ -195,12 +200,14 @@ class _EditServiceScreenState extends ConsumerState<EditServiceScreen> {
     if (_subcategoryLoadingMoreNotifier.value) return;
     _subcategoryLoadingMoreNotifier.value = true;
     await ref.read(subcategoryProvider.notifier).loadMore();
+    _syncSubCategories();
     _subcategoryLoadingMoreNotifier.value = false;
   }
 
   Future<void> _onSubcategorySearch(String query) async {
     if (selectedCategoryId == null) return;
     await ref.read(subcategoryProvider.notifier).searchSubCategories(query);
+    _syncSubCategories();
   }
 
   // ── Pickers ────────────────────────────────────────────────────────
@@ -212,7 +219,7 @@ class _EditServiceScreenState extends ConsumerState<EditServiceScreen> {
       builder: (_) => PaginatedPickerSheet(
         title: 'Select Hive',
         itemsNotifier: _servicesNotifier,
-        toPickerItem: (c) => PickerItem(id: (c).id.toString(), label: c.name),
+        toPickerItem: (c) => PickerItem(id: (c as Category).id.toString(), label: c.name),
         searchController: _categorySearchController,
         onSearch: _onCategorySearch,
         onLoadMore: _loadMoreCategories,
@@ -273,14 +280,23 @@ class _EditServiceScreenState extends ConsumerState<EditServiceScreen> {
     _categorySearchController.dispose();
     _subcategorySearchController.dispose();
     rateController.dispose();
+    deliveryDaysController.dispose();
+    revisionsController.dispose();
     portfolioData.dispose();
+    serviceNameController.dispose();
+    serviceDescriptionController.dispose();
+    categoryController.dispose();
+    subcategoryController.dispose();
     super.dispose();
   }
 
-  // ── Bio step ───────────────────────────────────────────────────────
+  // ── Step Layouts ───────────────────────────────────────────────────
   Widget _buildBioStep() {
     final categoryState = ref.watch(categoryProvider);
     final subcategoryState = ref.watch(subcategoryProvider);
+
+    final bool isCategoryLoading = categoryState.isLoading && categoryController.text.isEmpty;
+    final bool isSubcategoryLoading = subcategoryState.isLoading && subcategoryController.text.isEmpty;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -303,25 +319,23 @@ class _EditServiceScreenState extends ConsumerState<EditServiceScreen> {
           maxLines: 4,
         ),
 
-        // Hives picker
+        // Hives Picker
         PickerTriggerField(
           label: 'Hives',
           controller: categoryController,
-          hintText: categoryState.isLoading ? 'Loading...' : 'Select Hives',
-          isLoading: categoryState.isLoading,
+          hintText: isCategoryLoading ? 'Loading...' : 'Select Hives',
+          isLoading: isCategoryLoading,
           onTap: categoryState.isLoading ? null : _openHivesPicker,
         ),
 
-        // Service Clusters picker
+        // Service Clusters Picker
         PickerTriggerField(
           label: 'Service Clusters',
           controller: subcategoryController,
           hintText: selectedCategoryId == null
               ? 'Select a Hive first'
-              : subcategoryState.isLoading
-              ? 'Loading...'
-              : 'Select Cluster',
-          isLoading: subcategoryState.isLoading,
+              : (isSubcategoryLoading ? 'Loading...' : 'Select Cluster'),
+          isLoading: isSubcategoryLoading,
           onTap: (selectedCategoryId == null || subcategoryState.isLoading)
               ? null
               : _openClusterPicker,
@@ -330,10 +344,79 @@ class _EditServiceScreenState extends ConsumerState<EditServiceScreen> {
     );
   }
 
-  // ── Steps ──────────────────────────────────────────────────────────
+  Widget _rateStep() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const SizedBox(height: 24),
+        const Text(
+          'Service Pricing & Terms',
+          style: TextStyle(fontSize: 16, fontWeight: FontWeight.w400, color: Colors.white),
+        ),
+        const SizedBox(height: 20),
+        CurrencyInputField(
+          label: serviceNameController.text,
+          suffixText: 'per project',
+          controller: rateController,
+          onChanged: (value) {},
+          validator: (value) {
+            if (value == null || value.isEmpty || double.tryParse(value) == null) {
+              return 'Please enter a valid amount';
+            }
+            return null;
+          },
+        ),
+        const SizedBox(height: 16),
+        LabeledTextField(
+          label: 'Delivery Days',
+          controller: deliveryDaysController,
+          hintText: "e.g., 3",
+          keyboardType: TextInputType.number,
+        ),
+        const SizedBox(height: 16),
+        LabeledTextField(
+          label: 'Revisions Allowed',
+          controller: revisionsController,
+          hintText: "e.g., 2 (0 for none)",
+          keyboardType: TextInputType.number,
+        ),
+      ],
+    );
+  }
 
+  Widget _portfolioStep() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const SizedBox(height: 24),
+        const Text(
+          'What are some of the amazing projects you have done so far?',
+          style: TextStyle(fontSize: 16, fontWeight: FontWeight.w400, color: Colors.white),
+        ),
+        const SizedBox(height: 10),
+        const Text(
+          'N.B: A good portfolio of work usually attracts good clients.',
+          style: TextStyle(fontSize: 12, fontWeight: FontWeight.w300, color: Color(0xFFF2F2F2)),
+        ),
+        const SizedBox(height: 20),
+        PortfolioUploadSection(
+          title: serviceNameController.text,
+          coverImageNotifier: portfolioData.coverNotifier,
+          imageFileNotifier: portfolioData.imageNotifier,
+          audioFileNotifier: portfolioData.audioNotifier,
+          linkController: portfolioData.linkController,
+          selectedFormatsNotifier: portfolioData.selectedFormats,
+          existingCoverUrl: portfolioData.coverUrl,
+          existingImageUrl: portfolioData.imageUrl,
+          existingAudioUrl: portfolioData.audioUrl,
+        ),
+      ],
+    );
+  }
+
+  // ── Navigation & Validation ────────────────────────────────────────
   void _nextStep() {
-    if (_currentStep < 5) {
+    if (_currentStep < 2) {
       final isValid = _validateCurrentStep();
       if (!isValid) return;
       setState(() => _currentStep++);
@@ -343,14 +426,30 @@ class _EditServiceScreenState extends ConsumerState<EditServiceScreen> {
   bool _validateCurrentStep() {
     switch (_currentStep) {
       case 0:
-        if (categoryController.text.isEmpty || serviceNameController.text.isEmpty) {
-          _showError("Please select a service");
+        if (selectedCategoryId == null || categoryController.text.isEmpty) {
+          _showError("Please select a Hive (Category)");
+          return false;
+        }
+        if (selectedSubCategoryId == null || subcategoryController.text.isEmpty) {
+          _showError("Please select a Cluster (Subcategory)");
+          return false;
+        }
+        if (serviceNameController.text.trim().isEmpty) {
+          _showError("Service name is required");
           return false;
         }
         return true;
       case 1:
-        if (rateController.text.isEmpty) {
+        if (rateController.text.trim().isEmpty) {
           _showError("Rate is required");
+          return false;
+        }
+        if (deliveryDaysController.text.trim().isEmpty) {
+          _showError("Delivery days are required");
+          return false;
+        }
+        if (revisionsController.text.trim().isEmpty) {
+          _showError("Revisions are required");
           return false;
         }
         return true;
@@ -372,7 +471,7 @@ class _EditServiceScreenState extends ConsumerState<EditServiceScreen> {
             _showError("Audio file is required");
             return false;
           }
-          if (format == 'link' && portfolioData.linkController.text.isEmpty) {
+          if (format == 'link' && portfolioData.linkController.text.trim().isEmpty) {
             _showError("Link is required");
             return false;
           }
@@ -399,6 +498,7 @@ class _EditServiceScreenState extends ConsumerState<EditServiceScreen> {
     if (_currentStep > 0) setState(() => _currentStep--);
   }
 
+  // ── Submissions & API ──────────────────────────────────────────────
   Future<void> _submitForm() async {
     if (_isSubmitting) return;
     _isSubmitting = true;
@@ -418,7 +518,7 @@ class _EditServiceScreenState extends ConsumerState<EditServiceScreen> {
         MaterialPageRoute(
           builder: (context) => Success(
             title: 'Your service has been updated successfully',
-            subtitle: 'The changes have been saved and submitted for review if necessary.',
+            subtitle: 'The changes have been saved.',
             onButtonPressed: () {
               Navigator.pushReplacement(
                 context,
@@ -447,7 +547,6 @@ class _EditServiceScreenState extends ConsumerState<EditServiceScreen> {
       if (mounted) {
         showCustomAlert(context: context, isSuccess: false, title: 'Error', message: errorMessage);
       }
-      return;
     } finally {
       if (mounted) {
         LoaderService.hideLoader(context);
@@ -492,7 +591,7 @@ class _EditServiceScreenState extends ConsumerState<EditServiceScreen> {
       'resource_type': resourceType,
     });
     final response = await Dio().post(
-      'https://api.cloudinary.com/v1_1/djutcezwz/$resourceType/upload',
+      'https://api.cloudinary.com/v1_1/dfwvgagmk/$resourceType/upload',
       data: formData,
     );
     if (response.statusCode != 200) {
@@ -515,6 +614,8 @@ class _EditServiceScreenState extends ConsumerState<EditServiceScreen> {
       "service_name": serviceNameController.text,
       "service_description": serviceDescriptionController.text,
       "rate": rateController.text.replaceAll(",", ""),
+      "delivery_days": int.parse(deliveryDaysController.text.trim()),
+      "revisions": int.parse(revisionsController.text.trim()),
       "cover_image": portfolioData.coverUrl ?? widget.service.coverImage,
       "service_image": portfolioImage ?? '',
       "service_audio": portfolioAudio ?? '',
@@ -565,64 +666,8 @@ class _EditServiceScreenState extends ConsumerState<EditServiceScreen> {
       case 0: return _buildBioStep();
       case 1: return _rateStep();
       case 2: return _portfolioStep();
-      default: return const Center(child: Text("More steps to come", style: TextStyle(color: Colors.white)));
+      default: return const Center(child: Text("Invalid Step", style: TextStyle(color: Colors.white)));
     }
-  }
-
-  Widget _portfolioStep() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        const SizedBox(height: 24),
-        const Text(
-          'What are some of the amazing projects you have done so far?',
-          style: TextStyle(fontSize: 16, fontWeight: FontWeight.w400, color: Colors.white),
-        ),
-        const SizedBox(height: 10),
-        const Text(
-          'N.B: A good portfolio of work usually attract good clients.',
-          style: TextStyle(fontSize: 12, fontWeight: FontWeight.w300, color: Color(0xFFF2F2F2)),
-        ),
-        const SizedBox(height: 20),
-        PortfolioUploadSection(
-          title: serviceNameController.text,
-          coverImageNotifier: portfolioData.coverNotifier,
-          imageFileNotifier: portfolioData.imageNotifier,
-          audioFileNotifier: portfolioData.audioNotifier,
-          linkController: portfolioData.linkController,
-          selectedFormatsNotifier: portfolioData.selectedFormats,
-          existingCoverUrl: portfolioData.coverUrl,
-          existingImageUrl: portfolioData.imageUrl,
-          existingAudioUrl: portfolioData.audioUrl,
-        ),
-      ],
-    );
-  }
-
-  Widget _rateStep() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        const SizedBox(height: 24),
-        const Text(
-          'What are your rates?',
-          style: TextStyle(fontSize: 16, fontWeight: FontWeight.w400, color: Colors.white),
-        ),
-        const SizedBox(height: 20),
-        CurrencyInputField(
-          label: serviceNameController.text,
-          suffixText: 'per project',
-          controller: rateController,
-          onChanged: (value) => print('Input changed to: $value'),
-          validator: (value) {
-            if (value == null || value.isEmpty || double.tryParse(value) == null) {
-              return 'Please enter a valid amount';
-            }
-            return null;
-          },
-        ),
-      ],
-    );
   }
 
   @override
@@ -640,7 +685,7 @@ class _EditServiceScreenState extends ConsumerState<EditServiceScreen> {
                   alignment: Alignment.centerLeft,
                   child: IconButton(
                     icon: const Icon(Icons.arrow_back_ios_new, color: Color(0xFFB0B0B6)),
-                    onPressed: _previousStep,
+                    onPressed: _currentStep == 0 ? () => Navigator.pop(context) : _previousStep,
                   ),
                 ),
                 const Align(
@@ -650,6 +695,7 @@ class _EditServiceScreenState extends ConsumerState<EditServiceScreen> {
                     style: TextStyle(fontSize: 24, color: Colors.white),
                   ),
                 ),
+                const SizedBox(height: 12),
                 _buildProgressDots(),
                 const SizedBox(height: 20),
                 Expanded(

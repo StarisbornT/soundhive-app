@@ -23,8 +23,6 @@ class CreatorListResponse {
   }
 }
 
-
-
 class CreatorPaginatedData {
   final int currentPage;
   final List<CreatorData> data;
@@ -81,30 +79,27 @@ class CreatorPaginatedData {
   }
 }
 
-
-
 class CreatorData {
   final int id;
-  final dynamic userId;
+  final String? referralCode;
+  final int? userId; // Changed to int? since JSON shows integer
   final String? gender;
-  final String role;
+  final String? role; // Made nullable
   final String? nin;
   final String? idType;
   final String? copyOfId;
   final String? utilityBill;
   final String? copyOfUtilityBill;
-  final String jobTitle;
-  final String bio;
+  final String? jobTitle; // Made nullable
+  final String? bio; // Made nullable
   final bool active;
   final bool hasLiveTest;
   final bool hasVerifiedIdentity;
   final bool hasVerifiedCreativeProfile;
-
-  final String location;
+  final String? location; // Made nullable
   final String? linkedin;
   final String? x;
   final String? instagram;
-
   final String? businessName;
   final String? businessPhone;
   final String? businessEmail;
@@ -112,36 +107,44 @@ class CreatorData {
   final String? bvn;
   final String? cacDocs;
   final String? videoUrl;
-
+  final String? videoPublicId;
   final bool verified;
-  final String baseCurrency;
-
-  final String createdAt;
-  final String updatedAt;
-
+  final String? baseCurrency;
+  final String? createdAt;
+  final String? updatedAt;
+  final String? deletedAt;
   final User? user;
   final List<Review> reviews;
+  final List<CreatorPortfolioItem> portfolioItems;
+  final List<CreatorExperience> experiences;
+  final List<CreatorSkill> skills;
+  final List<CreatorService> services; // NEW: Added services field
+  final String? availabilityResponseTime;
+  final String? availabilityStatus;
+  final bool isAvailableNow;
 
   CreatorData({
     required this.id,
-    required this.userId,
+    this.referralCode,
+    this.userId,
     this.gender,
-    required this.role,
+    this.role,
     this.nin,
     this.idType,
     this.copyOfId,
     this.utilityBill,
     this.copyOfUtilityBill,
-    required this.jobTitle,
-    required this.bio,
+    this.jobTitle,
+    this.bio,
     required this.active,
     required this.hasLiveTest,
     required this.hasVerifiedIdentity,
     required this.hasVerifiedCreativeProfile,
-    required this.location,
+    this.location,
     this.linkedin,
     this.x,
     this.videoUrl,
+    this.videoPublicId,
     this.instagram,
     this.businessName,
     this.businessPhone,
@@ -150,32 +153,40 @@ class CreatorData {
     this.bvn,
     this.cacDocs,
     required this.verified,
-    required this.baseCurrency,
-    required this.createdAt,
-    required this.updatedAt,
+    this.baseCurrency,
+    this.createdAt,
+    this.updatedAt,
+    this.deletedAt,
     this.user,
-    required this.reviews,
+    this.reviews = const [],
+    this.portfolioItems = const [],
+    this.experiences = const [],
+    this.skills = const [],
+    this.services = const [], // Initialize with empty list
+    this.availabilityResponseTime,
+    this.availabilityStatus,
+    this.isAvailableNow = true,
   });
 
   factory CreatorData.fromJson(Map<String, dynamic> json) {
     return CreatorData(
       id: json['id'] ?? 0,
-      userId: json['user_id'] ?? '',
+      referralCode: json['referral_code'],
+      userId: json['user_id'] as int?, // Cast to int
       gender: json['gender'],
-      role: json['role'] ?? '',
+      role: json['role'],
       nin: json['nin'],
       idType: json['id_type'],
       copyOfId: json['copy_of_id'],
       utilityBill: json['utility_bill'],
       copyOfUtilityBill: json['copy_of_utility_bill'],
-      jobTitle: json['job_title'] ?? '',
-      bio: json['bio'] ?? '',
-      videoUrl: json['video_url'] ?? '',
+      jobTitle: json['job_title'],
+      bio: json['bio'],
       active: json['active'] ?? false,
       hasLiveTest: json['has_live_test'] ?? false,
       hasVerifiedIdentity: json['has_verified_identity'] ?? false,
       hasVerifiedCreativeProfile: json['has_verified_creative_profile'] ?? false,
-      location: json['location'] ?? '',
+      location: json['location'],
       linkedin: json['linkedin'],
       x: json['x'],
       instagram: json['instagram'],
@@ -185,15 +196,161 @@ class CreatorData {
       businessAddress: json['business_address'],
       bvn: json['bvn'],
       cacDocs: json['cac_docs'],
+      videoUrl: json['video_url'],
+      videoPublicId: json['video_public_id'],
       verified: json['verified'] ?? false,
-      baseCurrency: json['base_currency'] ?? '',
-      createdAt: json['created_at'] ?? '',
-      updatedAt: json['updated_at'] ?? '',
+      baseCurrency: json['base_currency'],
+      createdAt: json['created_at'],
+      updatedAt: json['updated_at'],
+      deletedAt: json['deleted_at'],
       user: json['user'] != null ? User.fromJson(json['user']) : null,
       reviews: json['reviews'] != null
           ? List<Review>.from(json['reviews'].map((r) => Review.fromJson(r)))
           : [],
+      portfolioItems: json['portfolio_items'] != null
+          ? List<CreatorPortfolioItem>.from(
+          json['portfolio_items'].map((p) => CreatorPortfolioItem.fromJson(p)))
+          : [],
+      experiences: json['experiences'] != null
+          ? List<CreatorExperience>.from(
+          json['experiences'].map((e) => CreatorExperience.fromJson(e)))
+          : [],
+      skills: json['skills'] != null
+          ? List<CreatorSkill>.from(
+          json['skills'].map((s) => CreatorSkill.fromJson(s)))
+          : [],
+      services: json['services'] != null
+          ? List<CreatorService>.from(
+          json['services'].map((s) => CreatorService.fromJson(s)))
+          : [],
+      availabilityResponseTime: json['availability_response_time'],
+      availabilityStatus: json['availability_status'],
+      isAvailableNow: json['is_available_now'] ?? true,
     );
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'id': id,
+      'referral_code': referralCode,
+      'user_id': userId,
+      'gender': gender,
+      'role': role,
+      'nin': nin,
+      'id_type': idType,
+      'copy_of_id': copyOfId,
+      'utility_bill': utilityBill,
+      'copy_of_utility_bill': copyOfUtilityBill,
+      'job_title': jobTitle,
+      'bio': bio,
+      'active': active,
+      'has_live_test': hasLiveTest,
+      'has_verified_identity': hasVerifiedIdentity,
+      'has_verified_creative_profile': hasVerifiedCreativeProfile,
+      'location': location,
+      'linkedin': linkedin,
+      'x': x,
+      'instagram': instagram,
+      'business_name': businessName,
+      'business_phone': businessPhone,
+      'business_email': businessEmail,
+      'business_address': businessAddress,
+      'bvn': bvn,
+      'cac_docs': cacDocs,
+      'video_url': videoUrl,
+      'video_public_id': videoPublicId,
+      'verified': verified,
+      'base_currency': baseCurrency,
+      'created_at': createdAt,
+      'updated_at': updatedAt,
+      'deleted_at': deletedAt,
+      'user': user?.toJson(),
+      'reviews': reviews.map((r) => r.toJson()).toList(),
+      'portfolio_items': portfolioItems.map((p) => p.toJson()).toList(),
+      'experiences': experiences.map((e) => e.toJson()).toList(),
+      'skills': skills.map((s) => s.toJson()).toList(),
+      'services': services.map((s) => s.toJson()).toList(),
+      'availability_response_time': availabilityResponseTime,
+      'availability_status': availabilityStatus,
+      'is_available_now': isAvailableNow,
+    };
+  }
+}
+
+// NEW: CreatorService class
+class CreatorService {
+  final int id;
+  final String? userId;
+  final String serviceName;
+  final String? categoryId;
+  final String? subCategoryId;
+  final String rate;
+  final String? coverImage;
+  final String? link;
+  final String? serviceImage;
+  final String? serviceAudio;
+  final String status;
+  final String? createdAt;
+  final String? updatedAt;
+  final String? currency;
+  final String? serviceDescription;
+
+  CreatorService({
+    required this.id,
+    this.userId,
+    required this.serviceName,
+    this.categoryId,
+    this.subCategoryId,
+    required this.rate,
+    this.coverImage,
+    this.link,
+    this.serviceImage,
+    this.serviceAudio,
+    required this.status,
+    this.createdAt,
+    this.updatedAt,
+    this.currency,
+    this.serviceDescription,
+  });
+
+  factory CreatorService.fromJson(Map<String, dynamic> json) {
+    return CreatorService(
+      id: json['id'] ?? 0,
+      userId: json['user_id']?.toString(),
+      serviceName: json['service_name'] ?? '',
+      categoryId: json['category_id']?.toString(),
+      subCategoryId: json['sub_category_id']?.toString(),
+      rate: json['rate']?.toString() ?? '0',
+      coverImage: json['cover_image'],
+      link: json['link'],
+      serviceImage: json['service_image'],
+      serviceAudio: json['service_audio'],
+      status: json['status'] ?? '',
+      createdAt: json['created_at'],
+      updatedAt: json['updated_at'],
+      currency: json['currency'],
+      serviceDescription: json['service_description'],
+    );
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'id': id,
+      'user_id': userId,
+      'service_name': serviceName,
+      'category_id': categoryId,
+      'sub_category_id': subCategoryId,
+      'rate': rate,
+      'cover_image': coverImage,
+      'link': link,
+      'service_image': serviceImage,
+      'service_audio': serviceAudio,
+      'status': status,
+      'created_at': createdAt,
+      'updated_at': updatedAt,
+      'currency': currency,
+      'service_description': serviceDescription,
+    };
   }
 }
 
@@ -203,6 +360,7 @@ class Review {
   final String userId;
   final String creatorId;
   final String bookingId;
+  final String? type;
   final int rating;
   final String reviewText;
   final bool isApproved;
@@ -215,12 +373,12 @@ class Review {
   final List<ReviewTag> tags;
   final ReviewMedia? media;
 
-
   Review({
     required this.id,
     required this.userId,
     required this.creatorId,
     required this.bookingId,
+    this.type,
     required this.rating,
     required this.reviewText,
     required this.isApproved,
@@ -235,15 +393,16 @@ class Review {
 
   factory Review.fromJson(Map<String, dynamic> json) {
     return Review(
-      id: json['id'],
-      userId: json['user_id'],
-      creatorId: json['creator_id'],
-      bookingId: json['booking_id'],
+      id: json['id'] ?? 0,
+      userId: json['user_id']?.toString() ?? '',
+      creatorId: json['creator_id']?.toString() ?? '',
+      bookingId: json['booking_id']?.toString() ?? '',
+      type: json['type'] ?? '',
       rating: json['rating'] ?? 0,
       reviewText: json['review_text'] ?? '',
       isApproved: json['is_approved'] ?? false,
       isFlagged: json['is_flagged'] ?? false,
-      flaggedReason: json['flagged_reason'],
+      flaggedReason: json['flagged_reason'] ?? '',
       createdAt: json['created_at'] ?? '',
       updatedAt: json['updated_at'] ?? '',
       user: json['user'] != null ? User.fromJson(json['user']) : null,
@@ -252,6 +411,26 @@ class Review {
           : [],
       media: json['media'] != null ? ReviewMedia.fromJson(json['media']) : null,
     );
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'id': id,
+      'user_id': userId,
+      'creator_id': creatorId,
+      'booking_id': bookingId,
+      'type': type,
+      'rating': rating,
+      'review_text': reviewText,
+      'is_approved': isApproved,
+      'is_flagged': isFlagged,
+      'flagged_reason': flaggedReason,
+      'created_at': createdAt,
+      'updated_at': updatedAt,
+      'user': user,
+      'tags': tags.map((t) => t.toJson()).toList(),
+      'media': media?.toJson(),
+    };
   }
 }
 
@@ -278,8 +457,8 @@ class ReviewMedia {
 
   factory ReviewMedia.fromJson(Map<String, dynamic> json) {
     return ReviewMedia(
-      id: json['id'],
-      reviewId: json['review_id'].toString(),
+      id: json['id'] ?? 0,
+      reviewId: json['review_id']?.toString() ?? '',
       filePath: json['file_path'] ?? '',
       fileType: json['file_type'] ?? '',
       fileSize: json['file_size'] ?? '',
@@ -288,8 +467,20 @@ class ReviewMedia {
       updatedAt: json['updated_at'] ?? '',
     );
   }
-}
 
+  Map<String, dynamic> toJson() {
+    return {
+      'id': id,
+      'review_id': reviewId,
+      'file_path': filePath,
+      'file_type': fileType,
+      'file_size': fileSize,
+      'original_name': originalName,
+      'created_at': createdAt,
+      'updated_at': updatedAt,
+    };
+  }
+}
 
 class ReviewTag {
   final int id;
@@ -304,14 +495,142 @@ class ReviewTag {
 
   factory ReviewTag.fromJson(Map<String, dynamic> json) {
     return ReviewTag(
-      id: json['id'],
-      reviewId: json['review_id'],
+      id: json['id'] ?? 0,
+      reviewId: json['review_id']?.toString() ?? '',
       tag: json['tag'] ?? '',
     );
   }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'id': id,
+      'review_id': reviewId,
+      'tag': tag,
+    };
+  }
 }
 
+class CreatorPortfolioItem {
+  final int id;
+  final String type;
+  final String mediaUrl;
+  final String? thumbnailUrl;
+  final String? caption;
+  final int sortOrder;
 
+  CreatorPortfolioItem({
+    required this.id,
+    required this.type,
+    required this.mediaUrl,
+    this.thumbnailUrl,
+    this.caption,
+    required this.sortOrder,
+  });
+
+  bool get isVideo => type == 'video';
+
+  factory CreatorPortfolioItem.fromJson(Map<String, dynamic> json) {
+    return CreatorPortfolioItem(
+      id: json['id'] ?? 0,
+      type: json['type'] ?? 'image',
+      mediaUrl: json['media_url'] ?? '',
+      thumbnailUrl: json['thumbnail_url'] ?? '',
+      caption: json['caption'] ?? '',
+      sortOrder: json['sort_order'] ?? 0,
+    );
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'id': id,
+      'type': type,
+      'media_url': mediaUrl,
+      'thumbnail_url': thumbnailUrl,
+      'caption': caption,
+      'sort_order': sortOrder,
+    };
+  }
+}
+
+class CreatorExperience {
+  final int id;
+  final String title;
+  final String organization;
+  final String? startDate;
+  final String? endDate;
+  final bool isCurrent;
+  final String? description;
+  final int sortOrder;
+
+  CreatorExperience({
+    required this.id,
+    required this.title,
+    required this.organization,
+    this.startDate,
+    this.endDate,
+    required this.isCurrent,
+    this.description,
+    required this.sortOrder,
+  });
+
+  factory CreatorExperience.fromJson(Map<String, dynamic> json) {
+    return CreatorExperience(
+      id: json['id'] ?? 0,
+      title: json['title'] ?? '',
+      organization: json['organization'] ?? '',
+      startDate: json['start_date'] ?? '',
+      endDate: json['end_date'] ?? '',
+      isCurrent: json['is_current'] ?? false,
+      description: json['description'] ?? '',
+      sortOrder: json['sort_order'] ?? 0,
+    );
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'id': id,
+      'title': title,
+      'organization': organization,
+      'start_date': startDate,
+      'end_date': endDate,
+      'is_current': isCurrent,
+      'description': description,
+      'sort_order': sortOrder,
+    };
+  }
+}
+
+class CreatorSkill {
+  final int id;
+  final String label;
+  final int? proficiency;
+  final int sortOrder;
+
+  CreatorSkill({
+    required this.id,
+    required this.label,
+    this.proficiency,
+    required this.sortOrder,
+  });
+
+  factory CreatorSkill.fromJson(Map<String, dynamic> json) {
+    return CreatorSkill(
+      id: json['id'] ?? 0,
+      label: json['label'] ?? '',
+      proficiency: json['proficiency'],
+      sortOrder: json['sort_order'] ?? 0,
+    );
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'id': id,
+      'label': label,
+      'proficiency': proficiency,
+      'sort_order': sortOrder,
+    };
+  }
+}
 
 class Link {
   final String? url;
@@ -326,9 +645,17 @@ class Link {
 
   factory Link.fromMap(Map<String, dynamic> map) {
     return Link(
-      url: map['url'],
+      url: map['url'] ?? '',
       label: map['label'] ?? '',
       active: map['active'] ?? false,
     );
+  }
+
+  Map<String, dynamic> toMap() {
+    return {
+      'url': url,
+      'label': label,
+      'active': active,
+    };
   }
 }

@@ -1,5 +1,6 @@
 import 'dart:convert';
 
+import 'package:soundhive2/model/service_model.dart';
 import 'package:soundhive2/model/user_model.dart';
 
 
@@ -28,7 +29,7 @@ class MarketOrdersPaginatedModel {
 
 class MarketOrdersPaginatedData {
   final int currentPage;
-  final List<MarketOrder> data;
+  final List<ServiceItem> data;
   final String firstPageUrl;
   final int? from;
   final int lastPage;
@@ -60,8 +61,8 @@ class MarketOrdersPaginatedData {
   factory MarketOrdersPaginatedData.fromMap(Map<String, dynamic> map) {
     return MarketOrdersPaginatedData(
       currentPage: map['current_page'] ?? 1,
-      data: List<MarketOrder>.from(
-          map['data']?.map((x) => MarketOrder.fromMap(x)) ?? []),
+      data: List<ServiceItem>.from(
+          map['data']?.map((x) => ServiceItem.fromMap(x)) ?? []),
       firstPageUrl: map['first_page_url'] ?? '',
       from: map['from'],
       lastPage: map['last_page'] ?? 1,
@@ -78,73 +79,73 @@ class MarketOrdersPaginatedData {
   }
 }
 
-class MarketOrder {
-  final int id;
-  final String userId;
-  final String serviceName;
-  final String categoryId;
-  final String subCategoryId;
-  final String rate;
-  final String coverImage;
-  final String? link;
-  final String serviceImage;
-  final String? serviceAudio;
-  final String status;
-  final String createdAt;
-  final String updatedAt;
-  final String currency;
-  final String serviceDescription;
-  final dynamic convertedRate;
-  final String? bookingCount;
-  final String convertedCurrency;
-  final User? user;
-
-  MarketOrder({
-    required this.id,
-    required this.userId,
-    required this.serviceName,
-    required this.categoryId,
-    required this.subCategoryId,
-    required this.rate,
-    required this.coverImage,
-    this.link,
-    required this.serviceImage,
-    this.serviceAudio,
-    required this.status,
-    required this.createdAt,
-    required this.updatedAt,
-    required this.currency,
-    this.bookingCount,
-    required this.serviceDescription,
-    required this.convertedRate,
-    required this.convertedCurrency,
-    this.user,
-  });
-
-  factory MarketOrder.fromMap(Map<String, dynamic> map) {
-    return MarketOrder(
-      id: map['id'] ?? 0,
-      userId: map['user_id'] ?? '',
-      serviceName: map['service_name'] ?? '',
-      categoryId: map['category_id'] ?? '',
-      bookingCount: map['bookings_count'] ?? '',
-      subCategoryId: map['sub_category_id'] ?? '',
-      rate: map['rate'] ?? '',
-      coverImage: map['cover_image'] ?? '',
-      link: map['link'],
-      serviceImage: map['service_image'] ?? '',
-      serviceAudio: map['service_audio'],
-      status: map['status'] ?? '',
-      createdAt: map['created_at'] ?? '',
-      updatedAt: map['updated_at'] ?? '',
-      currency: map['currency'] ?? '',
-      serviceDescription: map['service_description'] ?? '',
-      convertedCurrency: map['converted_currency'] ?? '',
-      convertedRate: map['converted_rate'] ?? '',
-      user: map['user'] != null ? User.fromJson(map['user']) : null,
-    );
-  }
-}
+// class MarketOrder {
+//   final int id;
+//   final String userId;
+//   final String serviceName;
+//   final String categoryId;
+//   final String subCategoryId;
+//   final String rate;
+//   final String coverImage;
+//   final String? link;
+//   final String serviceImage;
+//   final String? serviceAudio;
+//   final String status;
+//   final String createdAt;
+//   final String updatedAt;
+//   final String currency;
+//   final String serviceDescription;
+//   final dynamic convertedRate;
+//   final String? bookingCount;
+//   final String convertedCurrency;
+//   final User? user;
+//
+//   MarketOrder({
+//     required this.id,
+//     required this.userId,
+//     required this.serviceName,
+//     required this.categoryId,
+//     required this.subCategoryId,
+//     required this.rate,
+//     required this.coverImage,
+//     this.link,
+//     required this.serviceImage,
+//     this.serviceAudio,
+//     required this.status,
+//     required this.createdAt,
+//     required this.updatedAt,
+//     required this.currency,
+//     this.bookingCount,
+//     required this.serviceDescription,
+//     required this.convertedRate,
+//     required this.convertedCurrency,
+//     this.user,
+//   });
+//
+//   factory MarketOrder.fromMap(Map<String, dynamic> map) {
+//     return MarketOrder(
+//       id: map['id'] ?? 0,
+//       userId: map['user_id'] ?? '',
+//       serviceName: map['service_name'] ?? '',
+//       categoryId: map['category_id'] ?? '',
+//       bookingCount: map['bookings_count'] ?? '',
+//       subCategoryId: map['sub_category_id'] ?? '',
+//       rate: map['rate'] ?? '',
+//       coverImage: map['cover_image'] ?? '',
+//       link: map['link'],
+//       serviceImage: map['service_image'] ?? '',
+//       serviceAudio: map['service_audio'],
+//       status: map['status'] ?? '',
+//       createdAt: map['created_at'] ?? '',
+//       updatedAt: map['updated_at'] ?? '',
+//       currency: map['currency'] ?? '',
+//       serviceDescription: map['service_description'] ?? '',
+//       convertedCurrency: map['converted_currency'] ?? '',
+//       convertedRate: map['converted_rate'] ?? '',
+//       user: map['user'] != null ? User.fromJson(map['user']) : null,
+//     );
+//   }
+// }
 
 class PageLink {
   final String? url;

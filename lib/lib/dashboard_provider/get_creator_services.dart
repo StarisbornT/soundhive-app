@@ -2,16 +2,17 @@ import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import '../../model/market_orders_service_model.dart';
+import '../../model/service_model.dart';
 import '../provider.dart';
 final getCreatorServiceProvider = StateNotifierProvider<
-    GetCreatorServicesNotifier, AsyncValue<List<MarketOrder>>>((ref) {
+    GetCreatorServicesNotifier, AsyncValue<List<ServiceItem>>>((ref) {
   final dio = ref.watch(dioProvider);
   final storage = ref.watch(storageProvider);
   return GetCreatorServicesNotifier(dio, storage);
 });
 
 class GetCreatorServicesNotifier
-    extends StateNotifier<AsyncValue<List<MarketOrder>>> {
+    extends StateNotifier<AsyncValue<List<ServiceItem>>> {
   final Dio _dio;
   final FlutterSecureStorage _storage;
 
@@ -39,7 +40,7 @@ class GetCreatorServicesNotifier
 
       final List<dynamic> data = response.data["data"]['data'];
       final services =
-      data.map((e) => MarketOrder.fromMap(e)).toList();
+      data.map((e) => ServiceItem.fromMap(e)).toList();
 
       state = AsyncValue.data(services);
     } catch (error, stackTrace) {

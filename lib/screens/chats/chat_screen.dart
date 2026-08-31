@@ -13,6 +13,7 @@ import 'package:soundhive2/lib/dashboard_provider/user_provider.dart';
 
 import 'package:soundhive2/lib/dashboard_provider/call_provider.dart';
 import 'package:soundhive2/lib/provider.dart';
+import '../../utils/no_phone_number_validator.dart';
 import 'call_screen.dart';
 
 // Update your Message class
@@ -723,6 +724,16 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
 
   Future<void> _sendMessage(String text) async {
     if (text.isEmpty && _pendingFiles.isEmpty) return;
+
+    final phoneError = NoPhoneNumberValidator.validate(text);
+    if (phoneError != null) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(phoneError)),
+        );
+      }
+      return;
+    }
 
     final currentUser = ref.read(userProvider).value?.user;
     if (currentUser == null) return;

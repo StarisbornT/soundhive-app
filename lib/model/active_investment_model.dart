@@ -1,4 +1,6 @@
 import 'dart:convert';
+import 'package:soundhive2/model/service_model.dart';
+
 import 'market_orders_service_model.dart';
 
 class ActiveInvestmentResponse {
@@ -101,7 +103,7 @@ class ActiveInvestment {
   final String status;
   final String createdAt;
   final String updatedAt;
-  final MarketOrder? service;
+  final ServiceItem? service;
 
   ActiveInvestment({
     required this.id,
@@ -128,7 +130,7 @@ class ActiveInvestment {
       status: map['status'] ?? '',
       createdAt: map['created_at'] ?? '',
       updatedAt: map['updated_at'] ?? '',
-      service: map['service'] != null ? MarketOrder.fromMap(map['service']) : null,
+      service: map['service'] != null ? ServiceItem.fromMap(map['service']) : null,
     );
   }
 }

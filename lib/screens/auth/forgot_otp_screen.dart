@@ -184,22 +184,7 @@ class _ForgotOtpScreenScreenState extends ConsumerState<ForgotOtpScreen> with Wi
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 const SizedBox(height: 60),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Image.asset('images/logo.png', height: 28),
-                    const SizedBox(width: 8),
-                    const Text(
-                      'Soundhive',
-                      style: TextStyle(
-                        fontFamily: 'Nohemi',
-                        fontSize: 24,
-                        fontWeight: FontWeight.w400,
-                        color: Colors.white,
-                      ),
-                    ),
-                  ],
-                ),
+                Image.asset('images/logo.png', width: 200),
                 const Divider(color: Color(0xFF2C2C2C),),
                 const SizedBox(height: 32),
                 GestureDetector(

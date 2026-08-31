@@ -1,5 +1,7 @@
 import 'dart:convert';
 
+import 'package:soundhive2/model/user_model.dart';
+
 class ServiceResponse {
   final bool status;
   final String message;
@@ -106,6 +108,8 @@ class ServiceItem {
   final String categoryId;
   final String subCategoryId;
   final String rate;
+  final int? deliveryDays;
+  final int? revisions;
   final String coverImage;
   final String? link;
   final String serviceImage;
@@ -114,6 +118,10 @@ class ServiceItem {
   final String createdAt;
   final String updatedAt;
   final String? serviceDescription;
+  final dynamic convertedRate;
+  final String? bookingCount;
+  final String? convertedCurrency;
+  final User? user;
 
   ServiceItem({
     required this.id,
@@ -124,12 +132,18 @@ class ServiceItem {
     required this.rate,
     required this.coverImage,
     this.link,
+    this.revisions,
+    this.deliveryDays,
     required this.serviceImage,
     this.serviceAudio,
     required this.status,
     required this.createdAt,
     required this.updatedAt,
-    this.serviceDescription
+    this.serviceDescription,
+    this.convertedRate,
+    this.convertedCurrency,
+    this.user,
+    this.bookingCount,
   });
 
   factory ServiceItem.fromMap(Map<String, dynamic> map) {
@@ -141,6 +155,8 @@ class ServiceItem {
       subCategoryId: map['sub_category_id'] ?? '',
       rate: map['rate'] ?? '',
       coverImage: map['cover_image'] ?? '',
+      revisions: map['revisions'] ?? '',
+      deliveryDays: map['delivery_days'] ?? '',
       link: map['link'],
       serviceImage: map['service_image'] ?? '',
       serviceAudio: map['service_audio'],
@@ -148,6 +164,9 @@ class ServiceItem {
       createdAt: map['created_at'] ?? '',
       updatedAt: map['updated_at'] ?? '',
       serviceDescription: map['service_description'] ?? '',
+      convertedCurrency: map['converted_currency'] ?? '',
+      convertedRate: map['converted_rate'] ?? '',
+      user: map['user'] != null ? User.fromJson(map['user']) : null,
     );
   }
 }
