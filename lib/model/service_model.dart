@@ -166,6 +166,7 @@ class ServiceItem {
       serviceDescription: map['service_description'] ?? '',
       convertedCurrency: map['converted_currency'] ?? '',
       convertedRate: map['converted_rate'] ?? '',
+      bookingCount: map['bookings_count'] ?? '',
       user: map['user'] != null ? User.fromJson(map['user']) : null,
     );
   }

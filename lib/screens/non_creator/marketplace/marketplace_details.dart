@@ -77,6 +77,13 @@ class _MarketplaceDetailsScreenState extends ConsumerState<MarketplaceDetails>
     super.initState();
     _profileTabController = TabController(length: _profileTabs.length, vsync: this);
 
+    // Rebuild the (non-scrolling-forcing) tab content whenever the tab changes.
+    _profileTabController.addListener(() {
+      if (!_profileTabController.indexIsChanging) {
+        setState(() {});
+      }
+    });
+
     WidgetsBinding.instance.addPostFrameCallback((_) {
       ref.read(checkOfferProvider.notifier).checkOffer(widget.service.id);
       _fetchCreator();
@@ -422,12 +429,7 @@ class _MarketplaceDetailsScreenState extends ConsumerState<MarketplaceDetails>
       case 0:
         return _buildDetailsStep(theme, isDark);
       case 1:
-        if (_profileTabController.index != 0) {
-          WidgetsBinding.instance.addPostFrameCallback((_) {
-            if (mounted) _profileTabController.animateTo(0);
-          });
-        }
-        return _buildCreatorOverviewStep(theme, isDark);
+        return _buildCreatorOverviewStep(theme, isDark); // Simply return the step widget
       case 2:
         return _buildConfirmationStep(theme, isDark);
       case 3:
@@ -436,6 +438,7 @@ class _MarketplaceDetailsScreenState extends ConsumerState<MarketplaceDetails>
         return const SizedBox.shrink();
     }
   }
+
   Widget _buildCreatorOverviewStep(ThemeData theme, bool isDark) {
     if (_creatorLoading) {
       return const SizedBox(
@@ -563,81 +566,23 @@ class _MarketplaceDetailsScreenState extends ConsumerState<MarketplaceDetails>
           tabs: _profileTabs.map((t) => Tab(text: t)).toList(),
         ),
         const Divider(height: 1),
-        SizedBox(
-          height: 420,
-          child: TabBarView(
-            controller: _profileTabController,
-            children: [
-              // Overview
-              SingleChildScrollView(
-                padding: const EdgeInsets.symmetric(vertical: 16),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      creator.bio ?? '',
-                      style: TextStyle(
-                        color: theme.colorScheme.onSurface.withOpacity(0.75),
-                        fontSize: 13,
-                        height: 1.5,
-                      ),
-                    ),
-                    const SizedBox(height: 16),
-                    Row(
-                      children: [
-                        Icon(Icons.location_on_outlined,
-                            color: theme.colorScheme.onSurface.withOpacity(0.7), size: 18),
-                        const SizedBox(width: 8),
-                        Text(
-                          creator.location ?? '',
-                          style: TextStyle(
-                            color: theme.colorScheme.onSurface.withOpacity(0.7),
-                            fontSize: 13,
-                          ),
-                        ),
-                      ],
-                    ),
-                    if (extras.availability != null) ...[
-                      const SizedBox(height: 16),
-                      AvailabilityCard(info: extras.availability!),
-                    ],
-                  ],
-                ),
-              ),
-              // Portfolio
-              SingleChildScrollView(
-                padding: const EdgeInsets.symmetric(vertical: 16),
-                child: PortfolioGrid(items: extras.portfolio, previewCount: 6),
-              ),
-              // Experience
-              SingleChildScrollView(
-                padding: const EdgeInsets.symmetric(vertical: 16),
-                child: ExperienceTimeline(entries: extras.experience),
-              ),
-              // Skills
-              SingleChildScrollView(
-                padding: const EdgeInsets.symmetric(vertical: 16),
-                child: SkillChips(skills: extras.skills),
-              ),
-              // Reviews
-              SingleChildScrollView(
-                padding: const EdgeInsets.symmetric(vertical: 16),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    RatingBreakdown(distribution: extras.ratingDistribution),
-                    const SizedBox(height: 16),
-                    if (creator.reviews.isEmpty)
-                      Text(
-                        'No reviews yet',
-                        style: TextStyle(color: theme.colorScheme.onSurface.withOpacity(0.6)),
-                      )
-                    else
-                      ...creator.reviews.take(3).map((r) => ReviewItem(review: r)),
-                  ],
-                ),
-              ),
-            ],
+
+        // NOTE: Previously this was a fixed-height (420) TabBarView, which forced
+        // a big empty gap under short tabs (like Overview) and made users scroll
+        // past whitespace to reach the Continue button. We now render only the
+        // selected tab's content, sized to its actual content height, inside the
+        // page's existing SingleChildScrollView.
+        AnimatedSwitcher(
+          duration: const Duration(milliseconds: 200),
+          child: Padding(
+            key: ValueKey(_profileTabController.index),
+            padding: const EdgeInsets.symmetric(vertical: 16),
+            child: _buildProfileTabContent(
+              _profileTabController.index,
+              creator,
+              extras,
+              theme,
+            ),
           ),
         ),
 
@@ -670,6 +615,77 @@ class _MarketplaceDetailsScreenState extends ConsumerState<MarketplaceDetails>
       ],
     );
   }
+
+  // Renders just the content for the currently selected profile tab.
+  // No inner scroll view is used here since the parent page already scrolls,
+  // and no fixed height is imposed, so each tab is only as tall as it needs to be.
+  Widget _buildProfileTabContent(
+      int index, CreatorData creator, CreatorProfileExtras extras, ThemeData theme) {
+    switch (index) {
+      case 0: // Overview
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              creator.bio ?? '',
+              style: TextStyle(
+                color: theme.colorScheme.onSurface.withOpacity(0.75),
+                fontSize: 13,
+                height: 1.5,
+              ),
+            ),
+            const SizedBox(height: 16),
+            Row(
+              children: [
+                Icon(Icons.location_on_outlined,
+                    color: theme.colorScheme.onSurface.withOpacity(0.7), size: 18),
+                const SizedBox(width: 8),
+                Text(
+                  creator.location ?? '',
+                  style: TextStyle(
+                    color: theme.colorScheme.onSurface.withOpacity(0.7),
+                    fontSize: 13,
+                  ),
+                ),
+              ],
+            ),
+            if (extras.availability != null) ...[
+              const SizedBox(height: 16),
+              AvailabilityCard(info: extras.availability!),
+            ],
+          ],
+        );
+
+      case 1: // Portfolio
+        return PortfolioGrid(items: extras.portfolio, previewCount: 6);
+
+      case 2: // Experience
+        return ExperienceTimeline(entries: extras.experience);
+
+      case 3: // Skills
+        return SkillChips(skills: extras.skills);
+
+      case 4: // Reviews
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            RatingBreakdown(distribution: extras.ratingDistribution),
+            const SizedBox(height: 16),
+            if (creator.reviews.isEmpty)
+              Text(
+                'No reviews yet',
+                style: TextStyle(color: theme.colorScheme.onSurface.withOpacity(0.6)),
+              )
+            else
+              ...creator.reviews.take(3).map((r) => ReviewItem(review: r)),
+          ],
+        );
+
+      default:
+        return const SizedBox.shrink();
+    }
+  }
+
   // ── Helper Badges for Delivery Days & Revisions ────────────────────
   Widget _buildServiceInfoBadge(IconData icon, String text, ThemeData theme, bool isDark) {
     return Container(
@@ -1348,7 +1364,7 @@ class _MarketplaceDetailsScreenState extends ConsumerState<MarketplaceDetails>
                           height: 1.4,
                         ),
                         children: const [
-                           TextSpan(text: 'I have read and agree to the '),
+                          TextSpan(text: 'I have read and agree to the '),
                           TextSpan(
                             text: 'Terms of Service',
                             style: TextStyle(
