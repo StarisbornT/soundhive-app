@@ -540,7 +540,7 @@ class _VestDetailsScreenState extends ConsumerState<VestDetailsScreen> {
     );
   }
 
-  void _submitInvestment(String pin) async {
+  Future<void> _submitInvestment(String pin) async {
     final maturityDate = _calculateMaturityDate(widget.investment.createdAt, widget.investment.duration);
     final expectedRepayment = _calculateExpectedRepayment(_investmentAmount!, widget.investment.roi, widget.investment.duration);
     final cleanExpectedRepayment = expectedRepayment.replaceAll(RegExp(r'[NGN₦,]'), '').trim();
@@ -557,6 +557,7 @@ class _VestDetailsScreenState extends ConsumerState<VestDetailsScreen> {
             "pin": pin
           }
       );
+      if (!mounted) return;
       if (response.status) {
         Navigator.push(
           context,
@@ -568,6 +569,7 @@ class _VestDetailsScreenState extends ConsumerState<VestDetailsScreen> {
           ),
         );
         await ref.read(userProvider.notifier).loadUserProfile();
+        if (!mounted) return;
         Navigator.pop(context);
         Navigator.pop(context);
         Navigator.pop(context);
@@ -582,6 +584,7 @@ class _VestDetailsScreenState extends ConsumerState<VestDetailsScreen> {
           errorMessage = apiResponse.message;
         } catch (_) {}
       }
+      if (!mounted) return;
       showCustomAlert(context: context, isSuccess: false, title: 'Error', message: errorMessage);
     }
   }
