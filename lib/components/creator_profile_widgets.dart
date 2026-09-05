@@ -14,6 +14,7 @@
 //   - CreatorTrustBlock  compact badges + portfolio strip for Service Detail
 
 import 'package:flutter/material.dart';
+import 'package:soundhive2/components/widgets.dart';
 import '../../utils/app_colors.dart';
 import '../model/creator_profile_models.dart';
 
@@ -245,7 +246,10 @@ class PortfolioGrid extends StatelessWidget {
                 child: Stack(
                   fit: StackFit.expand,
                   children: [
-                    Image.network(item.thumbnailUrl, fit: BoxFit.cover),
+                    NetworkImageWithLoader(
+                      imageUrl: item.thumbnailUrl,
+                    ),
+                    // Image.network(item.thumbnailUrl, fit: BoxFit.cover),
                     if (item.isVideo && !showOverflow)
                       const Center(
                         child: Icon(Icons.play_circle_fill, color: Colors.white, size: 28),

@@ -79,6 +79,7 @@ dependencies:
   upgrader: ^13.5.0
   video_player: ^2.11.1
   chewie: ^1.13.1
+  video_thumbnail_gen: ^0.6.3
 
 dev_dependencies:
   flutter_test:
