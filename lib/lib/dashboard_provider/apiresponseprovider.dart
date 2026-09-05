@@ -246,7 +246,7 @@ class ApiResponseProvider extends StateNotifier<AsyncValue<void>> {
         '/creator/portfolio/$id',
       );
 
-      if (response.statusCode == 201) {
+      if (response.statusCode == 200) {
         state = const AsyncValue.data(null);
         return ApiResponseModel.fromJson(response.data);
       } else {

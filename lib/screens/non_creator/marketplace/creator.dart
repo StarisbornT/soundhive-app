@@ -6,6 +6,7 @@ import 'package:soundhive2/utils/app_colors.dart';
 import 'package:soundhive2/lib/dashboard_provider/get_creator_services.dart';
 import '../../../components/creator_profile_widgets.dart';
 import '../../../components/video_preview_player.dart';
+import '../../../components/widgets.dart';
 import '../../../model/creator_model.dart';
 import '../../../model/creator_profile_models.dart';
 import '../../../model/service_model.dart';
@@ -548,7 +549,10 @@ class CreatorFullPortfolioScreen extends StatelessWidget {
             child: Stack(
               fit: StackFit.expand,
               children: [
-                Image.network(item.thumbnailUrl, fit: BoxFit.cover),
+                NetworkImageWithLoader(
+                  imageUrl: item.thumbnailUrl,
+                ),
+                // Image.network(item.thumbnailUrl, fit: BoxFit.cover),
                 if (item.isVideo)
                   const Center(child: Icon(Icons.play_circle_fill, color: Colors.white, size: 28)),
               ],

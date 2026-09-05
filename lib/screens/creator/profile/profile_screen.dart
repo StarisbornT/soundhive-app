@@ -906,12 +906,16 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
               itemBuilder: (context, index) {
                 final item = items[index];
                 final isDeleting = _deletingPortfolioItemId == item.id;
+                print(item.mediaUrl);
                 return ClipRRect(
                   borderRadius: BorderRadius.circular(10),
                   child: Stack(
                     fit: StackFit.expand,
                     children: [
-                      Image.network(item.thumbnailUrl ?? item.mediaUrl, fit: BoxFit.cover),
+                      NetworkImageWithLoader(
+                        imageUrl: item.mediaUrl,
+                      ),
+                      // Image.network(item.thumbnailUrl ?? item.mediaUrl, fit: BoxFit.cover),
                       if (item.isVideo && !isDeleting)
                         const Center(child: Icon(Icons.play_circle_fill, color: Colors.white, size: 28)),
                       if (isDeleting)

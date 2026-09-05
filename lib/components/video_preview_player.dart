@@ -1,6 +1,9 @@
+import 'dart:io';
 import 'package:chewie/chewie.dart';
 import 'package:flutter/material.dart';
+import 'package:path_provider/path_provider.dart';
 import 'package:video_player/video_player.dart';
+import 'package:video_thumbnail_gen/video_thumbnail_gen.dart';
 
 class VideoPreviewPlayer extends StatefulWidget {
   final String videoUrl;
@@ -17,13 +20,47 @@ class _VideoPreviewPlayerState extends State<VideoPreviewPlayer> {
 
   bool _isLoading = false;
   bool _hasStartedLoading = false;
+  bool _isGeneratingThumbnail = true;
+  String? _thumbnailPath;
   String? _error;
+
+  @override
+  void initState() {
+    super.initState();
+    _generateThumbnail();
+  }
 
   @override
   void dispose() {
     _chewieController?.dispose();
     _videoController?.dispose();
     super.dispose();
+  }
+
+  // Generates thumbnail file using video_thumbnail_gen
+  Future<void> _generateThumbnail() async {
+    try {
+      final tempDir = await getTemporaryDirectory();
+      final thumbnailPath = await VideoThumbnail.thumbnailFile(
+        video: widget.videoUrl,
+        thumbnailPath: tempDir.path,
+        imageFormat: ImageFormat.JPEG,
+        maxHeight: 360,
+        quality: 75,
+      );
+
+      if (!mounted) return;
+
+      setState(() {
+        _thumbnailPath = thumbnailPath;
+        _isGeneratingThumbnail = false;
+      });
+    } catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _isGeneratingThumbnail = false;
+      });
+    }
   }
 
   Future<void> _initializePlayer() async {
@@ -54,6 +91,14 @@ class _VideoPreviewPlayerState extends State<VideoPreviewPlayer> {
         showControls: true,
         allowFullScreen: true,
         allowMuting: true,
+        placeholder: _thumbnailPath != null
+            ? Image.file(
+          File(_thumbnailPath!),
+          fit: BoxFit.cover,
+          width: double.infinity,
+          height: double.infinity,
+        )
+            : null,
         materialProgressColors: ChewieProgressColors(
           playedColor: Theme.of(context).colorScheme.primary,
           handleColor: Theme.of(context).colorScheme.primary,
@@ -145,15 +190,35 @@ class _VideoPreviewPlayerState extends State<VideoPreviewPlayer> {
       return Chewie(controller: _chewieController!);
     }
 
-    // Not yet loaded — show a play button overlay to trigger loading
+    // Displays extracted thumbnail image with Play overlay button
     return GestureDetector(
       onTap: _initializePlayer,
-      child: const Center(
-        child: Icon(
-          Icons.play_circle_fill,
-          color: Colors.white,
-          size: 56,
-        ),
+      child: Stack(
+        fit: StackFit.expand,
+        children: [
+          if (_thumbnailPath != null)
+            Image.file(
+              File(_thumbnailPath!),
+              fit: BoxFit.cover,
+            ),
+          if (_isGeneratingThumbnail)
+            const Center(
+              child: CircularProgressIndicator(
+                color: Colors.white54,
+                strokeWidth: 2,
+              ),
+            )
+          else ...[
+            Container(color: Colors.black26),
+            const Center(
+              child: Icon(
+                Icons.play_circle_fill,
+                color: Colors.white,
+                size: 56,
+              ),
+            ),
+          ],
+        ],
       ),
     );
   }
