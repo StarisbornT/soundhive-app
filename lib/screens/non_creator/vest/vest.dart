@@ -622,7 +622,7 @@ class _SoundHiveVestScreenState extends ConsumerState<SoundHiveVestScreen>
                     ),
                     const SizedBox(height: 4),
                     Text(
-                      'Min: ${ref.formatUserCurrency(investment.convertedMinimumAmount)}',
+                      'Min: ${Utils.formatNaira(investment.minimumAmountValue)}',
                       style: const TextStyle(
                           color: Colors.white70,
                           fontSize: 13,
@@ -630,7 +630,11 @@ class _SoundHiveVestScreenState extends ConsumerState<SoundHiveVestScreen>
                     ),
                     const SizedBox(height: 2),
                     Text(
-                      'ROI: ${investment.roi}% • ${investment.duration} mos',
+                      isArtist && artistDetails != null
+                          ? 'Return: ${artistDetails.revenueSplitInvestor.toStringAsFixed(0)}%'
+                              '${artistDetails.isPerpetual ? ' in perpetuity' : ''}'
+                              '${artistDetails.hasPaybackPeriod ? ' • Payback ${artistDetails.paybackPeriodMonths} mos' : ''}'
+                          : 'ROI: ${investment.roi}% • ${investment.duration} mos',
                       style:
                       const TextStyle(color: Colors.white54, fontSize: 12),
                     ),
@@ -904,7 +908,7 @@ class _SoundHiveVestScreenState extends ConsumerState<SoundHiveVestScreen>
                 ),
                 const SizedBox(height: 5),
                 Text(
-                  'Invested ${ref.formatUserCurrency(investment.amount)}',
+                  'Invested ${Utils.formatNaira(investment.amount)}',
                   style: const TextStyle(
                       color: Colors.white70,
                       fontSize: 14,
@@ -957,4 +961,4 @@ class _SliverTabBarDelegate extends SliverPersistentHeaderDelegate {
   bool shouldRebuild(_SliverTabBarDelegate oldDelegate) {
     return false;
   }
-}
+}

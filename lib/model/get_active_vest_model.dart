@@ -2,6 +2,7 @@ import 'dart:convert';
 
 import 'package:soundhive2/model/user_model.dart';
 
+import '../utils/json_parse.dart';
 import 'investment_model.dart';
 
 class ActiveVestResponse {
@@ -57,21 +58,21 @@ class PaginatedActiveInvestmentData {
 
   factory PaginatedActiveInvestmentData.fromMap(Map<String, dynamic> map) {
     return PaginatedActiveInvestmentData(
-      currentPage: map['current_page'] ?? 0,
+      currentPage: asInt(map['current_page']),
       data: List<ActiveVest>.from(
           map['data']?.map((x) => ActiveVest.fromMap(x)) ?? []),
-      firstPageUrl: map['first_page_url'] ?? '',
-      from: map['from'] ?? 0,
-      lastPage: map['last_page'] ?? 0,
-      lastPageUrl: map['last_page_url'] ?? '',
+      firstPageUrl: asString(map['first_page_url']),
+      from: asInt(map['from']),
+      lastPage: asInt(map['last_page']),
+      lastPageUrl: asString(map['last_page_url']),
       links: List<PageLink>.from(
           map['links']?.map((x) => PageLink.fromMap(x)) ?? []),
-      nextPageUrl: map['next_page_url'],
-      path: map['path'] ?? '',
-      perPage: map['per_page'] ?? 0,
-      prevPageUrl: map['prev_page_url'],
-      to: map['to'] ?? 0,
-      total: map['total'] ?? 0,
+      nextPageUrl: asStringOrNull(map['next_page_url']),
+      path: asString(map['path']),
+      perPage: asInt(map['per_page']),
+      prevPageUrl: asStringOrNull(map['prev_page_url']),
+      to: asInt(map['to']),
+      total: asInt(map['total']),
     );
   }
 }
@@ -89,9 +90,9 @@ class PageLink {
 
   factory PageLink.fromMap(Map<String, dynamic> map) {
     return PageLink(
-      url: map['url'],
-      label: map['label'] ?? '',
-      active: map['active'] ?? false,
+      url: asStringOrNull(map['url']),
+      label: asString(map['label']),
+      active: asBool(map['active']),
     );
   }
 }
@@ -130,7 +131,7 @@ class ActiveVest {
 
   factory ActiveVest.fromMap(Map<String, dynamic> map) {
     return ActiveVest(
-      id: map['id'] ?? 0,
+      id: asInt(map['id']),
       userId: map['user_id']?.toString() ?? '',
       vestId: map['vest_id']?.toString() ?? '',
       amount: map['amount']?.toString() ?? '',
@@ -144,4 +145,4 @@ class ActiveVest {
       user: map['user'] != null ? User.fromJson(map['user']) : null,
     );
   }
-}
+}

@@ -486,7 +486,7 @@ class _WalletScreenState extends ConsumerState<WalletScreen> {
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Text('Error loading transactions',
+                Text('Error loading transactions $error',
                     style: TextStyle(color: theme.colorScheme.error)),
                 const SizedBox(height: 10),
                 ElevatedButton(

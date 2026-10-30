@@ -78,6 +78,20 @@ class Utils {
     return "$currencyCode ${formatter.format(numericAmount)}";
   }
 
+  /// Cre8Vest amounts are stored and served in Naira, regardless of the
+  /// viewer's wallet currency. Whole amounts drop the ".00".
+  /// e.g. 10000000 -> "NGN 10,000,000"
+  static String formatNaira(dynamic amount) {
+    final double value = double.tryParse(amount?.toString() ?? '') ?? 0.0;
+    final bool whole = value == value.truncateToDouble();
+    final formatter = NumberFormat.currency(
+      locale: 'en_US',
+      symbol: '',
+      decimalDigits: whole ? 0 : 2,
+    );
+    return 'NGN ${formatter.format(value)}';
+  }
+
   static String getCurrencySymbol(String? currencyCode) {
     currencyCode ??= "USD";
     return currencyCode;

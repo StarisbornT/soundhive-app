@@ -9,20 +9,15 @@ import 'package:soundhive2/utils/utils.dart';
 /// revenue split, forecasting, risk rating. All backed by real fields:
 ///   - funding target / progress -> artistDetails.fundingTarget,
 ///     .totalRaised, .fundingProgressPercentage (backend-computed)
-///   - minimum investment         -> investment.convertedMinimumAmount
-///   - revenue split               -> revenueSplitArtist / revenueSplitInvestor
-///   - forecasting                 -> targetRoiMin / targetRoiMax range
+///   - minimum investment         -> investment.minimumAmount
+///   - investor / artist return    -> revenueSplitInvestor / revenueSplitArtist,
+///     labelled "(In Perpetuity after Payback)" when returnTimeline says so
+///   - payback period              -> artistDetails.paybackPeriodMonths
+///   - forecasting                 -> targetRoiMin / targetRoiMax ("500%")
 ///   - risk rating                  -> artistDetails.riskLevel (LOW/MEDIUM/HIGH),
 ///     with investment.riskAssessment as the free-text explanation
 ///
-/// NOTE flagged earlier and still unresolved: `buyVest` currently expects
-/// a flat `interest` value modeled on General Vests' single `roi` field,
-/// but Artist Vests only have targetRoiMin/targetRoiMax — there's no
-/// single number to send. This screen shows the *range* honestly rather
-/// than picking one value silently. The actual number submitted at
-/// purchase time (in VestDetailsScreen) still needs a decision from you
-/// on which figure — min, max, midpoint, or a server-side derivation —
-/// gets sent as `interest`/used for the "expected repayment" calculation.
+/// All amounts are Naira (Utils.formatNaira), independent of wallet currency.
 class OpportunityStage extends ConsumerWidget {
   final Investment investment;
   const OpportunityStage({super.key, required this.investment});
@@ -55,7 +50,7 @@ class OpportunityStage extends ConsumerWidget {
               Expanded(
                 child: _metricTile(
                   label: 'Minimum investment',
-                  value: ref.formatUserCurrency(investment.convertedMinimumAmount),
+                  value: Utils.formatNaira(investment.minimumAmountValue),
                 ),
               ),
               const SizedBox(width: 10),
@@ -63,12 +58,27 @@ class OpportunityStage extends ConsumerWidget {
                 child: _metricTile(
                   label: 'Forecasted return',
                   value: artistDetails != null
-                      ? '${artistDetails.targetRoiMin.toStringAsFixed(0)}–${artistDetails.targetRoiMax.toStringAsFixed(0)}%'
+                      ? artistDetails.forecastedReturnLabel
                       : '—',
                 ),
               ),
             ],
           ),
+          if (artistDetails?.hasPaybackPeriod ?? false) ...[
+            const SizedBox(height: 10),
+            Row(
+              children: [
+                Expanded(
+                  child: _metricTile(
+                    label: 'Payback Period',
+                    value: artistDetails!.paybackLabel,
+                  ),
+                ),
+                const SizedBox(width: 10),
+                const Expanded(child: SizedBox.shrink()),
+              ],
+            ),
+          ],
           const SizedBox(height: 10),
 
           if (artistDetails != null) _buildRevenueSplit(artistDetails),
@@ -109,7 +119,7 @@ class OpportunityStage extends ConsumerWidget {
             children: [
               Expanded(
                 child: Text(
-                  'Raised: ${ref.formatUserCurrency(artistDetails.totalRaised.toString())}',
+                  'Raised: ${Utils.formatNaira(artistDetails.totalRaised)}',
                   style: const TextStyle(color: Colors.white70, fontSize: 12),
                   overflow: TextOverflow.ellipsis,
                 ),
@@ -117,7 +127,7 @@ class OpportunityStage extends ConsumerWidget {
               const SizedBox(width: 12),
               Expanded(
                 child: Text(
-                  'Target: ${ref.formatUserCurrency(artistDetails.fundingTarget.toString())}',
+                  'Target: ${Utils.formatNaira(artistDetails.fundingTarget)}',
                   style: const TextStyle(color: Colors.purpleAccent, fontSize: 12),
                   textAlign: TextAlign.end,
                   overflow: TextOverflow.ellipsis,
@@ -152,20 +162,40 @@ class OpportunityStage extends ConsumerWidget {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceAround,
         children: [
-          _splitMetric('Investor Pool', '${artistDetails.revenueSplitInvestor.toStringAsFixed(0)}%'),
+          Expanded(
+            child: _splitMetric(
+              'Investor Return',
+              '${artistDetails.revenueSplitInvestor.toStringAsFixed(0)}%',
+              note: artistDetails.isPerpetual
+                  ? (artistDetails.hasPaybackPeriod
+                      ? '(In Perpetuity after Payback)'
+                      : '(In Perpetuity)')
+                  : null,
+            ),
+          ),
           Container(width: 1, height: 36, color: Colors.white10),
-          _splitMetric('Artist Return', '${artistDetails.revenueSplitArtist.toStringAsFixed(0)}%'),
+          Expanded(
+            child: _splitMetric('Artist Return', '${artistDetails.revenueSplitArtist.toStringAsFixed(0)}%'),
+          ),
         ],
       ),
     );
   }
 
-  Widget _splitMetric(String label, String value) {
+  Widget _splitMetric(String label, String value, {String? note}) {
     return Column(
       children: [
         Text(label, style: const TextStyle(color: Colors.white54, fontSize: 11)),
         const SizedBox(height: 4),
         Text(value, style: const TextStyle(color: Colors.purpleAccent, fontSize: 16, fontWeight: FontWeight.bold)),
+        if (note != null) ...[
+          const SizedBox(height: 2),
+          Text(
+            note,
+            textAlign: TextAlign.center,
+            style: const TextStyle(color: Colors.white38, fontSize: 10),
+          ),
+        ],
       ],
     );
   }
@@ -251,4 +281,4 @@ class OpportunityStage extends ConsumerWidget {
       ),
     );
   }
-}
+}

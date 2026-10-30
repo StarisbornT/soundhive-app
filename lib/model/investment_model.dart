@@ -1,5 +1,6 @@
 import 'dart:convert';
 
+import '../utils/json_parse.dart';
 import 'artists_model.dart';
 
 class InvestmentResponse {
@@ -55,25 +56,23 @@ class PaginatedData {
 
   factory PaginatedData.fromMap(Map<String, dynamic> map) {
     return PaginatedData(
-      currentPage: map['current_page'] ?? 1,
+      currentPage: asInt(map['current_page'], 1),
       data: List<Investment>.from(
         (map['data'] ?? []).map((x) => Investment.fromMap(x)),
       ),
-      firstPageUrl: map['first_page_url'],
-      from: map['from'] ?? 0,
-      lastPage: map['last_page'] ?? 0,
-      lastPageUrl: map['last_page_url'],
+      firstPageUrl: asStringOrNull(map['first_page_url']),
+      from: asInt(map['from']),
+      lastPage: asInt(map['last_page']),
+      lastPageUrl: asStringOrNull(map['last_page_url']),
       links: List<Link>.from(
         (map['links'] ?? []).map((x) => Link.fromMap(x)),
       ),
-      nextPageUrl: map['next_page_url'],
-      path: map['path'] ?? '',
-      perPage: map['per_page'] is String
-          ? int.tryParse(map['per_page']) ?? 0
-          : (map['per_page'] ?? 0),
-      prevPageUrl: map['prev_page_url'],
-      to: map['to'] ?? 0,
-      total: map['total'] ?? 0,
+      nextPageUrl: asStringOrNull(map['next_page_url']),
+      path: asString(map['path']),
+      perPage: asInt(map['per_page']),
+      prevPageUrl: asStringOrNull(map['prev_page_url']),
+      to: asInt(map['to']),
+      total: asInt(map['total']),
     );
   }
 }
@@ -95,6 +94,8 @@ class Investment {
   final String createdAt;
   final String updatedAt;
   final dynamic convertedMinimumAmount;
+  /// Always 'NGN' — vest amounts are stored and served in Naira.
+  final String currency;
   final ArtistDetails? artistDetails;
   final List<VestMilestone> milestones;
 
@@ -115,30 +116,41 @@ class Investment {
     required this.createdAt,
     required this.updatedAt,
     required this.convertedMinimumAmount,
+    this.currency = 'NGN',
     this.artistDetails,
     this.milestones = const [],
   });
 
   bool get isArtistVest => type.toUpperCase() == 'ARTIST';
 
+  /// Minimum ticket size in Naira, as a number.
+  double get minimumAmountValue => asDouble(minimumAmount);
+
+  /// Investor's share of revenue, e.g. 10.0 for 10%.
+  double get roiValue => asDouble(roi);
+
+  /// Duration in months as a number (payback period for artist vests).
+  int get durationMonths => asInt(duration);
+
   factory Investment.fromMap(Map<String, dynamic> map) {
     return Investment(
-      id: map['id'] ?? 0,
-      vestFor: map['vest_for'] ?? '',
-      beneficiaryName: map['beneficiary_name'] ?? '',
-      investmentName: map['investment_name'] ?? '',
-      minimumAmount: map['minimum_amount'] ?? '',
-      roi: map['roi']?.toString() ?? '',
-      duration: map['duration']?.toString() ?? '',
-      description: map['description'] ?? '',
-      images: List<String>.from(map['images'] ?? []),
-      riskAssessment: map['risk_assessment'] ?? '',
-      news: List<String>.from(map['news'] ?? []),
-      status: map['status'] ?? '',
-      type: map['type'] ?? 'GENERAL',
-      createdAt: map['created_at'] ?? '',
-      updatedAt: map['updated_at'] ?? '',
-      convertedMinimumAmount: map['converted_minimum_amount'] ?? '',
+      id: asInt(map['id']),
+      vestFor: asString(map['vest_for']),
+      beneficiaryName: asString(map['beneficiary_name']),
+      investmentName: asString(map['investment_name']),
+      minimumAmount: asString(map['minimum_amount'], '0'),
+      roi: asString(map['roi']),
+      duration: asString(map['duration']),
+      description: asString(map['description']),
+      images: asStringList(map['images']),
+      riskAssessment: asString(map['risk_assessment']),
+      news: asStringList(map['news']),
+      status: asString(map['status']),
+      type: asString(map['type'], 'GENERAL'),
+      createdAt: asString(map['created_at']),
+      updatedAt: asString(map['updated_at']),
+      convertedMinimumAmount: map['converted_minimum_amount'] ?? map['minimum_amount'] ?? '0',
+      currency: asString(map['currency'], 'NGN'),
       artistDetails: map['artist_details'] != null
           ? ArtistDetails.fromMap(map['artist_details'])
           : null,
@@ -165,6 +177,10 @@ class ArtistDetails {
   final double revenueSplitInvestor;
   final String riskLevel; // LOW / MEDIUM / HIGH — artist-vest specific
   final List<String> revenueStreamTags;
+  /// Months until the investor's capital is fully recovered (e.g. 12).
+  final int? paybackPeriodMonths;
+  /// How long the investor return runs, e.g. "In perpetuity".
+  final String? returnTimeline;
   final String? previewAudioUrl;
   final int? previewDurationSeconds;
   final HiveCategory? category;
@@ -184,6 +200,8 @@ class ArtistDetails {
     required this.revenueSplitInvestor,
     required this.riskLevel,
     required this.revenueStreamTags,
+    this.paybackPeriodMonths,
+    this.returnTimeline,
     this.previewAudioUrl,
     this.previewDurationSeconds,
     this.category,
@@ -199,25 +217,48 @@ class ArtistDetails {
   /// call eager-loads this deep (e.g. list endpoints may omit it).
   ArtistItem? get artist => song?.artist;
 
+  bool get hasPaybackPeriod => (paybackPeriodMonths ?? 0) > 0;
+
+  bool get isPerpetual =>
+      (returnTimeline ?? '').toLowerCase().contains('perpetu');
+
+  /// "12 Months" / "1 Month"
+  String get paybackLabel {
+    final m = paybackPeriodMonths ?? 0;
+    return '$m ${m == 1 ? 'Month' : 'Months'}';
+  }
+
+  /// "500%" when min == max, otherwise "300–500%".
+  String get forecastedReturnLabel {
+    final min = targetRoiMin.toStringAsFixed(0);
+    final max = targetRoiMax.toStringAsFixed(0);
+    return targetRoiMin == targetRoiMax ? '$max%' : '$min–$max%';
+  }
+
   factory ArtistDetails.fromMap(Map<String, dynamic> map) {
     return ArtistDetails(
-      id: map['id'] ?? 0,
-      categoryId: map['category_id'] ?? 0,
-      projectStage: map['project_stage'] ?? '',
-      projectType: map['project_type'] ?? '',
-      fundingTarget: double.tryParse(map['funding_target']?.toString() ?? '0') ?? 0.0,
-      totalRaised: double.tryParse(map['total_raised']?.toString() ?? '0') ?? 0.0,
-      fundingProgressPercentage:
-      double.tryParse(map['funding_progress_percentage']?.toString() ?? '0') ?? 0.0,
-      targetRoiMin: double.tryParse(map['target_roi_min']?.toString() ?? '0') ?? 0.0,
-      targetRoiMax: double.tryParse(map['target_roi_max']?.toString() ?? '0') ?? 0.0,
-      revenueSplitArtist: double.tryParse(map['revenue_split_artist']?.toString() ?? '0') ?? 0.0,
-      revenueSplitInvestor:
-      double.tryParse(map['revenue_split_investor']?.toString() ?? '0') ?? 0.0,
-      riskLevel: map['risk_level'] ?? 'HIGH',
-      revenueStreamTags: List<String>.from(map['revenue_stream_tags'] ?? []),
-      previewAudioUrl: map['preview_audio_url'],
-      previewDurationSeconds: map['preview_duration_seconds'],
+      id: asInt(map['id']),
+      categoryId: asInt(map['category_id']),
+      projectStage: asString(map['project_stage']),
+      projectType: asString(map['project_type']),
+      fundingTarget: asDouble(map['funding_target']),
+      totalRaised: asDouble(map['total_raised']),
+      fundingProgressPercentage: map['funding_progress_percentage'] != null
+          ? asDouble(map['funding_progress_percentage'])
+          // Fallback if the backend doesn't append it.
+          : (asDouble(map['funding_target']) > 0
+              ? asDouble(map['total_raised']) / asDouble(map['funding_target']) * 100
+              : 0.0),
+      targetRoiMin: asDouble(map['target_roi_min']),
+      targetRoiMax: asDouble(map['target_roi_max']),
+      revenueSplitArtist: asDouble(map['revenue_split_artist']),
+      revenueSplitInvestor: asDouble(map['revenue_split_investor']),
+      riskLevel: asString(map['risk_level'], 'HIGH'),
+      revenueStreamTags: asStringList(map['revenue_stream_tags']),
+      paybackPeriodMonths: asIntOrNull(map['payback_period_months']),
+      returnTimeline: asStringOrNull(map['return_timeline']),
+      previewAudioUrl: asStringOrNull(map['preview_audio_url']),
+      previewDurationSeconds: asIntOrNull(map['preview_duration_seconds']),
       category: map['category'] != null ? HiveCategory.fromMap(map['category']) : null,
       song: map['song'] != null ? VestSong.fromMap(map['song']) : null,
     );
@@ -232,8 +273,8 @@ class HiveCategory {
 
   factory HiveCategory.fromMap(Map<String, dynamic> map) {
     return HiveCategory(
-      id: map['id'] ?? 0,
-      name: map['name'] ?? '',
+      id: asInt(map['id']),
+      name: asString(map['name']),
     );
   }
 }
@@ -248,9 +289,9 @@ class VestSong {
 
   factory VestSong.fromMap(Map<String, dynamic> map) {
     return VestSong(
-      id: map['id'] ?? 0,
-      title: map['title'] ?? '',
-      status: map['status'],
+      id: asInt(map['id']),
+      title: asString(map['title']),
+      status: asStringOrNull(map['status']),
       artist: map['artist'] != null ? ArtistItem.fromMap(map['artist']) : null,
     );
   }
@@ -278,12 +319,12 @@ class VestMilestone {
 
   factory VestMilestone.fromMap(Map<String, dynamic> map) {
     return VestMilestone(
-      id: map['id'] ?? 0,
-      title: map['title'] ?? '',
-      description: map['description'],
-      status: map['status'] ?? 'PENDING',
-      position: map['position'] ?? 0,
-      completedAt: map['completed_at'],
+      id: asInt(map['id']),
+      title: asString(map['title']),
+      description: asStringOrNull(map['description']),
+      status: asString(map['status'], 'PENDING'),
+      position: asInt(map['position']),
+      completedAt: asStringOrNull(map['completed_at']),
     );
   }
 }
@@ -297,9 +338,9 @@ class Link {
 
   factory Link.fromMap(Map<String, dynamic> map) {
     return Link(
-      url: map['url'],
-      label: map['label'] ?? '',
-      active: map['active'] ?? false,
+      url: asStringOrNull(map['url']),
+      label: asString(map['label']),
+      active: asBool(map['active']),
     );
   }
-}
+}

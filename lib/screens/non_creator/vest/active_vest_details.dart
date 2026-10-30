@@ -70,7 +70,7 @@ class _VestDetailsScreenState extends ConsumerState<ActiveVestDetailsScreen> wit
                           const Text("Capital Invested", style: TextStyle(color: Colors.white70, fontSize: 13)),
                           const SizedBox(height: 4),
                           Text(
-                            ref.formatUserCurrency(investment.amount),
+                            Utils.formatNaira(investment.amount),
                             style: const TextStyle(
                               color: Colors.white,
                               fontSize: 22,
@@ -112,7 +112,7 @@ class _VestDetailsScreenState extends ConsumerState<ActiveVestDetailsScreen> wit
 
   Widget _buildAboutTab(ActiveVest investment, AsyncValue<InvestmentStatisticsModel> statisticsState) {
     final vestNode = investment.vest;
-    final bool isArtist = vestNode?.artistDetails != null;
+    final artistDetails = vestNode?.artistDetails;
 
     return SingleChildScrollView(
       padding: const EdgeInsets.all(12),
@@ -128,14 +128,22 @@ class _VestDetailsScreenState extends ConsumerState<ActiveVestDetailsScreen> wit
             child: Column(
               children: [
                 _buildInfoCard("Project Title", vestNode?.investmentName ?? ''),
-                _buildInfoCard("Principal", ref.formatUserCurrency(investment.amount)),
-                _buildInfoCard("Maturity Timeline", investment.maturityDate),
-                _buildInfoCard("Contract ROI", "${vestNode?.roi}%"),
-                _buildInfoCard("Expected Payout", ref.formatUserCurrency(investment.expectedRepayment)),
-
-                if (isArtist) ...[
-                  _buildInfoCard("Project Stage", vestNode!.artistDetails!.projectStage, valueColor: Colors.purpleAccent),
-                  _buildInfoCard("Investor Revenue Split", "${vestNode.artistDetails!.revenueSplitInvestor.toStringAsFixed(0)}%"),
+                _buildInfoCard("Principal", Utils.formatNaira(investment.amount)),
+                if (artistDetails != null) ...[
+                  _buildInfoCard("Payback Date", investment.maturityDate),
+                  if (artistDetails.hasPaybackPeriod)
+                    _buildInfoCard("Payback Period", artistDetails.paybackLabel),
+                  _buildInfoCard(
+                    "Investor Return",
+                    "${artistDetails.revenueSplitInvestor.toStringAsFixed(0)}%"
+                        "${artistDetails.isPerpetual ? ' (In Perpetuity)' : ''}",
+                  ),
+                  _buildInfoCard("Capital Recovered", Utils.formatNaira(investment.expectedRepayment)),
+                  _buildInfoCard("Project Stage", artistDetails.projectStage, valueColor: Colors.purpleAccent),
+                ] else ...[
+                  _buildInfoCard("Maturity Timeline", investment.maturityDate),
+                  _buildInfoCard("Contract ROI", "${vestNode?.roi}%"),
+                  _buildInfoCard("Expected Payout", Utils.formatNaira(investment.expectedRepayment)),
                 ],
 
                 _buildInfoCard("Status", vestNode?.status ?? 'ACTIVE', valueColor: Colors.green),
@@ -144,8 +152,8 @@ class _VestDetailsScreenState extends ConsumerState<ActiveVestDetailsScreen> wit
                   data: (stats) => Column(
                     children: [
                       const Divider(color: Colors.white10),
-                      _buildInfoCard("ROI Accrued So Far", ref.formatUserCurrency(stats.data.performanceMetrics.roiSoFar.toString())),
-                      _buildInfoCard("Current Assets Value", ref.formatUserCurrency(stats.data.performanceMetrics.currentValue.toString())),
+                      _buildInfoCard("ROI Accrued So Far", Utils.formatNaira(stats.data.performanceMetrics.roiSoFar.toString())),
+                      _buildInfoCard("Current Assets Value", Utils.formatNaira(stats.data.performanceMetrics.currentValue.toString())),
                       _buildInfoCard("Time to Maturity", stats.data.timeMetrics.timeToMaturityHuman),
                     ],
                   ),
@@ -182,9 +190,9 @@ class _VestDetailsScreenState extends ConsumerState<ActiveVestDetailsScreen> wit
           children: [
             Row(
               children: [
-                Expanded(child: _buildMetricCard("ROI So Far", ref.formatUserCurrency(stats.data.performanceMetrics.roiSoFar.toString()), Colors.greenAccent)),
+                Expanded(child: _buildMetricCard("ROI So Far", Utils.formatNaira(stats.data.performanceMetrics.roiSoFar.toString()), Colors.greenAccent)),
                 const SizedBox(width: 8),
-                Expanded(child: _buildMetricCard("Current Value", ref.formatUserCurrency(stats.data.performanceMetrics.currentValue.toString()), Colors.cyanAccent)),
+                Expanded(child: _buildMetricCard("Current Value", Utils.formatNaira(stats.data.performanceMetrics.currentValue.toString()), Colors.cyanAccent)),
               ],
             ),
             const SizedBox(height: 8),
@@ -219,10 +227,10 @@ class _VestDetailsScreenState extends ConsumerState<ActiveVestDetailsScreen> wit
                       child: Text("Performance Summary Ledger", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
                     ),
                   ),
-                  _buildEarningsRow("Total Asset Investment", ref.formatUserCurrency(stats.data.investmentDetails.investedAmount.toString())),
+                  _buildEarningsRow("Total Asset Investment", Utils.formatNaira(stats.data.investmentDetails.investedAmount.toString())),
                   const Divider(color: Colors.white10, height: 1),
-                  _buildEarningsRow("ROI Earned", ref.formatUserCurrency(stats.data.performanceMetrics.roiSoFar.toString()), isGreen: true),
-                  _buildEarningsRow("Total Maturity Target Return", ref.formatUserCurrency(stats.data.investmentDetails.expectedRepayment.toString())),
+                  _buildEarningsRow("ROI Earned", Utils.formatNaira(stats.data.performanceMetrics.roiSoFar.toString()), isGreen: true),
+                  _buildEarningsRow("Total Maturity Target Return", Utils.formatNaira(stats.data.investmentDetails.expectedRepayment.toString())),
                   _buildEarningsRow("Days Active", "${stats.data.performanceMetrics.daysSinceInvestment} Days"),
                 ],
               ),
@@ -356,4 +364,4 @@ class _VestChart extends StatelessWidget {
       ],
     );
   }
-}
+}

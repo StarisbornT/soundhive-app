@@ -1,4 +1,5 @@
 import 'dart:convert';
+import '../utils/json_parse.dart';
 
 class ArtistsModel {
   final bool status;
@@ -172,18 +173,18 @@ class ArtistItem {
 
   factory ArtistItem.fromMap(Map<String, dynamic> map) {
     return ArtistItem(
-      id: map['id'] ?? 0,
-      userId: map['user_id']?.toString() ?? '',
-      username: map['username'] ?? '',
-      profilePhoto: map['profile_photo'] ?? '',
-      coverPhoto: map['cover_photo'] ?? '',
-      status: map['status'] ?? false,
-      createdAt: map['created_at'] ?? '',
-      updatedAt: map['updated_at'] ?? '',
-      genre: map['genre'],
-      bio: map['bio'],
-      followers: map['followers'] ?? 0,
-      monthlyListeners: map['monthly_listeners'] ?? 0,
+      id: asInt(map['id']),
+      userId: asString(map['user_id']),
+      username: asString(map['username']),
+      profilePhoto: asString(map['profile_photo']),
+      coverPhoto: asString(map['cover_photo']),
+      status: asBool(map['status']),
+      createdAt: asString(map['created_at']),
+      updatedAt: asString(map['updated_at']),
+      genre: asStringOrNull(map['genre']),
+      bio: asStringOrNull(map['bio']),
+      followers: asInt(map['followers']),
+      monthlyListeners: asInt(map['monthly_listeners']),
       songs: map['songs'] != null
           ? List<ArtistSong>.from(
           (map['songs'] as List).map((x) => ArtistSong.fromMap(x)))
@@ -213,13 +214,11 @@ class ArtistSong {
 
   factory ArtistSong.fromMap(Map<String, dynamic> map) {
     return ArtistSong(
-      id: map['id'] ?? 0,
-      title: map['title'] ?? '',
-      coverPhoto: map['cover_photo'] ?? '',
-      status: map['status'] ?? 'PENDING',
-      featuredArtists: map['featured_artists'] != null
-          ? List<String>.from(map['featured_artists'])
-          : [],
+      id: asInt(map['id']),
+      title: asString(map['title']),
+      coverPhoto: asString(map['cover_photo']),
+      status: asString(map['status'], 'PENDING'),
+      featuredArtists: asStringList(map['featured_artists']),
     );
   }
-}
+}

@@ -119,7 +119,7 @@ class ServiceItem {
   final String updatedAt;
   final String? serviceDescription;
   final dynamic convertedRate;
-  final String? bookingCount;
+  final dynamic bookingCount;
   final String? convertedCurrency;
   final User? user;
 

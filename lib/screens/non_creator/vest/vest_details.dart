@@ -33,39 +33,40 @@ class _VestDetailsScreenState extends ConsumerState<VestDetailsScreen> {
   double? _investmentAmount;
   bool _isPlayingSnippet = false;
 
-  String _calculateMaturityDate(String createdAt, String durationMonths) {
-    try {
-      DateTime createdDate;
-      if (createdAt.contains('T')) {
-        createdDate = DateTime.parse(createdAt);
-      } else {
-        createdDate = DateFormat('yyyy-MM-dd HH:mm:ss').parse(createdAt);
-      }
-      final months = int.tryParse(durationMonths) ?? 0;
-      final maturityDate = DateTime(
-        createdDate.year,
-        createdDate.month + months,
-        createdDate.day,
-      );
-      return DateFormat('MMM dd, yyyy').format(maturityDate);
-    } catch (e) {
-      return 'In $durationMonths months';
+  /// Months until maturity. For artist vests this is the payback period
+  /// (capital fully recovered); otherwise the vest's duration.
+  int get _maturityMonths {
+    final details = widget.investment.artistDetails;
+    if (widget.investment.isArtistVest && (details?.hasPaybackPeriod ?? false)) {
+      return details!.paybackPeriodMonths!;
     }
+    return widget.investment.durationMonths;
   }
 
-  String _calculateExpectedRepayment(double amount, String roi, String durationMonths) {
-    try {
-      final roiPercent = double.tryParse(roi) ?? 0;
-      final months = int.tryParse(durationMonths) ?? 0;
-      if (roiPercent == 0 || months == 0) {
-        return ref.formatUserCurrency(amount.toString());
-      }
-      final totalInterest = amount * (roiPercent / 100) * (months / 12);
-      final totalRepayment = amount + totalInterest;
-      return ref.formatUserCurrency(totalRepayment.toString());
-    } catch (e) {
-      return ref.formatUserCurrency(amount.toString());
-    }
+  /// Maturity is counted from TODAY (the purchase date), not from when the
+  /// vest itself was created.
+  String _calculateMaturityDate() {
+    final now = DateTime.now();
+    final maturityDate = DateTime(now.year, now.month + _maturityMonths, now.day);
+    return DateFormat('MMM dd, yyyy').format(maturityDate);
+  }
+
+  /// Artist vests: the guaranteed figure is full recovery of capital at
+  /// payback; the 10% revenue share on top is open-ended, so it isn't
+  /// folded into a number here.
+  /// General vests: simple interest over the duration, as before.
+  double _calculateExpectedRepaymentValue(double amount) {
+    if (widget.investment.isArtistVest) return amount;
+    final roiPercent = widget.investment.roiValue;
+    final months = widget.investment.durationMonths;
+    if (roiPercent == 0 || months == 0) return amount;
+    return amount + amount * (roiPercent / 100) * (months / 12);
+  }
+
+  /// "Investor Return: 10% (In Perpetuity)" style label for artist vests.
+  String _investorReturnText(ArtistDetails details) {
+    final pct = '${details.revenueSplitInvestor.toStringAsFixed(0)}%';
+    return details.isPerpetual ? '$pct (In Perpetuity)' : pct;
   }
 
   @override
@@ -209,14 +210,17 @@ class _VestDetailsScreenState extends ConsumerState<VestDetailsScreen> {
         ),
         const SizedBox(height: 8),
         Text(
-          'Min of ${ref.formatUserCurrency(widget.investment.convertedMinimumAmount)}',
+          'Min of ${Utils.formatNaira(widget.investment.minimumAmountValue)}',
           style: const TextStyle(
             color: Colors.white, fontSize: 24, fontWeight: FontWeight.bold, fontFamily: 'Roboto',
           ),
         ),
         const SizedBox(height: 8),
         Text(
-          'ROI: ${widget.investment.roi}% in ${widget.investment.duration} months',
+          isArtist && artistDetails != null
+              ? 'Investor Return: ${_investorReturnText(artistDetails)}'
+                  '${artistDetails.hasPaybackPeriod ? ' • Payback: ${artistDetails.paybackLabel}' : ''}'
+              : 'ROI: ${widget.investment.roi}% in ${widget.investment.duration} months',
           style: const TextStyle(color: Colors.white70, fontSize: 14),
         ),
         const SizedBox(height: 16),
@@ -277,7 +281,7 @@ class _VestDetailsScreenState extends ConsumerState<VestDetailsScreen> {
             children: [
               Expanded(
                 child: Text(
-                  'Raised: ${ref.formatUserCurrency(artistDetails.totalRaised.toString())}',
+                  'Raised: ${Utils.formatNaira(artistDetails.totalRaised)}',
                   style: const TextStyle(color: Colors.white70, fontSize: 12),
                   overflow: TextOverflow.ellipsis,
                   maxLines: 1,
@@ -286,7 +290,7 @@ class _VestDetailsScreenState extends ConsumerState<VestDetailsScreen> {
               const SizedBox(width: 12), // Adds a safe gap between the two metrics
               Expanded(
                 child: Text(
-                  'Target: ${ref.formatUserCurrency(artistDetails.fundingTarget.toString())}',
+                  'Target: ${Utils.formatNaira(artistDetails.fundingTarget)}',
                   style: const TextStyle(color: Colors.purpleAccent, fontSize: 12),
                   textAlign: TextAlign.end, // Keeps target pinned neatly to the right edge
                   overflow: TextOverflow.ellipsis,
@@ -314,8 +318,20 @@ class _VestDetailsScreenState extends ConsumerState<VestDetailsScreen> {
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceAround,
               children: [
-                _buildSplitMetrics('Investor Pool', '${artistDetails.revenueSplitInvestor.toStringAsFixed(0)}%'),
-                _buildSplitMetrics('Artist Return', '${artistDetails.revenueSplitArtist.toStringAsFixed(0)}%'),
+                Expanded(
+                  child: _buildSplitMetrics(
+                    'Investor Return',
+                    '${artistDetails.revenueSplitInvestor.toStringAsFixed(0)}%',
+                    note: artistDetails.isPerpetual ? '(In Perpetuity)' : null,
+                  ),
+                ),
+                if (artistDetails.hasPaybackPeriod)
+                  Expanded(
+                    child: _buildSplitMetrics('Payback Period', artistDetails.paybackLabel),
+                  ),
+                Expanded(
+                  child: _buildSplitMetrics('Artist Return', '${artistDetails.revenueSplitArtist.toStringAsFixed(0)}%'),
+                ),
               ],
             ),
           ),
@@ -353,12 +369,16 @@ class _VestDetailsScreenState extends ConsumerState<VestDetailsScreen> {
     );
   }
 
-  Widget _buildSplitMetrics(String label, String rate) {
+  Widget _buildSplitMetrics(String label, String rate, {String? note}) {
     return Column(
       children: [
-        Text(label, style: const TextStyle(color: Colors.white54, fontSize: 12)),
+        Text(label, textAlign: TextAlign.center, style: const TextStyle(color: Colors.white54, fontSize: 12)),
         const SizedBox(height: 4),
-        Text(rate, style: const TextStyle(color: Colors.purpleAccent, fontSize: 16, fontWeight: FontWeight.bold)),
+        Text(rate, textAlign: TextAlign.center, style: const TextStyle(color: Colors.purpleAccent, fontSize: 16, fontWeight: FontWeight.bold)),
+        if (note != null) ...[
+          const SizedBox(height: 2),
+          Text(note, textAlign: TextAlign.center, style: const TextStyle(color: Colors.white38, fontSize: 10)),
+        ],
       ],
     );
   }
@@ -376,7 +396,7 @@ class _VestDetailsScreenState extends ConsumerState<VestDetailsScreen> {
             keyboardType: TextInputType.number,
             style: const TextStyle(color: Colors.white, fontFamily: 'Roboto'),
             decoration: const InputDecoration(
-              hintText: 'Enter amount',
+              hintText: 'Enter amount (NGN)',
               hintStyle: TextStyle(color: Colors.white54, fontFamily: 'Roboto'),
               border: OutlineInputBorder(),
             ),
@@ -384,9 +404,9 @@ class _VestDetailsScreenState extends ConsumerState<VestDetailsScreen> {
               if (value == null || value.isEmpty) return 'Please enter amount';
               final amount = double.tryParse(value.replaceAll(RegExp(r'[₦,]'), ''));
               if (amount == null) return 'Invalid amount';
-              final minAmount = widget.investment.convertedMinimumAmount;
+              final minAmount = widget.investment.minimumAmountValue;
               if (amount < minAmount) {
-                return 'Minimum investment is ${ref.formatUserCurrency(widget.investment.convertedMinimumAmount.toString())}';
+                return 'Minimum investment is ${Utils.formatNaira(minAmount)}';
               }
               return null;
             },
@@ -498,10 +518,18 @@ class _VestDetailsScreenState extends ConsumerState<VestDetailsScreen> {
             children: [
               confirmRow('Item', widget.investment.investmentName),
               confirmRow('Type', widget.investment.isArtistVest ? "ARTIST VEST" : "GENERAL VEST"),
-              confirmRow('Amount', ref.formatUserCurrency(_investmentAmount!.toString())),
-              confirmRow('Maturity Date', _calculateMaturityDate(widget.investment.createdAt, widget.investment.duration)),
-              confirmRow('Interest Rate', '${widget.investment.roi}%'),
-              confirmRow('Expected Return', _calculateExpectedRepayment(_investmentAmount!, widget.investment.roi, widget.investment.duration)),
+              confirmRow('Amount', Utils.formatNaira(_investmentAmount!)),
+              if (widget.investment.isArtistVest && widget.investment.artistDetails != null) ...[
+                if (widget.investment.artistDetails!.hasPaybackPeriod)
+                  confirmRow('Payback Period', widget.investment.artistDetails!.paybackLabel),
+                confirmRow('Payback Date', _calculateMaturityDate()),
+                confirmRow('Capital Recovered', Utils.formatNaira(_calculateExpectedRepaymentValue(_investmentAmount!))),
+                confirmRow('Investor Return', _investorReturnText(widget.investment.artistDetails!)),
+              ] else ...[
+                confirmRow('Maturity Date', _calculateMaturityDate()),
+                confirmRow('Interest Rate', '${widget.investment.roi}%'),
+                confirmRow('Expected Return', Utils.formatNaira(_calculateExpectedRepaymentValue(_investmentAmount!))),
+              ],
             ],
           ),
         ),
@@ -541,9 +569,11 @@ class _VestDetailsScreenState extends ConsumerState<VestDetailsScreen> {
   }
 
   void _submitInvestment(String pin) async {
-    final maturityDate = _calculateMaturityDate(widget.investment.createdAt, widget.investment.duration);
-    final expectedRepayment = _calculateExpectedRepayment(_investmentAmount!, widget.investment.roi, widget.investment.duration);
-    final cleanExpectedRepayment = expectedRepayment.replaceAll(RegExp(r'[NGN₦,]'), '').trim();
+    final maturityDate = _calculateMaturityDate();
+    final expectedRepayment = _calculateExpectedRepaymentValue(_investmentAmount!);
+    final interest = widget.investment.isArtistVest && widget.investment.artistDetails != null
+        ? widget.investment.artistDetails!.revenueSplitInvestor
+        : widget.investment.roiValue;
 
     try {
       final response = await ref.read(apiresponseProvider.notifier).joinInvestment(
@@ -551,9 +581,9 @@ class _VestDetailsScreenState extends ConsumerState<VestDetailsScreen> {
           payload: {
             "vest_id": widget.investment.id,
             "amount": _investmentAmount,
-            "expected_repayment": cleanExpectedRepayment,
+            "expected_repayment": expectedRepayment.toStringAsFixed(2),
             "maturity_date": maturityDate,
-            "interest": widget.investment.roi,
+            "interest": interest,
             "pin": pin
           }
       );
@@ -585,4 +615,4 @@ class _VestDetailsScreenState extends ConsumerState<VestDetailsScreen> {
       showCustomAlert(context: context, isSuccess: false, title: 'Error', message: errorMessage);
     }
   }
-}
+}

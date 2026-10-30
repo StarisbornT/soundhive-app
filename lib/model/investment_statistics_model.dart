@@ -1,5 +1,6 @@
 import 'dart:convert';
 
+import '../utils/json_parse.dart';
 import 'user_model.dart';
 
 class InvestmentStatisticsModel {
@@ -41,7 +42,7 @@ class InvestmentData {
 
   factory InvestmentData.fromMap(Map<String, dynamic> map) {
     return InvestmentData(
-      investmentId: map['investment_id'] ?? 0,
+      investmentId: asInt(map['investment_id']),
       user: User.fromJson(map['user'] ?? {}),
       vest: Vest.fromMap(map['vest'] ?? {}),
       investmentDetails: InvestmentDetails.fromMap(map['investment_details'] ?? {}),
@@ -71,12 +72,12 @@ class Vest {
 
   factory Vest.fromMap(Map<String, dynamic> map) {
     return Vest(
-      id: map['id'] ?? 0,
-      investmentName: map['investment_name'] ?? '',
-      beneficiaryName: map['beneficiary_name'] ?? '',
-      roiPercentage: map['roi_percentage'] ?? '0',
-      durationMonths: map['duration_months'] ?? '0',
-      status: map['status'] ?? '',
+      id: asInt(map['id']),
+      investmentName: asString(map['investment_name']),
+      beneficiaryName: asString(map['beneficiary_name']),
+      roiPercentage: asString(map['roi_percentage'], '0'),
+      durationMonths: asString(map['duration_months'], '0'),
+      status: asString(map['status']),
     );
   }
 }
@@ -102,13 +103,13 @@ class InvestmentDetails {
 
   factory InvestmentDetails.fromMap(Map<String, dynamic> map) {
     return InvestmentDetails(
-      investedAmount: (map['invested_amount'] ?? 0).toDouble(),
-      interestRate: (map['interest_rate'] ?? 0).toDouble(),
-      expectedRepayment: (map['expected_repayment'] ?? 0).toDouble(),
-      maturityDate: map['maturity_date'] ?? '',
-      formattedMaturityDate: map['formatted_maturity_date'] ?? '',
-      createdAt: map['created_at'] ?? '',
-      status: map['status'] ?? '',
+      investedAmount: asDouble(map['invested_amount']),
+      interestRate: asDouble(map['interest_rate']),
+      expectedRepayment: asDouble(map['expected_repayment']),
+      maturityDate: asString(map['maturity_date']),
+      formattedMaturityDate: asString(map['formatted_maturity_date']),
+      createdAt: asString(map['created_at']),
+      status: asString(map['status']),
     );
   }
 }
@@ -132,12 +133,12 @@ class PerformanceMetrics {
 
   factory PerformanceMetrics.fromMap(Map<String, dynamic> map) {
     return PerformanceMetrics(
-      roiSoFar: (map['roi_so_far'] ?? 0).toDouble(),
-      totalExpectedRoi: (map['total_expected_roi'] ?? 0).toDouble(),
-      progressPercentage: (map['progress_percentage'] ?? 0).toDouble(),
-      daysSinceInvestment: map['days_since_investment'] ?? 0,
-      totalInvestmentDays: map['total_investment_days'] ?? 0,
-      currentValue: (map['current_value'] ?? 0).toDouble(),
+      roiSoFar: asDouble(map['roi_so_far']),
+      totalExpectedRoi: asDouble(map['total_expected_roi']),
+      progressPercentage: asDouble(map['progress_percentage']),
+      daysSinceInvestment: asInt(map['days_since_investment']),
+      totalInvestmentDays: asInt(map['total_investment_days']),
+      currentValue: asDouble(map['current_value']),
     );
   }
 }
@@ -159,11 +160,11 @@ class TimeMetrics {
 
   factory TimeMetrics.fromMap(Map<String, dynamic> map) {
     return TimeMetrics(
-      timeToMaturityDays: map['time_to_maturity_days'] ?? 0,
-      timeToMaturityHuman: map['time_to_maturity_human'] ?? '',
-      isMatured: map['is_matured'] ?? false,
-      isMaturingSoon: map['is_maturing_soon'] ?? false,
-      statusCategory: map['status_category'] ?? '',
+      timeToMaturityDays: asInt(map['time_to_maturity_days']),
+      timeToMaturityHuman: asString(map['time_to_maturity_human']),
+      isMatured: asBool(map['is_matured']),
+      isMaturingSoon: asBool(map['is_maturing_soon']),
+      statusCategory: asString(map['status_category']),
     );
   }
 }

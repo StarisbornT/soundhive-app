@@ -10,8 +10,11 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 /// All fully backed:
 ///   - project name/type -> investmentName + artistDetails.projectType
 ///     (SINGLE / EP / ALBUM)
-///   - budget             -> artistDetails.fundingTarget
-///   - timeline            -> the vest's `duration` (months) plus the real
+///   - budget             -> artistDetails.fundingTarget (Naira)
+///   - timeline            -> artistDetails.returnTimeline ("In perpetuity"),
+///     falling back to the vest's `duration` (months)
+///   - payback period      -> artistDetails.paybackPeriodMonths
+///   - roadmap             -> the real
 ///     milestone roadmap from `GET /vests/{id}/milestones`
 ///     (VestMilestone: title, description, status, position, completedAt)
 class ProjectStage extends ConsumerWidget {
@@ -65,7 +68,7 @@ class ProjectStage extends ConsumerWidget {
                 child: _metricTile(
                   label: 'Budget to raise',
                   value: artistDetails != null
-                      ? ref.formatUserCurrency(artistDetails.fundingTarget.toString())
+                      ? Utils.formatNaira(artistDetails.fundingTarget)
                       : '—',
                 ),
               ),
@@ -73,11 +76,28 @@ class ProjectStage extends ConsumerWidget {
               Expanded(
                 child: _metricTile(
                   label: 'Timeline',
-                  value: '${investment.duration} months',
+                  value: (artistDetails?.returnTimeline?.isNotEmpty ?? false)
+                      ? artistDetails!.returnTimeline!
+                      : '${investment.duration} months',
                 ),
               ),
             ],
           ),
+          if (artistDetails?.hasPaybackPeriod ?? false) ...[
+            const SizedBox(height: 10),
+            Row(
+              children: [
+                Expanded(
+                  child: _metricTile(
+                    label: 'Payback Period',
+                    value: artistDetails!.paybackLabel,
+                  ),
+                ),
+                const SizedBox(width: 10),
+                const Expanded(child: SizedBox.shrink()),
+              ],
+            ),
+          ],
 
           const SizedBox(height: 24),
           const Text(
@@ -211,4 +231,4 @@ class ProjectStage extends ConsumerWidget {
       }),
     );
   }
-}
+}
