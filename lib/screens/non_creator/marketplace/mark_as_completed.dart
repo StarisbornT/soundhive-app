@@ -21,6 +21,7 @@ import '../../../model/apiresponse_model.dart';
 import '../../../utils/alert_helper.dart';
 import '../../../utils/review_type.dart';
 import 'creator.dart';
+import '../../bookings/booking_payments_screen.dart';
 
 class MarkAsCompletedScreen extends ConsumerStatefulWidget {
   final ActiveInvestment services;
@@ -312,6 +313,26 @@ class _MarkAsCompletedScreenState extends ConsumerState<MarkAsCompletedScreen> {
                 ),
               ),
               const SizedBox(height: 20),
+              // Module 2 — milestones, escrow and what is left to pay
+              OutlinedButton.icon(
+                onPressed: () => Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => BookingPaymentsScreen(
+                      bookingId: services.id,
+                      serviceName: services.service?.serviceName,
+                    ),
+                  ),
+                ),
+                icon: Icon(Icons.payments_outlined, color: theme.colorScheme.onSurface, size: 18),
+                label: Text('Payment schedule', style: TextStyle(color: theme.colorScheme.onSurface)),
+                style: OutlinedButton.styleFrom(
+                  minimumSize: const Size.fromHeight(44),
+                  side: BorderSide(color: theme.dividerColor),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(25)),
+                ),
+              ),
+              const SizedBox(height: 12),
               RoundedButton(
                 title: 'Mark as completed',
                 color: theme.colorScheme.primary,

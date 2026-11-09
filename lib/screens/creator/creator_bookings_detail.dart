@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:soundhive2/screens/bookings/booking_payments_screen.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../model/creator_bookings_model.dart';
@@ -135,6 +136,29 @@ class _CreatorBookingsDetailScreenState extends ConsumerState<CreatorBookingsDet
                   Utils.confirmRow('Service Request', widget.service.service?.serviceName),
                   Utils.confirmRow('Date Booked', widget.service.date),
                 ],
+              ),
+            ),
+            const SizedBox(height: 16),
+            // Module 2 — advance received, escrow and milestones to deliver
+            SizedBox(
+              width: double.infinity,
+              child: OutlinedButton.icon(
+                onPressed: () => Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => BookingPaymentsScreen(
+                      bookingId: widget.service.id,
+                      serviceName: widget.service.service?.serviceName,
+                    ),
+                  ),
+                ),
+                icon: const Icon(Icons.payments_outlined, color: Colors.white, size: 18),
+                label: const Text('Payments & milestones', style: TextStyle(color: Colors.white)),
+                style: OutlinedButton.styleFrom(
+                  padding: const EdgeInsets.symmetric(vertical: 14),
+                  side: const BorderSide(color: Colors.white24),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(25)),
+                ),
               ),
             ),
             if (_isCompleted) ...[

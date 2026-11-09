@@ -5,6 +5,7 @@ import 'package:intl/intl.dart';
 import 'package:shimmer/shimmer.dart';
 import 'package:soundhive2/screens/creator/services/edit_service.dart';
 import 'package:soundhive2/screens/creator/services/offer_details.dart';
+import 'package:soundhive2/screens/creator/services/payment_terms_screen.dart';
 import 'package:soundhive2/screens/creator/services/services.dart';
 import 'package:soundhive2/utils/app_colors.dart';
 import 'package:soundhive2/utils/utils.dart';
@@ -179,6 +180,22 @@ class _ServiceScreenState extends ConsumerState<ServiceDetailsScreen>
                         ),
                         Row(
                           children: [
+                            // Module 2 — advance & milestone payment terms
+                            IconButton(
+                              tooltip: 'Payment terms',
+                              icon: Icon(
+                                Icons.payments_outlined,
+                                color: widget.services.allowsMilestones ? AppColors.BUTTONCOLOR : Colors.white70,
+                              ),
+                              onPressed: () {
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (context) => PaymentTermsScreen(service: widget.services),
+                                  ),
+                                );
+                              },
+                            ),
                             if (widget.services.status != 'PENDING' &&
                                 widget.services.status != 'REJECTED')
                               IconButton(

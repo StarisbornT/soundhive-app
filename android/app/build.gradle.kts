@@ -43,11 +43,41 @@ android {
         }
     }
 
+    packaging {
+        jniLibs {
+            // Agora is only used for VOICE calls (call_provider.dart). These
+            // optional extension libraries are for video, face/body effects
+            // and screen sharing, and are loaded only if those features are
+            // switched on — dropping them saves several MB per ABI.
+            // If video calls are added later, delete the video_* lines.
+            excludes += listOf(
+                "lib/*/libagora_clear_vision_extension.so",
+                "lib/*/libagora_content_inspect_extension.so",
+                "lib/*/libagora_face_capture_extension.so",
+                "lib/*/libagora_face_detection_extension.so",
+                "lib/*/libagora_lip_sync_extension.so",
+                "lib/*/libagora_screen_capture_extension.so",
+                "lib/*/libagora_segmentation_extension.so",
+                "lib/*/libagora_video_av1_decoder_extension.so",
+                "lib/*/libagora_video_av1_encoder_extension.so",
+                "lib/*/libagora_video_decoder_extension.so",
+                "lib/*/libagora_video_encoder_extension.so",
+                "lib/*/libagora_video_quality_analyzer_extension.so",
+            )
+        }
+    }
+
     buildTypes {
         release {
-            isMinifyEnabled = false
-            isShrinkResources = false
-            
+            // R8: strips unused Java/Kotlin code and resources from plugins.
+            // Rules for plugins that use reflection are in proguard-rules.pro.
+            isMinifyEnabled = true
+            isShrinkResources = true
+            proguardFiles(
+                getDefaultProguardFile("proguard-android-optimize.txt"),
+                "proguard-rules.pro"
+            )
+
             // Replaced "debug" configuration with your official production signing configuration
             signingConfig = signingConfigs.getByName("release")
         }

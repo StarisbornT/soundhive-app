@@ -1,4 +1,6 @@
 import 'package:dio/dio.dart';
+import 'package:soundhive2/components/payment_plan_selector.dart';
+import 'package:soundhive2/model/booking_payment_model.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
@@ -52,6 +54,11 @@ class _MarketplaceDetailsScreenState extends ConsumerState<MarketplaceDetails>
 
   // Terms of Service state
   bool _termsAccepted = false;
+
+  // Module 2 — payment arrangement chosen on the confirmation step
+  PaymentPlanRequest _paymentPlan = const PaymentPlanRequest.fullEscrow();
+  bool _planValid = true;
+  PaymentQuote? _planQuote;
   bool _showTermsError = false;
 
   // Full creator profile (for the mandatory overview step)
@@ -1039,6 +1046,22 @@ class _MarketplaceDetailsScreenState extends ConsumerState<MarketplaceDetails>
         _buildBookingSummary(theme, isDark),
 
         const SizedBox(height: 20),
+        if (widget.service.allowsMilestones) ...[
+          PaymentPlanSelector(
+            serviceId: widget.service.id,
+            allowsMilestones: widget.service.allowsMilestones,
+            creatorAdvanceCap: widget.service.maxAdvancePercent,
+            template: widget.service.milestoneTemplate,
+            theme: theme,
+            isDark: isDark,
+            onChanged: (plan, isValid, quote) {
+              _paymentPlan = plan;
+              _planValid = isValid;
+              _planQuote = quote;
+            },
+          ),
+          const SizedBox(height: 20),
+        ],
         PaymentMethodSelector(
           user: widget.user.user!,
           onSelected: (method) {
@@ -1063,6 +1086,15 @@ class _MarketplaceDetailsScreenState extends ConsumerState<MarketplaceDetails>
           borderWidth: 0,
           borderRadius: 25.0,
           onPressed: () {
+            if (!_planValid) {
+              showCustomAlert(
+                context: context,
+                isSuccess: false,
+                title: 'Check your payment plan',
+                message: 'Please fix the payment stages before continuing.',
+              );
+              return;
+            }
             setState(() {
               _currentStep++;
             });
@@ -1527,6 +1559,9 @@ class _MarketplaceDetailsScreenState extends ConsumerState<MarketplaceDetails>
         payload["payment_method"] = selectedPaymentOption;
       }
 
+      // Module 2 — how the client chose to pay (full escrow or advance + milestones)
+      payload["payment_plan"] = _paymentPlan.toJson();
+
       final response = await ref.read(apiresponseProvider.notifier).buyServices(
         context: context,
         payload: payload,
@@ -1597,7 +1632,7 @@ class _MarketplaceDetailsScreenState extends ConsumerState<MarketplaceDetails>
                       builder: (context) => MarketplaceReceiptScreen(
                         service: bookings,
                         paymentMethod: selectedPaymentOption ?? '',
-                        price: bookingAmount.toString(),
+                        price: (_planQuote?.dueNow ?? bookingAmount).toString(),
                         availability: availabilityDates,
                       ),
                     ),

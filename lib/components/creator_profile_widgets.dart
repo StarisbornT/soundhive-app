@@ -15,7 +15,7 @@
 
 import 'package:flutter/material.dart';
 import 'package:soundhive2/components/widgets.dart';
-import '../../utils/app_colors.dart';
+import '../utils/app_colors.dart';
 import '../model/creator_profile_models.dart';
 
 class TrustBadgeRow extends StatelessWidget {

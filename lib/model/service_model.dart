@@ -1,6 +1,7 @@
 import 'dart:convert';
 
 import 'package:soundhive2/model/user_model.dart';
+import 'booking_payment_model.dart';
 
 class ServiceResponse {
   final bool status;
@@ -122,6 +123,10 @@ class ServiceItem {
   final dynamic bookingCount;
   final String? convertedCurrency;
   final User? user;
+  // Module 2 — advance & milestone payments
+  final bool allowsMilestones;
+  final double? maxAdvancePercent;
+  final List<PlanStageInput>? milestoneTemplate;
 
   ServiceItem({
     required this.id,
@@ -144,6 +149,9 @@ class ServiceItem {
     this.convertedCurrency,
     this.user,
     this.bookingCount,
+    this.allowsMilestones = false,
+    this.maxAdvancePercent,
+    this.milestoneTemplate,
   });
 
   factory ServiceItem.fromMap(Map<String, dynamic> map) {
@@ -168,6 +176,17 @@ class ServiceItem {
       convertedRate: map['converted_rate'] ?? '',
       bookingCount: map['bookings_count'] ?? '',
       user: map['user'] != null ? User.fromJson(map['user']) : null,
+      allowsMilestones: map['allows_milestones'] == true || map['allows_milestones'] == 1,
+      maxAdvancePercent: map['max_advance_percent'] == null ? null : double.tryParse(map['max_advance_percent'].toString()),
+      milestoneTemplate: map['milestone_template'] is List
+          ? (map['milestone_template'] as List)
+              .whereType<Map>()
+              .map((s) => PlanStageInput(
+                    title: s['title']?.toString() ?? '',
+                    percentage: double.tryParse(s['percentage'].toString()) ?? 0,
+                  ))
+              .toList()
+          : null,
     );
   }
 }
