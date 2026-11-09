@@ -15,6 +15,7 @@ import '../../../model/ticket_model.dart';
 import '../../../model/user_model.dart';
 import '../../../utils/alert_helper.dart';
 import '../../../utils/app_colors.dart';
+import '../../events/ticket_checkout_screen.dart';
 final withdrawStateProvider = StateProvider<bool>((ref) => false);
 
 class EventDetails extends ConsumerStatefulWidget {
@@ -202,9 +203,12 @@ class _EventDetailsState extends ConsumerState<EventDetails> {
         RoundedButton(
           title: 'Buy Ticket',
           onPressed: () {
-              setState(() {
-                _currentStep++;
-              });
+            // Module 3: every event (Cre8Hive and partner events like Future Fest)
+            // now uses the ticket-category checkout. Prices come from the server.
+            Navigator.push(
+              context,
+              MaterialPageRoute(builder: (_) => TicketCheckoutScreen(eventId: event.id)),
+            );
           },
           color: AppColors.PRIMARYCOLOR,
           minWidth: 100,
