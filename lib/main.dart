@@ -361,6 +361,7 @@ class SoundHive extends ConsumerWidget {
       builder: (context, child) {
         return NoNetworkOverlay(
           child: UpgradeAlert(
+            navigatorKey: navigatorKey,
             upgrader: Upgrader(
               durationUntilAlertAgain: const Duration(days: 3),
             ),
