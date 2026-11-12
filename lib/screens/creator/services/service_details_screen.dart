@@ -6,6 +6,7 @@ import 'package:shimmer/shimmer.dart';
 import 'package:soundhive2/screens/creator/services/edit_service.dart';
 import 'package:soundhive2/screens/creator/services/offer_details.dart';
 import 'package:soundhive2/screens/creator/services/payment_terms_screen.dart';
+import '../../../components/payment_terms_editor.dart';
 import 'package:soundhive2/screens/creator/services/services.dart';
 import 'package:soundhive2/utils/app_colors.dart';
 import 'package:soundhive2/utils/utils.dart';
@@ -19,6 +20,7 @@ import 'package:soundhive2/lib/dashboard_provider/serviceProvider.dart';
 import 'package:soundhive2/lib/dashboard_provider/user_provider.dart';
 import '../../../model/apiresponse_model.dart';
 import '../../../model/getOfferFromUserProvider.dart';
+import '../../../model/booking_payment_model.dart';
 import '../../../model/service_model.dart';
 import '../../../utils/alert_helper.dart';
 
@@ -139,6 +141,25 @@ class _ServiceScreenState extends ConsumerState<ServiceDetailsScreen>
       }
     }
   }
+  // Module 2 — current payment terms (updated in place after editing)
+  late PaymentTerms _terms = PaymentTerms.fromService(
+    allowsMilestones: widget.services.allowsMilestones,
+    template: widget.services.milestoneTemplate,
+  );
+
+  Future<void> _openPaymentTerms() async {
+    final saved = await Navigator.push<PaymentTerms>(
+      context,
+      MaterialPageRoute(builder: (_) => PaymentTermsScreen(service: widget.services, current: _copyTerms(_terms))),
+    );
+    if (saved != null && mounted) setState(() => _terms = saved);
+  }
+
+  PaymentTerms _copyTerms(PaymentTerms t) => PaymentTerms(
+        enabled: t.enabled,
+        stages: t.stages.map((s) => PlanStageInput(title: s.title, percentage: s.percentage)).toList(),
+      );
+
   @override
   Widget build(BuildContext context) {
     return DefaultTabController(
@@ -180,22 +201,6 @@ class _ServiceScreenState extends ConsumerState<ServiceDetailsScreen>
                         ),
                         Row(
                           children: [
-                            // Module 2 — advance & milestone payment terms
-                            IconButton(
-                              tooltip: 'Payment terms',
-                              icon: Icon(
-                                Icons.payments_outlined,
-                                color: widget.services.allowsMilestones ? AppColors.BUTTONCOLOR : Colors.white70,
-                              ),
-                              onPressed: () {
-                                Navigator.push(
-                                  context,
-                                  MaterialPageRoute(
-                                    builder: (context) => PaymentTermsScreen(service: widget.services),
-                                  ),
-                                );
-                              },
-                            ),
                             if (widget.services.status != 'PENDING' &&
                                 widget.services.status != 'REJECTED')
                               IconButton(
@@ -247,6 +252,13 @@ class _ServiceScreenState extends ConsumerState<ServiceDetailsScreen>
                     ),
                   ),
 
+                  const SizedBox(height: 12),
+
+                  // Module 2 — payment terms, visible on the service page
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                    child: PaymentTermsCard(terms: _terms, onTap: _openPaymentTerms),
+                  ),
                   const SizedBox(height: 12),
                 ],
               ),

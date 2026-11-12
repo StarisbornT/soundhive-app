@@ -36,6 +36,7 @@ import '../../creator/profile/setup_screen.dart';
 import '../ai/ai_conversation_list.dart';
 import 'creator.dart';
 import 'event_details.dart';
+import 'featured_events.dart';
 import 'mark_as_completed.dart';
 import 'marketplace_details.dart';
 
@@ -124,6 +125,7 @@ class _MarketplaceState extends ConsumerState<Marketplace>
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) {
         _loadInitialData();
+        _loadFeaturedEvents();
         final route = ModalRoute.of(context);
         if (route != null) {
           route.addScopedWillPopCallback(() {
@@ -174,6 +176,32 @@ class _MarketplaceState extends ConsumerState<Marketplace>
     } catch (e) {
       if (mounted) debugPrint('Error loading initial data: $e');
     }
+  }
+
+  /// Loads events so featured (partner) events can be promoted, then shows the pop-up.
+  Future<void> _loadFeaturedEvents() async {
+    try {
+      await ref.read(eventMarketPlaceProvider.notifier).getEventMarketplace();
+      if (!mounted) return;
+      final user = widget.user.user;
+      final featured = featuredEventsFrom(
+          ref.read(eventMarketPlaceProvider.notifier).allServices);
+      if (user == null || featured.isEmpty) return;
+      await FeaturedEventPopup.maybeShow(
+        context,
+        featured: featured,
+        user: user,
+        onSeeAll: _openEventsExplore,
+      );
+    } catch (e) {
+      debugPrint('Featured events error: $e');
+    }
+  }
+
+  void _openEventsExplore() {
+    if (!mounted) return;
+    setState(() => selectedEventSubTab = 0);
+    _tabController.animateTo(2);
   }
 
   void _scrollListener() {
@@ -387,6 +415,9 @@ class _MarketplaceState extends ConsumerState<Marketplace>
     final storage = ref.watch(storageProvider);
     final services =
         ref.read(getMarketplaceServiceProvider.notifier).allServices;
+    ref.watch(eventMarketPlaceProvider);
+    final featuredEvents = featuredEventsFrom(
+        ref.read(eventMarketPlaceProvider.notifier).allServices);
 
     return PopScope(
       canPop: false,
@@ -427,6 +458,7 @@ class _MarketplaceState extends ConsumerState<Marketplace>
                                 onTap: () => _tabController.animateTo(1)),
                             const SizedBox(width: 10),
                             _buildTabButton("My Events", selectedTabIndex == 2,
+                                badge: featuredEvents.isNotEmpty ? 'HOT' : null,
                                 onTap: () => _tabController.animateTo(2)),
                           ],
                         ),
@@ -502,6 +534,19 @@ class _MarketplaceState extends ConsumerState<Marketplace>
                       ),
                     ),
                   ),
+
+                  // Featured partner events (e.g. Future Fest)
+                  if (featuredEvents.isNotEmpty)
+                    SliverToBoxAdapter(
+                      child: Padding(
+                        padding: const EdgeInsets.only(top: 8, bottom: 4),
+                        child: FeaturedEventsBanner(
+                          events: featuredEvents,
+                          user: widget.user.user,
+                          onSeeAll: _openEventsExplore,
+                        ),
+                      ),
+                    ),
 
                   // Marketplace content
                   if (marketplaceState is AsyncLoading)
@@ -706,7 +751,7 @@ class _MarketplaceState extends ConsumerState<Marketplace>
   }
 
   Widget _buildTabButton(String title, bool isSelected,
-      {VoidCallback? onTap}) {
+      {VoidCallback? onTap, String? badge}) {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
 
@@ -722,17 +767,42 @@ class _MarketplaceState extends ConsumerState<Marketplace>
               : Colors.grey[200],
           borderRadius: BorderRadius.circular(8),
         ),
-        child: Text(
-          title,
-          style: TextStyle(
-            color: isSelected
-                ? Colors.white
-                : isDark
-                ? Colors.white70
-                : Colors.black87,
-            fontSize: 14,
-            fontWeight: isSelected ? FontWeight.w600 : FontWeight.w400,
-          ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              title,
+              style: TextStyle(
+                color: isSelected
+                    ? Colors.white
+                    : isDark
+                    ? Colors.white70
+                    : Colors.black87,
+                fontSize: 14,
+                fontWeight: isSelected ? FontWeight.w600 : FontWeight.w400,
+              ),
+            ),
+            if (badge != null) ...[
+              const SizedBox(width: 6),
+              Container(
+                padding:
+                const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                decoration: BoxDecoration(
+                  color: isSelected ? Colors.white : const Color(0xFFFF3B30),
+                  borderRadius: BorderRadius.circular(100),
+                ),
+                child: Text(
+                  badge,
+                  style: TextStyle(
+                    color: isSelected ? AppColors.BUTTONCOLOR : Colors.white,
+                    fontSize: 9,
+                    fontWeight: FontWeight.w800,
+                    letterSpacing: 0.4,
+                  ),
+                ),
+              ),
+            ],
+          ],
         ),
       ),
     );
@@ -1177,6 +1247,9 @@ class _MarketplaceState extends ConsumerState<Marketplace>
         ref.read(eventMarketPlaceProvider.notifier).isLastPage;
     final isLoadingMore =
         ref.read(eventMarketPlaceProvider.notifier).isLoadingMore;
+    final featured = featuredEventsFrom(investments);
+    final others = investments.where((e) => !featured.contains(e)).toList();
+    final headerCount = featured.isNotEmpty ? 1 : 0;
 
     return investmentsState.when(
       loading: () => _buildShimmerBookingsList(isDark),
@@ -1215,9 +1288,19 @@ class _MarketplaceState extends ConsumerState<Marketplace>
                   controller: _eventScrollController,
                   padding: const EdgeInsets.symmetric(
                       horizontal: 16, vertical: 8),
-                  itemCount: investments.length,
+                  itemCount: others.length + headerCount,
                   itemBuilder: (context, index) {
-                    final investment = investments[index];
+                    if (headerCount == 1 && index == 0) {
+                      return Padding(
+                        padding: const EdgeInsets.only(bottom: 20),
+                        child: FeaturedEventsBanner(
+                          events: featured,
+                          user: widget.user.user,
+                          padding: EdgeInsets.zero,
+                        ),
+                      );
+                    }
+                    final investment = others[index - headerCount];
                     final item = investment;
 
                     return GestureDetector(

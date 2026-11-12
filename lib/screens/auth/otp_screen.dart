@@ -219,13 +219,16 @@ class _OtpScreenState extends ConsumerState<OtpScreen> with WidgetsBindingObserv
       if (response.statusCode == 200) {
         final responseData = response.data;
 
-        final fcmService = FcmTokenService(widget.dio);
-        await fcmService.registerFcmToken(email!);
-
         await widget.storage.write(key: 'auth_token', value: responseData['token']);
+
+        // Performance — push setup and chat sign-in run in the background, after the
+        // login token is saved (so the push token is linked to this account).
+        FcmTokenService(widget.dio).registerFcmToken(email!).ignore();
         final firebaseToken = responseData['firebase_token'];
-        if (firebaseToken != null) {
-          await FirebaseAuth.instance.signInWithCustomToken(firebaseToken);
+        if (firebaseToken is String && firebaseToken.isNotEmpty) {
+          FirebaseAuth.instance.signInWithCustomToken(firebaseToken).then((_) {}, onError: (e) {
+            debugPrint('Chat sign-in failed: $e');
+          });
         }
         Navigator.pushNamed(context, TermsAndCondition.id);
       }

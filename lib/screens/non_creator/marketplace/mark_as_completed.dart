@@ -22,6 +22,8 @@ import '../../../utils/alert_helper.dart';
 import '../../../utils/review_type.dart';
 import 'creator.dart';
 import '../../bookings/booking_payments_screen.dart';
+import '../../../lib/dashboard_provider/booking_payment_provider.dart';
+import '../../../services/loader_service.dart';
 
 class MarkAsCompletedScreen extends ConsumerStatefulWidget {
   final ActiveInvestment services;
@@ -84,8 +86,9 @@ class _MarkAsCompletedScreenState extends ConsumerState<MarkAsCompletedScreen> {
             },
           ),
         ),
-        body: Padding(
-          padding: const EdgeInsets.all(20.0),
+        body: SingleChildScrollView(
+          // scrollable so the dispute buttons are always reachable on small screens
+          padding: const EdgeInsets.fromLTRB(20, 20, 20, 40),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -338,9 +341,7 @@ class _MarkAsCompletedScreenState extends ConsumerState<MarkAsCompletedScreen> {
                 color: theme.colorScheme.primary,
                 borderWidth: 0,
                 borderRadius: 25.0,
-                onPressed: () {
-                  markAsCompleted(context);
-                },
+                onPressed: _onMarkAsCompletedPressed,
               ),
               const SizedBox(height: 16),
               disputeState.when(
@@ -437,9 +438,17 @@ class _MarkAsCompletedScreenState extends ConsumerState<MarkAsCompletedScreen> {
                     );
                   }
                 },
-                error: (err, stack) => Text(
-                  "Error: $err",
-                  style: TextStyle(color: theme.colorScheme.error),
+                error: (err, stack) => SizedBox(
+                  width: double.infinity,
+                  child: OutlinedButton(
+                    onPressed: () => disputeBottomSheet(context),
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: theme.colorScheme.onSurface,
+                      side: BorderSide(color: theme.dividerColor),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
+                    ),
+                    child: const Text("Initiate dispute"),
+                  ),
                 ),
                 loading: () => Center(
                   child: CircularProgressIndicator(
@@ -454,11 +463,11 @@ class _MarkAsCompletedScreenState extends ConsumerState<MarkAsCompletedScreen> {
     );
   }
 
-  void reviewBottomSheet(BuildContext context) {
+  Future<void> reviewBottomSheet(BuildContext context) {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
 
-    showModalBottomSheet(
+    return showModalBottomSheet<void>(
       context: context,
       isScrollControlled: true,
       backgroundColor: isDark ? const Color(0xFF0F0F10) : Colors.white,
@@ -467,7 +476,7 @@ class _MarkAsCompletedScreenState extends ConsumerState<MarkAsCompletedScreen> {
       ),
       builder: (BuildContext context) {
         return ReviewBottomSheetContent(
-          submitInvestment: _submitInvestment,
+          submitInvestment: () {}, // completion already done; the sheet closes itself
           bookingId: widget.services.id,
           reviewType: ReviewType.creativeService, // creator reviewing the client
         );
@@ -544,6 +553,86 @@ class _MarkAsCompletedScreenState extends ConsumerState<MarkAsCompletedScreen> {
     );
   }
 
+  bool _completing = false;
+
+  /// Module 2 — before asking for confirmation, check the payment schedule.
+  /// Stages the client has not paid yet must be paid (or the booking cancelled)
+  /// first; the server refuses otherwise. Telling them up front avoids a
+  /// confirm → review → error round trip.
+  Future<void> _onMarkAsCompletedPressed() async {
+    if (_completing) return;
+    _completing = true;
+    try {
+      LoaderService.showLoader(context);
+      final summary = await ref.read(bookingPaymentApiProvider).getSummary(widget.services.id);
+      if (mounted) LoaderService.hideLoader(context);
+      if (!mounted) return;
+
+      final unpaid = summary.milestones.where((m) => m.status == 'UNFUNDED').toList();
+      if (summary.isMilestonePlan && unpaid.isNotEmpty) {
+        _showUnpaidStagesSheet(unpaid.length);
+        return;
+      }
+    } catch (_) {
+      // Couldn't load the schedule: fall through, the server still checks.
+      if (mounted) LoaderService.hideLoader(context);
+    } finally {
+      _completing = false;
+    }
+    if (mounted) markAsCompleted(context);
+  }
+
+  void _showUnpaidStagesSheet(int count) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: isDark ? Colors.black : Colors.white,
+      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(16))),
+      builder: (sheetContext) => Padding(
+        padding: const EdgeInsets.fromLTRB(20, 28, 20, 24),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(Icons.payments_outlined, color: theme.colorScheme.primary, size: 36),
+            const SizedBox(height: 12),
+            Text('$count stage${count == 1 ? '' : 's'} not paid yet',
+                style: TextStyle(fontSize: 18, color: theme.colorScheme.onSurface)),
+            const SizedBox(height: 8),
+            Text(
+              'Pay the remaining stage${count == 1 ? '' : 's'} from the payment schedule before marking this job as completed.',
+              textAlign: TextAlign.center,
+              style: TextStyle(fontSize: 14, color: theme.colorScheme.onSurface.withOpacity(0.7)),
+            ),
+            const SizedBox(height: 24),
+            RoundedButton(
+              title: 'Open payment schedule',
+              color: theme.colorScheme.primary,
+              borderWidth: 0,
+              borderRadius: 25,
+              onPressed: () {
+                Navigator.pop(sheetContext);
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => BookingPaymentsScreen(
+                      bookingId: widget.services.id,
+                      serviceName: widget.services.service?.serviceName,
+                    ),
+                  ),
+                );
+              },
+            ),
+            TextButton(
+              onPressed: () => Navigator.pop(sheetContext),
+              child: Text('Not now', style: TextStyle(color: theme.colorScheme.onSurface.withOpacity(0.7))),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   void markAsCompleted(BuildContext context) {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
@@ -604,15 +693,11 @@ class _MarkAsCompletedScreenState extends ConsumerState<MarkAsCompletedScreen> {
                     borderRadius: 100.0,
                     minWidth: 90,
                     onPressed: () {
-                      // Close the current bottom sheet FIRST
+                      // Close the confirm sheet, then complete the booking FIRST.
+                      // The review is asked for only once completion has succeeded,
+                      // so a failure can't leave a review behind or stack loaders.
                       Navigator.pop(context);
-
-                      // Then show the review bottom sheet after a short delay
-                      Future.delayed(const Duration(milliseconds: 100), () {
-                        if (mounted) {
-                          reviewBottomSheet(context);
-                        }
-                      });
+                      _submitInvestment();
                     },
                   )
                 ],
@@ -676,25 +761,34 @@ class _MarkAsCompletedScreenState extends ConsumerState<MarkAsCompletedScreen> {
   }
 
   void _submitInvestment() async {
+    if (_completing) return;
+    _completing = true;
     try {
+      // markAsCompleted shows and hides the one loader itself.
       final response = await ref.read(apiresponseProvider.notifier).markAsCompleted(
         context: context,
         memberServiceId: widget.services.id,
       );
+      if (!mounted) return;
 
-      if(response.status) {
+      if (response.status) {
+        // Ask for a review now; whether they leave one or close the sheet, go to the success screen.
+        await reviewBottomSheet(context);
+        if (!mounted) return;
         Navigator.pushReplacement(
           context,
           MaterialPageRoute(
             builder: (context) => Success(
-              title: 'Your service marked as completed',
-              subtitle: 'You service has successfully marked as completed',
+              title: 'Job marked as completed',
+              subtitle: 'The payment has been released to the creator.',
               onButtonPressed: () {
                 Navigator.pushNamed(context, NonCreatorDashboard.id);
               },
             ),
           ),
         );
+      } else {
+        showCustomAlert(context: context, isSuccess: false, title: 'Error', message: response.message);
       }
     } catch (error) {
       String errorMessage = 'An unexpected error occurred';
@@ -714,12 +808,15 @@ class _MarkAsCompletedScreenState extends ConsumerState<MarkAsCompletedScreen> {
 
       print("Error: $errorMessage");
 
+      if (!mounted) return;
       showCustomAlert(
         context: context,
         isSuccess: false,
         title: 'Error',
         message: errorMessage,
       );
+    } finally {
+      _completing = false;
     }
   }
 
@@ -1009,4 +1106,4 @@ class _ReviewBottomSheetContentState extends ConsumerState<ReviewBottomSheetCont
       },
     );
   }
-}
+}

@@ -158,7 +158,8 @@ class _BookingPaymentsScreenState extends ConsumerState<BookingPaymentsScreen> {
         const SizedBox(height: 10),
         for (final m in s.milestones) _milestoneTile(s, m),
 
-        if (s.canCancel) ...[
+        // Only the client can cancel; the creator opens a dispute instead.
+        if (s.canCancel && !s.isCreator) ...[
           const SizedBox(height: 8),
           TextButton(
             onPressed: _busy ? null : () => _cancel(s),

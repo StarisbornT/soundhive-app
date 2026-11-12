@@ -309,8 +309,9 @@ class CreateAccountNotifier extends StateNotifier<CreateAccountState> {
       }
       var userId = appleCredential.userIdentifier;
 
+      // Always sign in to Firebase: the server needs its ID token to confirm the email.
+      final firebaseUser = await _firebaseUserFromAppleAuth(appleCredential, rawNonce);
       if (email == null) {
-        final firebaseUser = await _firebaseUserFromAppleAuth(appleCredential, rawNonce);
         email = firebaseUser?.email?.toLowerCase();
         userId ??= firebaseUser?.uid;
         if (firstName == null && lastName == null) {
@@ -525,8 +526,11 @@ class CreateAccountNotifier extends StateNotifier<CreateAccountState> {
     String? avatar,
   }) async {
     try {
+      // Security — the server checks this Firebase ID token to confirm the email.
+      final idToken = await FirebaseAuth.instance.currentUser?.getIdToken();
       final payload = {
         'email': email.toLowerCase(),
+        'id_token': idToken,
         'first_name': firstName,
         'last_name': lastName,
         'google_id': userId,
@@ -545,9 +549,9 @@ class CreateAccountNotifier extends StateNotifier<CreateAccountState> {
 
       if (response.statusCode == 200) {
         final responseData = response.data;
-        final fcmService = FcmTokenService(dio);
-        await fcmService.registerFcmToken(email);
         await storage.write(key: 'auth_token', value: responseData['token']);
+        // after saving the login token, in the background
+        FcmTokenService(dio).registerFcmToken(email).ignore();
         if (firstName != null) {
           await storage.write(key: 'social_first_name', value: firstName);
         }
@@ -601,4 +605,4 @@ class CreateAccountNotifier extends StateNotifier<CreateAccountState> {
 class _RouteIds {
   static const otp = 'otp';
   static const terms = 'terms';
-}
+}

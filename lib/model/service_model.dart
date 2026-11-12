@@ -127,6 +127,7 @@ class ServiceItem {
   final bool allowsMilestones;
   final double? maxAdvancePercent;
   final List<PlanStageInput>? milestoneTemplate;
+  final String? currency; // the service's own currency (the creator's base currency)
 
   ServiceItem({
     required this.id,
@@ -152,6 +153,7 @@ class ServiceItem {
     this.allowsMilestones = false,
     this.maxAdvancePercent,
     this.milestoneTemplate,
+    this.currency,
   });
 
   factory ServiceItem.fromMap(Map<String, dynamic> map) {
@@ -187,6 +189,7 @@ class ServiceItem {
                   ))
               .toList()
           : null,
+      currency: map['currency']?.toString(),
     );
   }
 }

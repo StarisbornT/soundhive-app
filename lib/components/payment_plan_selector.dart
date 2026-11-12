@@ -102,6 +102,9 @@ class _PaymentPlanSelectorState extends ConsumerState<PaymentPlanSelector> {
 
   double get _sum => _stages.fold(0.0, (a, s) => a + s.percentage);
 
+  /// The creator set a stage split: clients book with exactly that split.
+  bool get _locked => widget.template != null && widget.template!.length >= 2;
+
   String? get _localError {
     if (!_milestone) return null;
     if (_stages.length < 2 || _stages.length > _maxStages) return 'Use between 2 and $_maxStages stages.';
@@ -257,6 +260,50 @@ class _PaymentPlanSelectorState extends ConsumerState<PaymentPlanSelector> {
 
   Widget _stageEditor() {
     final error = _localError ?? _serverError;
+
+    if (_locked) {
+      return Container(
+        padding: const EdgeInsets.all(14),
+        decoration: BoxDecoration(color: _surface, borderRadius: BorderRadius.circular(12)),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text("Creator's payment stages", style: TextStyle(color: _onSurface, fontWeight: FontWeight.w600)),
+            const SizedBox(height: 4),
+            Text('Set by the creator for this service.',
+                style: TextStyle(color: _onSurface.withOpacity(0.55), fontSize: 11)),
+            const SizedBox(height: 10),
+            for (var i = 0; i < _stages.length; i++)
+              Padding(
+                padding: const EdgeInsets.only(bottom: 8),
+                child: Row(children: [
+                  Container(
+                    width: 24,
+                    height: 24,
+                    alignment: Alignment.center,
+                    decoration: BoxDecoration(
+                      color: i == 0 ? AppColors.BUTTONCOLOR : _onSurface.withOpacity(0.12),
+                      shape: BoxShape.circle,
+                    ),
+                    child: Text('${i + 1}', style: TextStyle(color: i == 0 ? Colors.white : _onSurface, fontSize: 11)),
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Text(i == 0 ? '${_stages[i].title} (advance)' : _stages[i].title,
+                        style: TextStyle(color: _onSurface, fontSize: 13)),
+                  ),
+                  Text('${_fmtPct(_stages[i].percentage)}%',
+                      style: TextStyle(color: _onSurface, fontSize: 13, fontWeight: FontWeight.w600)),
+                ]),
+              ),
+            if (error != null) ...[
+              const SizedBox(height: 4),
+              Text(error, style: const TextStyle(color: Colors.redAccent, fontSize: 12)),
+            ],
+          ],
+        ),
+      );
+    }
 
     return Container(
       padding: const EdgeInsets.all(14),

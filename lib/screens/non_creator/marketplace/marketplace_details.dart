@@ -1527,7 +1527,10 @@ class _MarketplaceDetailsScreenState extends ConsumerState<MarketplaceDetails>
     );
   }
 
+  bool _bookingInFlight = false;
+
   void _submitBooking() async {
+    if (_bookingInFlight) return; // a second tap must not send a second booking
     if (availabilityDates.isEmpty || selectedPaymentOption == null) {
       showCustomAlert(
         context: context,
@@ -1538,6 +1541,7 @@ class _MarketplaceDetailsScreenState extends ConsumerState<MarketplaceDetails>
       return;
     }
 
+    _bookingInFlight = true;
     try {
       final offerState = ref.read(checkOfferProvider);
       final hasAcceptedOffer = offerState.value?.offer?.status == 'ACCEPTED';
@@ -1568,7 +1572,12 @@ class _MarketplaceDetailsScreenState extends ConsumerState<MarketplaceDetails>
       );
 
       if (response.status) {
-        await ref.read(userProvider.notifier).loadUserProfile();
+        // The booking is done. A failed refresh here must not show an error.
+        try {
+          await ref.read(userProvider.notifier).loadUserProfile();
+        } catch (e) {
+          debugPrint('Profile refresh after booking failed: $e');
+        }
         ref.read(getActiveInvestmentProvider.notifier).getActiveInvestments(
           pageSize: 10,
         );
@@ -1617,7 +1626,13 @@ class _MarketplaceDetailsScreenState extends ConsumerState<MarketplaceDetails>
           }
         } else {
           // Wallet payment - success
-          final bookings = ActiveInvestment.fromMap(response.data);
+          ActiveInvestment? bookings;
+          try {
+            bookings = ActiveInvestment.fromMap(Map<String, dynamic>.from(response.data));
+          } catch (e) {
+            debugPrint('Could not read booking for the receipt: $e');
+          }
+          if (!mounted) return;
 
           Navigator.pushReplacement(
             context,
@@ -1626,11 +1641,15 @@ class _MarketplaceDetailsScreenState extends ConsumerState<MarketplaceDetails>
                 title: 'Booked Successfully',
                 subtitle: 'You have successfully booked this service',
                 onButtonPressed: () {
+                  if (bookings == null) {
+                    Navigator.pop(context);
+                    return;
+                  }
                   Navigator.push(
                     context,
                     MaterialPageRoute(
                       builder: (context) => MarketplaceReceiptScreen(
-                        service: bookings,
+                        service: bookings!,
                         paymentMethod: selectedPaymentOption ?? '',
                         price: (_planQuote?.dueNow ?? bookingAmount).toString(),
                         availability: availabilityDates,
@@ -1645,34 +1664,43 @@ class _MarketplaceDetailsScreenState extends ConsumerState<MarketplaceDetails>
       }
     } catch (error) {
       _handleBookingError(error);
+    } finally {
+      _bookingInFlight = false;
     }
   }
 
   void _handleBookingError(dynamic error) {
-    String errorMessage = 'An unexpected error occurred';
-
     debugPrint("Raw error: $error");
 
-    if (error is DioException) {
-      debugPrint("Dio error: ${error.response?.data}");
-      debugPrint("Status code: ${error.response?.statusCode}");
+    String title = 'Error';
+    String errorMessage = 'An unexpected error occurred';
 
-      if (error.response?.data != null) {
-        try {
-          final apiResponse = ApiResponseModel.fromJson(error.response?.data);
-          errorMessage = apiResponse.message;
-        } catch (e) {
-          errorMessage = 'Failed to parse error message';
-        }
+    if (error is DioException) {
+      final body = error.response?.data;
+      final code = error.response?.statusCode ?? 0;
+      debugPrint("Dio error ($code): $body");
+
+      final serverMessage = body is Map && body['message'] != null ? body['message'].toString() : null;
+
+      if (code >= 400 && code < 500 && serverMessage != null) {
+        // The server refused the booking and said why (e.g. insufficient balance).
+        errorMessage = serverMessage;
       } else {
-        errorMessage = error.message ?? 'Network error occurred';
+        // Timeout, lost connection, or a server/gateway error page. The booking may
+        // still have gone through, so don't invite a second payment.
+        title = 'Booking status unknown';
+        errorMessage = "We couldn't confirm your booking. Please check My Bookings and your wallet "
+            'before trying again, so you are not charged twice.';
+        ref.read(getActiveInvestmentProvider.notifier).getActiveInvestments(pageSize: 10);
+        ref.read(userProvider.notifier).loadUserProfile();
       }
     }
 
+    if (!mounted) return;
     showCustomAlert(
       context: context,
       isSuccess: false,
-      title: 'Error',
+      title: title,
       message: errorMessage,
     );
   }
@@ -1868,4 +1896,4 @@ class _MakeOfferFormBottomSheetState extends ConsumerState<MakeOfferFormBottomSh
       ),
     );
   }
-}
+}

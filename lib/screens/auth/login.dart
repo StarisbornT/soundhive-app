@@ -18,6 +18,7 @@ import '../../utils/app_colors.dart';
 import '../dashboard/dashboard.dart';
 import 'forgot_password.dart';
 import 'otp_screen.dart';
+import '../../services/fcm_service.dart';
 
 class Login extends StatefulWidget {
   static String id = 'login';
@@ -105,12 +106,9 @@ class _LoginScreenState extends State<Login> {
         await widget.storage
             .write(key: 'auth_token', value: responseData['token']);
 
-        final firebaseToken = responseData['firebase_token'];
-        if (firebaseToken != null) {
-          await FirebaseAuth.instance.signInWithCustomToken(firebaseToken);
-        }
-
-        print("FULL RESPONSE: ${response.data}");
+        // Performance — don't make the user wait for chat sign-in or push setup.
+        _signInToChat(responseData['firebase_token']);
+        FcmTokenService(widget.dio).registerFcmToken(emailController.text.toLowerCase()).ignore();
 
         _navigateAfterAuth(responseData['user']);
       } else {
@@ -295,7 +293,9 @@ class _LoginScreenState extends State<Login> {
 
       var email = await _resolveAppleEmail(appleCredential);
 
-      email ??= await _emailFromFirebaseAppleAuth(appleCredential, rawNonce);
+      // Always sign in to Firebase: the server needs its ID token to confirm the email.
+      final firebaseEmail = await _emailFromFirebaseAppleAuth(appleCredential, rawNonce);
+      email ??= firebaseEmail;
 
       if (email != null &&
           appleCredential.userIdentifier != null &&
@@ -450,8 +450,11 @@ class _LoginScreenState extends State<Login> {
 
   Future<void> _completeSocialLogin(String email) async {
     try {
+      // Security — the server checks this Firebase ID token to confirm the email.
+      final idToken = await FirebaseAuth.instance.currentUser?.getIdToken();
       final payload = {
         'email': email.toLowerCase(),
+        'id_token': idToken,
       };
 
       final response = await widget.dio.post(
@@ -467,11 +470,8 @@ class _LoginScreenState extends State<Login> {
         await widget.storage
             .write(key: 'auth_token', value: responseData['token']);
 
-        // ADD THIS: sign into Firebase with custom token
-        final firebaseToken = responseData['firebase_token'];
-        if (firebaseToken != null) {
-          await FirebaseAuth.instance.signInWithCustomToken(firebaseToken);
-        }
+        _signInToChat(responseData['firebase_token']);
+        FcmTokenService(widget.dio).registerFcmToken(email.toLowerCase()).ignore();
 
         _navigateAfterAuth(responseData['user']);
       }
@@ -663,4 +663,13 @@ class _LoginScreenState extends State<Login> {
       ),
     );
   }
+}
+
+/// Chat sign-in runs in the background: the user shouldn't wait on Firebase
+/// before seeing the dashboard.
+void _signInToChat(dynamic firebaseToken) {
+  if (firebaseToken is! String || firebaseToken.isEmpty) return;
+  FirebaseAuth.instance.signInWithCustomToken(firebaseToken).then((_) {}, onError: (e) {
+    debugPrint('Chat sign-in failed: $e');
+  });
 }

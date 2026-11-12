@@ -3,6 +3,8 @@ import 'dart:io';
 
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
+import '../../../components/payment_terms_editor.dart';
+import 'package:soundhive2/utils/utils.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:logger/logger.dart';
 import 'package:soundhive2/model/category_model.dart';
@@ -67,6 +69,12 @@ class _EditServiceScreenState extends ConsumerState<EditServiceScreen> {
   bool _isSubmitting = false;
   final Logger _logger = Logger();
   int _currentStep = 0;
+
+  // Module 2 — advance & milestone payment terms
+  late PaymentTerms _terms = PaymentTerms.fromService(
+    allowsMilestones: widget.service.allowsMilestones,
+    template: widget.service.milestoneTemplate,
+  );
 
   @override
   void initState() {
@@ -344,6 +352,34 @@ class _EditServiceScreenState extends ConsumerState<EditServiceScreen> {
     );
   }
 
+
+  // ── Module 2: payment terms step ───────────────────────────────────
+  Widget _paymentTermsStep() {
+    final price = double.tryParse(rateController.text.replaceAll(',', '').trim());
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const SizedBox(height: 24),
+        const Text(
+          'Payment terms',
+          style: TextStyle(fontSize: 16, fontWeight: FontWeight.w400, color: Colors.white),
+        ),
+        const SizedBox(height: 6),
+        const Text(
+          'How should clients pay you for this service? You can change this later from the service page.',
+          style: TextStyle(fontSize: 12, fontWeight: FontWeight.w300, color: Color(0xFFF2F2F2)),
+        ),
+        const SizedBox(height: 16),
+        PaymentTermsEditor(
+          terms: _terms,
+          price: price,
+          formatMoney: (v) => Utils.formatCurrency(v, currencyCode: widget.service.currency ?? ref.read(userProvider).value?.user?.creator?.baseCurrency),
+          onChanged: (t) => setState(() => _terms = t),
+        ),
+      ],
+    );
+  }
+
   Widget _rateStep() {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -416,7 +452,7 @@ class _EditServiceScreenState extends ConsumerState<EditServiceScreen> {
 
   // ── Navigation & Validation ────────────────────────────────────────
   void _nextStep() {
-    if (_currentStep < 2) {
+    if (_currentStep < 3) {
       final isValid = _validateCurrentStep();
       if (!isValid) return;
       setState(() => _currentStep++);
@@ -454,6 +490,12 @@ class _EditServiceScreenState extends ConsumerState<EditServiceScreen> {
         }
         return true;
       case 2:
+        if (!_terms.isValid) {
+          _showError(_terms.error ?? 'Check your payment terms');
+          return false;
+        }
+        return true;
+      case 3:
         if (portfolioData.coverNotifier.value == null && portfolioData.coverUrl == null) {
           _showError("Cover image is required");
           return false;
@@ -487,7 +529,7 @@ class _EditServiceScreenState extends ConsumerState<EditServiceScreen> {
   }
 
   void _handleContinue() {
-    if (_currentStep == 2) {
+    if (_currentStep == 3) {
       _submitForm();
     } else {
       _nextStep();
@@ -620,6 +662,7 @@ class _EditServiceScreenState extends ConsumerState<EditServiceScreen> {
       "service_image": portfolioImage ?? '',
       "service_audio": portfolioAudio ?? '',
       "link": portfolioLink ?? '',
+      ..._terms.toPayload(), // Module 2
     };
     try {
       final response = await ref.read(apiresponseProvider.notifier).updateService(
@@ -647,10 +690,10 @@ class _EditServiceScreenState extends ConsumerState<EditServiceScreen> {
     return Row(
       mainAxisAlignment: MainAxisAlignment.center,
       children: List.generate(
-        3,
+        4,
             (index) => Container(
           margin: const EdgeInsets.symmetric(horizontal: 4),
-          width: 98,
+          width: 72,
           height: 4,
           decoration: BoxDecoration(
             color: index <= _currentStep ? AppColors.BUTTONCOLOR : const Color(0xFFBCAEE2),
@@ -665,7 +708,8 @@ class _EditServiceScreenState extends ConsumerState<EditServiceScreen> {
     switch (_currentStep) {
       case 0: return _buildBioStep();
       case 1: return _rateStep();
-      case 2: return _portfolioStep();
+      case 2: return _paymentTermsStep();
+      case 3: return _portfolioStep();
       default: return const Center(child: Text("Invalid Step", style: TextStyle(color: Colors.white)));
     }
   }
@@ -703,7 +747,7 @@ class _EditServiceScreenState extends ConsumerState<EditServiceScreen> {
                 ),
                 const SizedBox(height: 10),
                 RoundedButton(
-                  title: _currentStep == 2 ? 'Update Service' : 'Continue',
+                  title: _currentStep == 3 ? 'Update Service' : 'Continue',
                   onPressed: _handleContinue,
                   color: AppColors.BUTTONCOLOR,
                 ),

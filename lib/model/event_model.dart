@@ -104,6 +104,8 @@ class EventItem {
   final double? convertedRate;
   final String? convertedCurrency;
   final double? conversionRate;
+  /// Who issues the tickets: 'local' (Cre8Hive) or a partner key such as 'gbedu' (Future Fest).
+  final String source;
 
   EventItem({
     required this.id,
@@ -126,7 +128,7 @@ class EventItem {
     this.convertedRate,
     this.convertedCurrency,
     this.conversionRate,
-
+    this.source = 'local',
   });
 
   factory EventItem.fromMap(Map<String, dynamic> map) {
@@ -155,8 +157,12 @@ class EventItem {
       conversionRate: map['conversion_rate'] is String
           ? double.tryParse(map['conversion_rate']) ?? 0.0
           : (map['conversion_rate'] as num?)?.toDouble() ?? 0.0,
+      source: (map['source'] ?? 'local').toString(),
     );
   }
+
+  /// Partner events (e.g. Future Fest via Gbedu) are promoted in the app.
+  bool get isFeatured => source.isNotEmpty && source.toLowerCase() != 'local';
   bool get isPaid => type.toUpperCase() == 'PAID';
   bool get isFree => type.toUpperCase() == 'FREE';
   bool get isUpcoming => eventStatus.toUpperCase() == 'UPCOMING';
