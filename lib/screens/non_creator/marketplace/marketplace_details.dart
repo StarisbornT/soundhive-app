@@ -1,7 +1,7 @@
 import 'package:dio/dio.dart';
 import 'package:soundhive2/components/payment_plan_selector.dart';
 import 'package:soundhive2/model/booking_payment_model.dart';
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 import 'package:soundhive2/components/rounded_button.dart';

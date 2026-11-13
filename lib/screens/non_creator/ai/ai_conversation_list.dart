@@ -1,5 +1,5 @@
 import 'dart:async';
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:soundhive2/screens/non_creator/ai/ai_chat_screen.dart';
 import 'package:soundhive2/lib/dashboard_provider/get_conversations_provider.dart';

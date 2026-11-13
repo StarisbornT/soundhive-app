@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:soundhive2/screens/creator/profile/liveliness_check_screen.dart';
 import 'package:soundhive2/utils/app_colors.dart';

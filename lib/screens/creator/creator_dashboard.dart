@@ -1,5 +1,5 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:soundhive2/lib/dashboard_provider/user_provider.dart';
 import 'package:soundhive2/screens/creator/artist_arena/aritst_arena.dart';
 import 'package:soundhive2/screens/creator/artist_arena/artist_profile_screen.dart';

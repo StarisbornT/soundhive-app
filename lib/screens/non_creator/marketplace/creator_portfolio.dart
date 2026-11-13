@@ -1,5 +1,5 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import '../../../components/audio_player.dart';
 import '../../../components/creator_profile_widgets.dart';
 import '../../../components/rounded_button.dart';

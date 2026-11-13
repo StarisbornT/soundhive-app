@@ -13,7 +13,7 @@
 //   - AvailabilityCard   response-time / availability summary
 //   - CreatorTrustBlock  compact badges + portfolio strip for Service Detail
 
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:soundhive2/components/widgets.dart';
 import '../utils/app_colors.dart';
 import '../model/creator_profile_models.dart';

@@ -9,7 +9,7 @@
 // - skills -> SkillTag
 // - availability fields -> AvailabilityInfo
 
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import '../../model/creator_model.dart';
 
 /// A single piece of portfolio media (image or video thumbnail).

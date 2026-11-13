@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:soundhive2/model/investment_model.dart';
 import 'package:soundhive2/utils/utils.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';

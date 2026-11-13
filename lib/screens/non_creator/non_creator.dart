@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:soundhive2/screens/creator/creator_dashboard.dart';
 import 'package:soundhive2/screens/non_creator/non_creator_profile.dart';

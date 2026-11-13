@@ -1,5 +1,5 @@
 import 'dart:ui';
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:soundhive2/components/rounded_button.dart';
 import 'package:soundhive2/model/user_model.dart';
 

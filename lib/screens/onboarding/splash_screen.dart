@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import 'dart:async';
 
 import 'package:soundhive2/screens/onboarding/onboard.dart';

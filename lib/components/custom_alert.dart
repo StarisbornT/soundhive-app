@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:gif_view/gif_view.dart';
 import 'package:soundhive2/components/rounded_button.dart';
 
