@@ -72,6 +72,8 @@ class EventTicketing {
   final bool purchasable;
   final String? closedReason;
   final int maxPerOrder;
+  /// Processing fee on top of the tickets, as a percentage (0 = none).
+  final double processingFeePercent;
 
   EventTicketing({
     required this.eventId,
@@ -88,6 +90,7 @@ class EventTicketing {
     required this.purchasable,
     this.closedReason,
     required this.maxPerOrder,
+    this.processingFeePercent = 0,
   });
 
   factory EventTicketing.fromMap(Map<String, dynamic> m) {
@@ -109,6 +112,7 @@ class EventTicketing {
       purchasable: m['purchasable'] == true,
       closedReason: m['closed_reason']?.toString(),
       maxPerOrder: _i(m['max_per_order']) == 0 ? 10 : _i(m['max_per_order']),
+      processingFeePercent: _d(m['processing_fee_percent']),
     );
   }
 }
