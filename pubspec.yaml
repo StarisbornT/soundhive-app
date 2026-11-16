@@ -91,7 +91,7 @@ flutter_icons:
   android: true
   ios: true
   image_path: "assets/logo.png"
-  remove_alpha_ios: false
+  remove_alpha_ios: true
 
 # The following section is specific to Flutter packages.
 flutter:
