@@ -348,8 +348,11 @@ class _MarkAsCompletedScreenState extends ConsumerState<MarkAsCompletedScreen> {
                 data: (dispute)  {
                   if(dispute.data != null) {
                     if(dispute.data?.status != "CLOSED") {
+                      // Only the person who raised the dispute can withdraw it (the creator may have raised it).
+                      final raisedByMe = dispute.data!.openedBy == (user?.id.toString() ?? '');
                       return  Row(
                         children: [
+                          if (raisedByMe) ...[
                           Expanded(
                             child: OutlinedButton(
                               onPressed: () {
@@ -369,6 +372,7 @@ class _MarkAsCompletedScreenState extends ConsumerState<MarkAsCompletedScreen> {
                             ),
                           ),
                           const SizedBox(width: 12),
+                          ],
                           Expanded(
                             child: OutlinedButton(
                               onPressed: () {
@@ -1106,4 +1110,4 @@ class _ReviewBottomSheetContentState extends ConsumerState<ReviewBottomSheetCont
       },
     );
   }
-}
+}

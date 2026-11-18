@@ -104,6 +104,8 @@ class DisputeChatScreen extends ConsumerStatefulWidget {
   final String sellerName;
   final String senderName;
   final String userId;
+  /// Optional chat title. Defaults to "Dispute Resolution with <name>".
+  final String? disputeTitle;
 
   const DisputeChatScreen({
     super.key,
@@ -112,6 +114,7 @@ class DisputeChatScreen extends ConsumerStatefulWidget {
     required this.senderName,
     required this.userId,
     required this.sellerName,
+    this.disputeTitle,
   });
 
   @override
@@ -297,7 +300,7 @@ class _DisputeChatScreenState extends ConsumerState<DisputeChatScreen> {
       text: text,
       senderId: widget.userId,
       senderName: widget.senderName,
-      disputeTitle: "Dispute Resolution with $customerName",
+      disputeTitle: widget.disputeTitle ?? "Dispute Resolution with $customerName",
       receiverId: '', // Not needed in group chat
       timestamp: DateTime.now(),
       files: fileData,
@@ -407,7 +410,7 @@ class _DisputeChatScreenState extends ConsumerState<DisputeChatScreen> {
         title: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text("Dispute Resolution with ${widget.senderName}", style: const TextStyle(color: Colors.white, fontSize: 14)),
+              Text(widget.disputeTitle ?? "Dispute Resolution with ${widget.senderName}", style: const TextStyle(color: Colors.white, fontSize: 14)),
               ]),
         leading: IconButton(
           icon: const Icon(Icons.arrow_back_ios, color: Colors.white),

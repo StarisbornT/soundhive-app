@@ -8,6 +8,11 @@ import '../../utils/utils.dart';
 import 'package:soundhive2/lib/dashboard_provider/apiresponseprovider.dart';
 
 import '../non_creator/marketplace/mark_as_completed.dart';
+import '../non_creator/disputes/dispute_chat_screen.dart';
+import '../../lib/dashboard_provider/get_current_user_dispute_provider.dart';
+import '../../lib/dashboard_provider/user_provider.dart';
+import '../../model/dispute_model.dart';
+import 'package:dio/dio.dart';
 
 class CreatorBookingsDetailScreen extends ConsumerStatefulWidget {
   final Booking service;
@@ -23,10 +28,17 @@ class _CreatorBookingsDetailScreenState extends ConsumerState<CreatorBookingsDet
   bool _hasReviewed = false;
 
   bool get _isCompleted => widget.service.status == "SUCCESSFUL";
+  bool get _isActive => widget.service.status == "PENDING";
+
+  // Disputes: creators can raise one too (the client, Cre8Hive support and the creator then talk in the dispute chat).
+  DisputeData? _dispute;
+  bool _disputeLoading = true;
+  bool _raising = false;
 
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) => _loadDispute());
     if (_isCompleted) {
       WidgetsBinding.instance.addPostFrameCallback((_) => _fetchReviewStatus());
     } else {
@@ -51,6 +63,163 @@ class _CreatorBookingsDetailScreenState extends ConsumerState<CreatorBookingsDet
       if (!mounted) return;
       setState(() => _loadingReviewStatus = false);
     }
+  }
+
+  Future<void> _loadDispute() async {
+    final result = await ref.read(getCurrentUserDisputeProvider.notifier).getDispute(bookingId: widget.service.id);
+    if (!mounted) return;
+    setState(() {
+      _dispute = result?.data;
+      _disputeLoading = false;
+    });
+  }
+
+  String get _clientName => "${widget.service.user?.firstName ?? ''} ${widget.service.user?.lastName ?? ''}".trim();
+
+  void _openDisputeChat() {
+    final me = ref.read(userProvider).value?.user;
+    if (me == null || _dispute == null) return;
+    final myName = "${me.firstName} ${me.lastName}".trim();
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => DisputeChatScreen(
+          // sellerId is "the other participant" for the chat index: here, the client.
+          sellerId: widget.service.userId,
+          sellerName: _clientName,
+          userId: me.id.toString(),
+          senderName: myName,
+          disputeId: _dispute!.id.toString(),
+          disputeTitle: "Dispute Resolution with $_clientName",
+        ),
+      ),
+    );
+  }
+
+  Future<void> _raiseDispute() async {
+    final reasonController = TextEditingController();
+    final confirmed = await showModalBottomSheet<bool>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: const Color(0xFF0F0F10),
+      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(22))),
+      builder: (ctx) => Padding(
+        padding: EdgeInsets.fromLTRB(20, 24, 20, 24 + MediaQuery.of(ctx).viewInsets.bottom),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text('Raise a dispute?', style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.w600)),
+            const SizedBox(height: 8),
+            Text(
+              'Cre8Hive support will review this booking with you and $_clientName. While the dispute is open, payments on this booking are on hold.',
+              style: const TextStyle(color: Colors.white70, height: 1.4),
+            ),
+            const SizedBox(height: 16),
+            TextField(
+              controller: reasonController,
+              maxLength: 255,
+              maxLines: 3,
+              style: const TextStyle(color: Colors.white),
+              decoration: const InputDecoration(hintText: 'What went wrong? (optional)', hintStyle: TextStyle(color: Colors.white38)),
+            ),
+            const SizedBox(height: 8),
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton(
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.redAccent,
+                  padding: const EdgeInsets.symmetric(vertical: 14),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(25)),
+                ),
+                onPressed: () => Navigator.pop(ctx, true),
+                child: const Text('Raise dispute', style: TextStyle(color: Colors.white)),
+              ),
+            ),
+            Center(child: TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Not now'))),
+          ],
+        ),
+      ),
+    );
+    final reason = reasonController.text.trim();
+    reasonController.dispose();
+    if (confirmed != true || !mounted) return;
+
+    setState(() => _raising = true);
+    try {
+      final response = await ref.read(apiresponseProvider.notifier).initiateDispute(
+        context: context,
+        payload: {"booking_id": widget.service.id, if (reason.isNotEmpty) "reason": reason},
+      );
+      if (!mounted) return;
+      if (response.status) {
+        await _loadDispute();
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Dispute raised. Cre8Hive support will be in touch in the dispute chat.')),
+        );
+      }
+    } catch (error) {
+      if (!mounted) return;
+      String message = 'Could not raise the dispute. Please try again.';
+      if (error is DioException && error.response?.data is Map && error.response?.data['message'] is String) {
+        message = error.response!.data['message'];
+      }
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message), backgroundColor: Colors.red));
+    } finally {
+      if (mounted) setState(() => _raising = false);
+    }
+  }
+
+  Widget _buildDisputeSection() {
+    if (_disputeLoading) return const SizedBox.shrink();
+    final open = _dispute != null && _dispute!.status == 'PENDING';
+
+    if (open) {
+      return Container(
+        width: double.infinity,
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: const Color.fromRGBO(255, 82, 82, 0.08),
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: Colors.redAccent.withOpacity(0.3)),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text('Dispute open', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600)),
+            const SizedBox(height: 4),
+            const Text('Payments on this booking are on hold while Cre8Hive support reviews it.',
+                style: TextStyle(color: Colors.white70, fontSize: 13)),
+            const SizedBox(height: 12),
+            OutlinedButton.icon(
+              onPressed: _openDisputeChat,
+              icon: const Icon(Icons.chat_bubble_outline, color: Colors.white, size: 18),
+              label: const Text('Dispute chat', style: TextStyle(color: Colors.white)),
+              style: OutlinedButton.styleFrom(
+                side: const BorderSide(color: Colors.white24),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(25)),
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+
+    if (!_isActive) return const SizedBox.shrink();
+
+    return SizedBox(
+      width: double.infinity,
+      child: OutlinedButton(
+        onPressed: _raising ? null : _raiseDispute,
+        style: OutlinedButton.styleFrom(
+          padding: const EdgeInsets.symmetric(vertical: 14),
+          side: const BorderSide(color: Colors.white24),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(25)),
+        ),
+        child: Text(_raising ? 'Raising dispute…' : 'Raise a dispute', style: const TextStyle(color: Colors.redAccent)),
+      ),
+    );
   }
 
   void _openReviewSheet() {
@@ -161,6 +330,8 @@ class _CreatorBookingsDetailScreenState extends ConsumerState<CreatorBookingsDet
                 ),
               ),
             ),
+            const SizedBox(height: 16),
+            _buildDisputeSection(),
             if (_isCompleted) ...[
               const SizedBox(height: 20),
               _buildReviewAction(),

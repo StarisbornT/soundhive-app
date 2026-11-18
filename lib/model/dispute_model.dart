@@ -24,6 +24,8 @@ class DisputeData {
   final int id;
   final String userId;
   final String creatorId;
+  /// Who raised the dispute (client or creator). Older servers don't send it: the client.
+  final String openedBy;
   final String bookingId;
   final String resolveStatus;
   final String status;
@@ -34,6 +36,7 @@ class DisputeData {
     required this.id,
     required this.userId,
     required this.creatorId,
+    required this.openedBy,
     required this.bookingId,
     required this.resolveStatus,
     required this.status,
@@ -44,8 +47,9 @@ class DisputeData {
   factory DisputeData.fromMap(Map<String, dynamic> map) {
     return DisputeData(
       id: map['id'] ?? 0,
-      userId: map['user_id'] ?? '',
-      creatorId: map['creator_id'] ?? '',
+      userId: map['user_id']?.toString() ?? '',
+      creatorId: map['creator_id']?.toString() ?? '',
+      openedBy: (map['opened_by'] ?? map['user_id'])?.toString() ?? '',
       bookingId: map['booking_id'] ?? '',
       resolveStatus: map['resolve_status'] ?? '',
       status: map['status'] ?? '',

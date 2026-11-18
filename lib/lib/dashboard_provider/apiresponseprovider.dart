@@ -1278,6 +1278,31 @@ class ApiResponseProvider extends StateNotifier<AsyncValue<void>> {
       // LoaderService.hideLoader(context);
     }
   }
+  /// Change an existing PIN. The server checks [currentPin] first.
+  /// Throws DioException on 422 (wrong PIN, or code NO_PIN when the account has no PIN yet)
+  /// and 429 (too many wrong tries).
+  Future<ApiResponseModel> changePin({
+    required String currentPin,
+    required String pin,
+  }) async {
+    state = const AsyncValue.loading();
+    try {
+      final response = await _dio.post(
+        '/pin/change',
+        data: jsonEncode({
+          'current_pin': currentPin,
+          'pin': pin,
+          'pin_confirmation': pin,
+        }),
+        options: Options(headers: {'Accept': 'application/json'}),
+      );
+      state = const AsyncValue.data(null);
+      return ApiResponseModel.fromJson(response.data);
+    } catch (error, stackTrace) {
+      state = AsyncValue.error(error, stackTrace);
+      rethrow;
+    }
+  }
   Future<ApiResponseModel> followArtist({
     required BuildContext context,
     required int artistId,
