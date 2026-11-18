@@ -3,6 +3,8 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:firebase_database/firebase_database.dart';
+import 'package:soundhive2/services/fcm_service.dart';
+import 'package:soundhive2/lib/provider.dart';
 import 'dart:convert';
 import 'dart:io';
 import 'package:image_picker/image_picker.dart';
@@ -159,6 +161,7 @@ class _DisputeChatScreenState extends ConsumerState<DisputeChatScreen> {
   @override
   void initState() {
     super.initState();
+    ActiveChat.id = _getChatId(widget.disputeId); // don't show pushes for the chat that's on screen
     _getAdminDetails();
     _setupRealtimeListener();
     _loadInitialMessages();
@@ -166,6 +169,7 @@ class _DisputeChatScreenState extends ConsumerState<DisputeChatScreen> {
 
   @override
   void dispose() {
+    ActiveChat.id = null;
     _messageSubscription.cancel();
     _scrollController.dispose();
     super.dispose();
@@ -317,6 +321,7 @@ class _DisputeChatScreenState extends ConsumerState<DisputeChatScreen> {
         'userChats/$adminId/$chatId': true,
       };
       await _dbRef.update(updates);
+      FcmTokenService.notifyChatMessage(ref.read(dioProvider), chatId, messageRef.key);
       _controller.clear();
       setState(() {
         _pendingFiles.clear();
