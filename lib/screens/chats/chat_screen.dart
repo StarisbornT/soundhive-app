@@ -2,6 +2,7 @@ import 'dart:async';
 import 'package:material_ui/material_ui.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:firebase_database/firebase_database.dart';
+import 'package:soundhive2/services/fcm_service.dart';
 import 'dart:convert';
 import 'dart:io';
 import 'package:image_picker/image_picker.dart';
@@ -337,6 +338,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
 
   @override
   void dispose() {
+    ActiveChat.id = null;
     _messageSubscription.cancel();
     _callSubscription.cancel();
     _scrollController.dispose();
@@ -609,6 +611,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
         userId == widget.sellerId ? widget.receiverId : widget.sellerId;
 
     final chatId = _getChatId(userId, otherUserId);
+    ActiveChat.id = chatId; // don't show pushes for the chat that's on screen
 
     _messageSubscription = _dbRef
         .child('chats/$chatId/messages')
@@ -782,6 +785,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
         'userChats/$receiverId/$chatId': true,
       };
       await _dbRef.update(updates);
+      FcmTokenService.notifyChatMessage(ref.read(dioProvider), chatId, messageRef.key);
       _controller.clear();
       setState(() {
         _pendingFiles.clear();

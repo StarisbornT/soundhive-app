@@ -3,6 +3,8 @@ import 'dart:async';
 import 'package:material_ui/material_ui.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:firebase_database/firebase_database.dart';
+import 'package:soundhive2/services/fcm_service.dart';
+import 'package:soundhive2/lib/provider.dart';
 import 'dart:convert';
 import 'dart:io';
 import 'package:image_picker/image_picker.dart';
@@ -104,6 +106,8 @@ class DisputeChatScreen extends ConsumerStatefulWidget {
   final String sellerName;
   final String senderName;
   final String userId;
+  /// Optional chat title. Defaults to "Dispute Resolution with <name>".
+  final String? disputeTitle;
 
   const DisputeChatScreen({
     super.key,
@@ -112,6 +116,7 @@ class DisputeChatScreen extends ConsumerStatefulWidget {
     required this.senderName,
     required this.userId,
     required this.sellerName,
+    this.disputeTitle,
   });
 
   @override
@@ -156,6 +161,7 @@ class _DisputeChatScreenState extends ConsumerState<DisputeChatScreen> {
   @override
   void initState() {
     super.initState();
+    ActiveChat.id = _getChatId(widget.disputeId); // don't show pushes for the chat that's on screen
     _getAdminDetails();
     _setupRealtimeListener();
     _loadInitialMessages();
@@ -163,6 +169,7 @@ class _DisputeChatScreenState extends ConsumerState<DisputeChatScreen> {
 
   @override
   void dispose() {
+    ActiveChat.id = null;
     _messageSubscription.cancel();
     _scrollController.dispose();
     super.dispose();
@@ -297,7 +304,7 @@ class _DisputeChatScreenState extends ConsumerState<DisputeChatScreen> {
       text: text,
       senderId: widget.userId,
       senderName: widget.senderName,
-      disputeTitle: "Dispute Resolution with $customerName",
+      disputeTitle: widget.disputeTitle ?? "Dispute Resolution with $customerName",
       receiverId: '', // Not needed in group chat
       timestamp: DateTime.now(),
       files: fileData,
@@ -314,6 +321,7 @@ class _DisputeChatScreenState extends ConsumerState<DisputeChatScreen> {
         'userChats/$adminId/$chatId': true,
       };
       await _dbRef.update(updates);
+      FcmTokenService.notifyChatMessage(ref.read(dioProvider), chatId, messageRef.key);
       _controller.clear();
       setState(() {
         _pendingFiles.clear();
@@ -407,7 +415,7 @@ class _DisputeChatScreenState extends ConsumerState<DisputeChatScreen> {
         title: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text("Dispute Resolution with ${widget.senderName}", style: const TextStyle(color: Colors.white, fontSize: 14)),
+              Text(widget.disputeTitle ?? "Dispute Resolution with ${widget.senderName}", style: const TextStyle(color: Colors.white, fontSize: 14)),
               ]),
         leading: IconButton(
           icon: const Icon(Icons.arrow_back_ios, color: Colors.white),

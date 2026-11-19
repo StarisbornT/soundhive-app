@@ -34,8 +34,16 @@ class _TicketCheckoutScreenState extends ConsumerState<TicketCheckoutScreen> {
 
   int get _totalQty => _qty.values.fold(0, (a, b) => a + b);
 
-  double _total(EventTicketing t) =>
+  double _subtotal(EventTicketing t) =>
       t.categories.fold(0.0, (sum, c) => sum + c.userPrice * (_qty[c.id] ?? 0));
+
+  double _fee(EventTicketing t) =>
+      double.parse((_subtotal(t) * t.processingFeePercent / 100).toStringAsFixed(2));
+
+  /// What the buyer pays: tickets + processing fee (matches the server's total).
+  double _total(EventTicketing t) => _subtotal(t) + _fee(t);
+
+  String _pct(double p) => p == p.roundToDouble() ? p.toStringAsFixed(0) : p.toStringAsFixed(1);
 
   void _change(TicketCategory c, int delta, int orderMax) {
     final current = _qty[c.id] ?? 0;
@@ -85,11 +93,21 @@ class _TicketCheckoutScreenState extends ConsumerState<TicketCheckoutScreen> {
       );
     } on TicketingError catch (e) {
       if (!mounted) return;
+      // Server error / timeout: the payment may have gone through, so don't invite a second purchase.
+      final unconfirmed = e.statusCode == null || e.statusCode! >= 500;
       showCustomAlert(
         context: context,
         isSuccess: false,
-        title: e.insufficientFunds ? 'Insufficient funds' : 'Could not complete purchase',
-        message: e.insufficientFunds ? 'Your wallet balance is too low. Pay by card instead, or fund your wallet.' : e.message,
+        title: e.insufficientFunds
+            ? 'Insufficient funds'
+            : unconfirmed
+                ? 'Purchase not confirmed yet'
+                : 'Could not complete purchase',
+        message: e.insufficientFunds
+            ? 'Your wallet balance is too low. Pay by card instead, or fund your wallet.'
+            : unconfirmed
+                ? 'We could not confirm your purchase. If your wallet was debited, your tickets will appear in My Tickets within a few minutes. Please do not pay again. If they do not appear, contact support and you will be refunded.'
+                : e.message,
       );
       ref.invalidate(eventTicketingProvider(widget.eventId)); // refresh availability
     } finally {
@@ -161,6 +179,21 @@ class _TicketCheckoutScreenState extends ConsumerState<TicketCheckoutScreen> {
             const SizedBox(height: 10),
             for (final c in t.categories) _categoryCard(c, t, money),
 
+            if (_totalQty > 0 && t.processingFeePercent > 0) ...[
+              const SizedBox(height: 8),
+              Container(
+                padding: const EdgeInsets.all(14),
+                decoration: BoxDecoration(color: _card, borderRadius: BorderRadius.circular(12)),
+                child: Column(children: [
+                  _summaryRow('Tickets', money(_subtotal(t))),
+                  const SizedBox(height: 6),
+                  _summaryRow('Processing fee (${_pct(t.processingFeePercent)}%)', money(_fee(t))),
+                  Divider(color: _on.withOpacity(0.1), height: 18),
+                  _summaryRow('Total', money(total), bold: true),
+                ]),
+              ),
+            ],
+
             const SizedBox(height: 16),
             Text('Pay with', style: TextStyle(color: _on, fontSize: 16, fontWeight: FontWeight.w600)),
             const SizedBox(height: 8),
@@ -185,6 +218,9 @@ class _TicketCheckoutScreenState extends ConsumerState<TicketCheckoutScreen> {
             child: Column(crossAxisAlignment: CrossAxisAlignment.start, mainAxisSize: MainAxisSize.min, children: [
               Text('$_totalQty ticket${_totalQty == 1 ? '' : 's'}', style: TextStyle(color: _on.withOpacity(0.6), fontSize: 12)),
               Text(money(total), style: TextStyle(color: _on, fontSize: 20, fontWeight: FontWeight.w700)),
+              if (_fee(t) > 0)
+                Text('Includes ${money(_fee(t))} processing fee (${_pct(t.processingFeePercent)}%)',
+                    style: TextStyle(color: _on.withOpacity(0.6), fontSize: 11)),
             ]),
           ),
           SizedBox(
@@ -269,4 +305,9 @@ class _TicketCheckoutScreenState extends ConsumerState<TicketCheckoutScreen> {
           onChanged: (v) => setState(() => _method = v ?? 'wallet'),
         ),
       );
+
+  Widget _summaryRow(String label, String value, {bool bold = false}) {
+    final style = TextStyle(color: bold ? _on : _on.withOpacity(0.7), fontSize: bold ? 15 : 13, fontWeight: bold ? FontWeight.w600 : FontWeight.w400);
+    return Row(children: [Expanded(child: Text(label, style: style)), Text(value, style: style)]);
+  }
 }

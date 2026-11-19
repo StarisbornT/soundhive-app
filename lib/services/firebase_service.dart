@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:io' show Platform;
 
 import 'package:dio/dio.dart';
 import 'package:firebase_core/firebase_core.dart';
@@ -9,6 +10,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:soundhive2/lib/provider.dart';
 import 'package:soundhive2/lib/dashboard_provider/notification_provider.dart';
 import 'package:soundhive2/services/loader_service.dart';
+import 'package:soundhive2/services/fcm_service.dart';
+import 'package:soundhive2/screens/creator/chat_screen/chats.dart';
 
 import 'package:soundhive2/lib/dashboard_provider/call_provider.dart';
 import 'package:soundhive2/lib/dashboard_provider/user_provider.dart';
@@ -35,8 +38,8 @@ class FirebaseService {
 
   Future<void> _setupTokenRefresh() async {
     FirebaseMessaging.instance.onTokenRefresh.listen((newToken) async {
-      // Get the current auth token
-      final authToken = await container.read(authTokenProvider.future);
+      // Read the login token now (authTokenProvider caches the value from app start).
+      final authToken = await container.read(storageProvider).read(key: 'auth_token');
       if (authToken == null) {
         print("No auth token available - skipping FCM token refresh");
         return;
@@ -45,7 +48,7 @@ class FirebaseService {
       try {
         await container.read(dioProvider).post(
           '/notification/set-up',
-          data: {'token': newToken},
+          data: {'token': newToken, 'email': '', 'platform': Platform.isIOS ? 'ios' : 'android'},
           options: Options(headers: {
             'Authorization': 'Bearer $authToken',
           }),
@@ -112,8 +115,11 @@ Future<void> _setupNotificationChannels() async {
     initializationSettings,
     // Very useful: handle when user taps a notification
     onDidReceiveNotificationResponse: (NotificationResponse response) {
-      // Handle payload / navigate / etc.
-      // print('Notification tapped: ${response.payload}');
+      // Tapping a notification shown while the app was open.
+      try {
+        final data = Map<String, dynamic>.from(jsonDecode(response.payload ?? '{}') as Map);
+        _openFromData(data).ignore();
+      } catch (_) {}
     },
     // onDidReceiveBackgroundNotificationResponse: ... (for background)
   );
@@ -161,13 +167,21 @@ Future<void> _setupNotificationChannels() async {
   }
 
   Future<void> _getFCMToken() async {
-    final token = await FirebaseMessaging.instance.getToken();
-    print("FCM Token: $token");
-    await _setupTokenRefresh();
+    // Signed in already? Re-register this phone with the server on every start, so a failed
+    // registration or a rotated token never leaves the phone silent until the next login.
+    // (The server links the token to whoever the login token belongs to.)
+    final authToken = await container.read(storageProvider).read(key: 'auth_token');
+    if (authToken != null && authToken.isNotEmpty) {
+      FcmTokenService(container.read(dioProvider)).registerFcmToken('').ignore();
+    }
   }
 
   void _setupForegroundHandler() {
     FirebaseMessaging.onMessage.listen((RemoteMessage message) async {
+      // Already looking at this chat? Don't pop a notification over it.
+      if (message.data['type'] == 'chat' && message.data['chat_id'] != null && message.data['chat_id'] == ActiveChat.id) {
+        return;
+      }
       _showNotification(message);
       container.read(notificationProvider.notifier).addNotification();
       container.read(notificationProvider.notifier).fetchUnreadCount();
@@ -207,10 +221,12 @@ Future<void> _setupNotificationChannels() async {
     );
 
     await notificationsPlugin.show(
-      message.hashCode,
+      // One notification per chat: a new message replaces the previous one.
+      message.data['type'] == 'chat' ? (message.data['chat_id'] ?? '').hashCode : message.hashCode,
       message.notification?.title,
       message.notification?.body,
       const NotificationDetails(android: androidDetails),
+      payload: jsonEncode(message.data),
     );
   }
 
@@ -221,8 +237,24 @@ Future<void> _setupNotificationChannels() async {
       _handleIncomingCallNotification(data);
     } else {
       container.read(notificationProvider.notifier).clearNotifications();
-      // Your existing notification handling
+      _openFromData(data).ignore();
     }
+  }
+
+  /// Where a tapped notification goes. Chat messages open the chat list.
+  Future<void> _openFromData(Map<String, dynamic> data) async {
+    if (data['type'] != 'chat') return;
+    // This service has its own provider container, so the profile may not be loaded here yet.
+    var user = container.read(userProvider).value;
+    if (user == null) {
+      try {
+        await container.read(userProvider.notifier).loadUserProfile();
+        user = container.read(userProvider).value;
+      } catch (_) {}
+    }
+    final context = LoaderService.navigatorKey.currentContext;
+    if (context == null || user == null) return;
+    Navigator.of(context).push(MaterialPageRoute(builder: (_) => ChatListScreen(user: user!)));
   }
   void _handleIncomingCallNotification(Map<String, dynamic> data) {
     // Parse caller data if it's a JSON string

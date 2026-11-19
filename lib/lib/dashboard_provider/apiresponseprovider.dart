@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'dart:io';
 import 'package:dio/dio.dart';
 import 'package:material_ui/material_ui.dart';
+import 'package:soundhive2/services/fcm_service.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:soundhive2/lib/dashboard_provider/user_provider.dart';
@@ -1278,6 +1279,31 @@ class ApiResponseProvider extends StateNotifier<AsyncValue<void>> {
       // LoaderService.hideLoader(context);
     }
   }
+  /// Change an existing PIN. The server checks [currentPin] first.
+  /// Throws DioException on 422 (wrong PIN, or code NO_PIN when the account has no PIN yet)
+  /// and 429 (too many wrong tries).
+  Future<ApiResponseModel> changePin({
+    required String currentPin,
+    required String pin,
+  }) async {
+    state = const AsyncValue.loading();
+    try {
+      final response = await _dio.post(
+        '/pin/change',
+        data: jsonEncode({
+          'current_pin': currentPin,
+          'pin': pin,
+          'pin_confirmation': pin,
+        }),
+        options: Options(headers: {'Accept': 'application/json'}),
+      );
+      state = const AsyncValue.data(null);
+      return ApiResponseModel.fromJson(response.data);
+    } catch (error, stackTrace) {
+      state = AsyncValue.error(error, stackTrace);
+      rethrow;
+    }
+  }
   Future<ApiResponseModel> followArtist({
     required BuildContext context,
     required int artistId,
@@ -1906,6 +1932,15 @@ class ApiResponseProvider extends StateNotifier<AsyncValue<void>> {
     state = const AsyncValue.loading();
     try {
       LoaderService.showLoader(context);
+      // While still signed in: remove this phone from the account (so it stops getting this
+      // person's notifications) and end the session on the server. Never blocks logging out.
+      try {
+        final fcmToken = await FcmTokenService(_dio).unregister();
+        await _dio.post('/auth/logout', data: {if (fcmToken != null) 'fcm_token': fcmToken})
+            .timeout(const Duration(seconds: 5));
+      } catch (e) {
+        print('Server logout failed (logging out locally anyway): $e');
+      }
       ref.invalidate(userProvider);
       await _storage.deleteAll();
       await Future.delayed(const Duration(milliseconds: 500));
